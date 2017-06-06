@@ -1,0 +1,216 @@
+= srtparser.h : Simple, yet powerful C++ SRT Subtitle Parser Library.
+A single header, simple, powerful full blown srt subtitle parser written in C++.
+___
+
+https://github.com/saurabhshri/simple-yet-powerful-srt-subtitle-parser-cpp[srtparser.h] is a single header, simple and powerful C++ srt subtitle parsing library that allows you to easily handle, process and manipulate srt subtitle files in your project. It is an extension of Oleksii Maryshchenko's simple https://github.com/young-developer/subtitle-parser[subtitle-parser]. It has following features :
+
+1. It is a single header C++ (CPP) file, and can be easily used in your project.
+2. Focus on portability, efficiency and simplicity with no external dependency.
+3. Wide variety of functions at programmers disposal to parse srt file as per need.
+4. Capable of :
+	- extracting and stripping HTML and other styling tags from subtitle text.
+	- extracting and stripping speaker names.
+	- extracting and stripping non dialogue texts.
+5. Easy to extend and add new  functionalities.
+
+== How to use srtparser.h
+
+=== General usage ===
+
+srptparser.h is a cross-platform robust srt subtitle parser.
+
+* Download `srtparser.h` from https://github.com/saurabhshri/simple-yet-powerful-srt-subtitle-parser-cpp
+* Include the header file in your program.
+	`#include "lib/srtparser.h"`
+* Create SubtitleParserFactory object. Use this factory object to create SubtitleParser object.
+
+```
+SubtitleParserFactory *subParserFactory = new SubtitleParserFactory("inputFile.srt");
+SubtitleParser *parser = subParserFactory->getParser();
+
+//to get subtitles 
+
+std::vector<SubtitleItem*> sub = parser->getSubtitles();
+```
+
+* Call appropriate functions to perform parsing.
+
+See demo usage in `examples` directory.
+
+=== Parser Functions ===
+
+The following is a complete list of available parser functions.
+
+Syntax:
+
+
+
+[cols="2,1,2,5"]
+|===
+| Class | Return Type | Function | Description
+
+| SubtitleParserFactory
+| SubtitleParserFactory
+| `SubtitleParserFactory("inputFile.srt")`
+| Creates a SubtitleParserFactory object. Here the _inputFile.srt_ is the path of subtitle file to be parsed. This object is used to create parser.
+
+_E.g.: ``SubtitleParserFactory *subParserFactory = new SubtitleParserFactory("inputFile.srt");``_
+
+| SubtitleParserFactory
+| SubtitleParser
+| `getParser()`
+| Returns the SubtitleParser object. This object will be used to parse the subtitle file.
+
+_E.g.: ``SubtitleParser *parser = subParserFactory->getParser();``_
+
+| SubtitleParser
+| std::vector<SubtitleItem*>
+| `getSubtitles()`
+| Returns the Subtitle as SubtitleItem object.
+
+_E.g.: ``std::vector<SubtitleItem*> sub = parser->getSubtitles();``_
+
+| SubtitleParser
+| std::string
+| `getFileData()`
+| Returns the complete file data read as it is from inputFile.srt
+
+_E.g.: ``std::string fileData = parser->getFileData();``_
+
+| SubtitleItem
+| long int
+| `getStartTime()`
+| Returns the starting time of subtitle in milliseconds.
+
+_E.g.: ``long int startTime = sub->getStartTime();``_
+
+| SubtitleItem
+| long int
+| `getEndTime()`
+| Returns the ending time of subtitle in milliseconds.
+
+_E.g.: ``long int endTime = sub->getEndTime();``_
+
+| SubtitleItem
+| std::string
+| `getStartTimeString()`
+| Returns the starting time of subtitle in srt format.
+
+_E.g.: ``std::string startTime = sub->getStartTimeString();``_
+
+| SubtitleItem
+| std::string
+| `getEndTimeString()`
+| Returns the ending time of subtitle in srt format.
+
+_E.g.: ``std::string endTime = sub->getEndTimeString();``_
+
+| SubtitleItem
+| std::string
+| `getText()`
+| Returns the subtitle text as present in .srt file.
+
+_E.g.: ``std::string text = sub->getText();``_
+
+| SubtitleItem
+| std::string
+| `getDialogue(bool keepHTML, bool doNotIgnoreNonDialogues, bool doNotRemoveSpeakerNames);`
+| Returns the subtitle text after processing according to parameters.
+
+keepHTML = 1 to stop parser from stripping style tags
+
+doNotIgnoreNonDialogues = 1 to stop parser from ignoring and extracting non dialogue texts such as _(laughter)_.
+
+doNotRemoveSpeakerNames = 1 to stop parser from ignoring and extracting speaker names
+
+By default (0,0,0) values are passed.
+
+_E.g.: ``std::string text = sub->getDialogue();``_
+
+| SubtitleItem
+| int
+| `getWordCount()`
+| Returns the count of number of words present in the subtitle dialogue.
+
+_E.g.: ``int wordCount = sub->getWordCount();``_
+
+| SubtitleItem
+| std::vector<std::string>
+| `getIndividualWords()`
+| Returns string vector of individual words present in subtitle.
+
+_E.g.: ``std::vector<std::string> words = sub->getIndividualWords();``_
+
+| SubtitleItem
+| bool
+| `getIgnoreStatus()`
+| Returns the ignore status. Returns true, if the _justDialogue field i.e. subtitle after processing is empty.
+
+_E.g.: ``bool ignore = sub->getIgnoreStatus();``_
+
+| SubtitleItem
+| int
+| `getSpeakerCount()`
+| Returns the count of number of speakers present in the subtitle.
+
+_E.g.: ``int speakerCount = sub->getSpeakerCount();``_
+
+| SubtitleItem
+| std::vector<std::string>
+| `getSpeakerNames()`
+| Returns string vector of speaker names.
+
+_E.g.: ``std::vector<std::string> speakerNames = sub->getSpeakerNames();``_
+
+| SubtitleItem
+| int
+| `getNonDialogueCount()`
+| Returns the count of number of non dialogue words present in the subtitle.
+
+_E.g.: ``int nonDialogueCount = sub->getNonDialogueCount();``_
+
+| SubtitleItem
+| std::vector<std::string>
+| `getNonDialogueWords()`
+| Returns string vector of non dialogue words.
+
+_E.g.: ``std::vector<std::string> nonDialogueWords = sub->getNonDialogueWords();``_
+
+| SubtitleItem
+| int
+| `getStyleTagCount()`
+| Returns the count of number of style tags present in the subtitle.
+
+_E.g.: ``int styleTagCount = sub->getStyleTagCount();``_
+
+| SubtitleItem
+| std::vector<std::string>
+| `getStyleTags()`
+| Returns string vector of style tags.
+
+_E.g.: ``std::vector<std::string> styleTags = sub->getStyleTags();``_
+
+| SubtitleWord
+| std::string
+| `getText()`
+| Returns the subtitle text as present in .srt file.
+
+_E.g.: ``std::string text = sub->getText();``_
+
+|===
+
+## Examples
+
+While I've tried to include examples in the above table, a compilation of all of them together in a single C++ program can be found in `example` directory.
+
+## Contributing
+
+Suggestions, features request, PRs, bug reports, bug fixes are welcomed. I'll be thankful.
+
+## Credits
+
+Built upon a MIT licensed simple subtitle-parser called LibSub-Parser by Oleksii Maryshchenko.
+
+The original parser had 3 major functions : getStartTime(), getEndTime() and getText(). 
+
+Rest work done by Saurabh Shrivastava, originally for using this in his https://saurabhshri.github.io/2017/05/gsoc/creating-a-full-blown-srt-subtitle-parser[GSoC project].

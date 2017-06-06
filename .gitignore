@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# Cmake Stuff
+demo/ApproxAligner/build/
+src/build/

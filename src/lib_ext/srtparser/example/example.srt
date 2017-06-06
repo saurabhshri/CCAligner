@@ -1,0 +1,19 @@
+1
+00:00:00,520 --> 00:00:03,536
+Chris: Elon, hey, welcome back to TED.
+
+2
+00:00:03,560 --> 00:00:04,936
+It's great to have you here.
+
+3
+00:00:04,960 --> 00:00:06,536
+Elon: Thanks for having me.
+
+4
+00:00:06,560 --> 00:00:09,416
+(Applause) Thanks
+
+5
+00:00:09,440 --> 00:00:11,256
+<i>we're going to spend some time</i>
