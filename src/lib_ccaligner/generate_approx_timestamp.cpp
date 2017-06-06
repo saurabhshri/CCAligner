@@ -93,7 +93,11 @@ void ApproxAligner::align()
     {
         currentSub * currSub = new currentSub(sub);
         currSub->run();
+        delete currSub;
     }
+
+    delete parser;
+    delete subParserFactory;
 }
 
 ApproxAligner::~ApproxAligner()

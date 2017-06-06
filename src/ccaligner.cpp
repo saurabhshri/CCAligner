@@ -13,5 +13,7 @@ int main(int argc, char *argv[])
     ApproxAligner * aligner = new ApproxAligner(filename);
     aligner->align();
 
+    delete aligner;
+
     return 0;
 }
