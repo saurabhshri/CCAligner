@@ -39,7 +39,7 @@ set(SOURCE_FILES
         ccaligner.cpp
         lib_ccaligner/generate_approx_timestamp.cpp
         lib_ccaligner/generate_approx_timestamp.h
-        lib_ccaligner/voice_activity_detection.h lib_ccaligner/voice_activity_detection.cpp lib_ccaligner/common_header_files.h)
+        lib_ccaligner/voice_activity_detection.h lib_ccaligner/voice_activity_detection.cpp lib_ccaligner/common_header_files.h lib_ccaligner/read_wav_file.h lib_ccaligner/read_wav_file.cpp)
 
 add_executable(ccaligner ${SOURCE_FILES})
 target_link_libraries(ccaligner webRTC)

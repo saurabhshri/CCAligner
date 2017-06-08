@@ -1,4 +1,5 @@
 #include "generate_approx_timestamp.h"
+#include "read_wav_file.h"
 
 int main(int argc, char *argv[])
 {
@@ -10,10 +11,7 @@ int main(int argc, char *argv[])
 
     std::string filename(argv[1]);
 
-    ApproxAligner * aligner = new ApproxAligner(filename);
-    aligner->align();
-
-    delete aligner;
-
+    WaveFileData * file = new WaveFileData(filename);
+    file->openFile();
     return 0;
 }
