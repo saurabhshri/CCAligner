@@ -16,14 +16,14 @@
 class WaveFileData
 {
     std::string _fileName;
-    std::vector<char> _fileData;
+    std::vector<unsigned char> _fileData;
     std::vector<std::vector<double>> _samples;
 
-    bool checkValidWave (std::vector<char>& fileData);
+    bool checkValidWave (std::vector<unsigned char>& fileData);
     bool parse();
 
-    unsigned long fourBytesToInt (std::vector<char>& fileData, int index);
-    int twoBytesToInt (std::vector<char>& fileData, int index);
+    unsigned long fourBytesToInt (std::vector<unsigned char>& fileData, int index);
+    int twoBytesToInt (std::vector<unsigned char>& fileData, int index);
     double twoBytesToDouble (int sample);
 
 public:
