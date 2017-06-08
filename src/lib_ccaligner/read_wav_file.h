@@ -12,6 +12,9 @@
 #include <vector>
 #include <string>
 #include <iterator>
+#include <algorithm>
+
+int findIndex(std::vector<char>& fileData, std::vector<char>& searchString);
 
 class WaveFileData
 {

@@ -6,6 +6,12 @@
 
 #include "read_wav_file.h"
 
+int findIndex(std::vector<unsigned char>& fileData, std::string chunk)
+{
+    auto it = std::search(fileData.begin(), fileData.end(), chunk.begin(), chunk.end());
+    return it-fileData.begin();
+}
+
 WaveFileData::WaveFileData(std::string fileName)
 {
     _fileName = fileName;
@@ -116,6 +122,9 @@ bool WaveFileData::parse()
 
         SOURCE : http://soundfile.sapp.org/doc/WaveFormat/
 
+        NOTE : I later found out that the subChunks may be located at different offsets
+               in presence of metadata like LIST INFO etc..
+
      */
 
     std::string format(_fileData.begin() + 8, _fileData.begin() + 12);
@@ -126,7 +135,15 @@ bool WaveFileData::parse()
         return false;
     }
 
-    std::string subChunk1ID(_fileData.begin() + 12, _fileData.begin() + 16);
+    /*
+     * Apparently, this is just not it. The `fmt ` and `data`  chunk may not necessarily be in continuation.
+     * There may occur inclusion of metadata. So, we'll need to find the location of these chunks.
+     */
+
+    int fmtIndex = findIndex(_fileData, "fmt ");
+    int dataIndex = findIndex(_fileData, "data");
+
+    std::string subChunk1ID(_fileData.begin() + fmtIndex, _fileData.begin() + fmtIndex + 4);
 
     if(subChunk1ID != "fmt ")
     {
@@ -134,7 +151,7 @@ bool WaveFileData::parse()
         return false;
     }
 
-    unsigned long subChunk1Size = fourBytesToInt(_fileData, 16);
+    unsigned long subChunk1Size = fourBytesToInt(_fileData, fmtIndex + 4);
 
     if(subChunk1Size != 16)
     {
@@ -142,7 +159,7 @@ bool WaveFileData::parse()
         return false;
     }
 
-    int audioFormat = twoBytesToInt(_fileData, 20);
+    int audioFormat = twoBytesToInt(_fileData, fmtIndex + 8);
 
     if(audioFormat != 1)
     {
@@ -150,7 +167,7 @@ bool WaveFileData::parse()
         return false;
     }
 
-    int numChannels = twoBytesToInt(_fileData, 22);
+    int numChannels = twoBytesToInt(_fileData, fmtIndex + 10);
 
     if(numChannels != 1)
     {
@@ -158,7 +175,7 @@ bool WaveFileData::parse()
         return false;
     }
 
-    unsigned long sampleRate = fourBytesToInt(_fileData, 24);
+    unsigned long sampleRate = fourBytesToInt(_fileData, fmtIndex + 12);
 
     if(sampleRate != 16000)
     {
@@ -166,11 +183,11 @@ bool WaveFileData::parse()
         return false;
     }
 
-    unsigned long byteRate = fourBytesToInt(_fileData, 28);
+    unsigned long byteRate = fourBytesToInt(_fileData, fmtIndex + 16);
 
-    int blockAlign = twoBytesToInt(_fileData, 32);
+    int blockAlign = twoBytesToInt(_fileData, fmtIndex + 20);
 
-    int bitRate = twoBytesToInt(_fileData, 34); //BitsPerSample
+    int bitRate = twoBytesToInt(_fileData, fmtIndex + 22); //BitsPerSample
 
     if(bitRate != 16)
     {
@@ -184,7 +201,7 @@ bool WaveFileData::parse()
         return false;
     }
 
-    std::string subChunk2ID (_fileData.begin() + 36, _fileData.begin() + 40);
+    std::string subChunk2ID (_fileData.begin() + dataIndex, _fileData.begin() + dataIndex + 4);
 
     if(subChunk2ID != "data")
     {
@@ -192,7 +209,7 @@ bool WaveFileData::parse()
         return false;
     }
 
-    unsigned long subChunk2Size = fourBytesToInt(_fileData, 40);
+    unsigned long subChunk2Size = fourBytesToInt(_fileData, dataIndex + 4);
 
     int numSamples = subChunk2Size * 8 / ( numChannels * bitRate);
 
@@ -202,7 +219,7 @@ bool WaveFileData::parse()
     {
         for (int channel = 0; channel < numChannels; channel++)
         {
-            int sampleIndex = 44 + (blockAlign * i) + channel * bitRate / 8;
+            int sampleIndex = dataIndex + 8 + (blockAlign * i) + channel * bitRate / 8;
 
             int sampleValue = twoBytesToInt(_fileData, sampleIndex);
             double sample = twoBytesToDouble(sampleValue);
