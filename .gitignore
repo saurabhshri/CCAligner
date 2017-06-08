@@ -31,6 +31,10 @@
 *.out
 *.app
 
-# Cmake Stuff
+# Cmake and IDE Stuff
 demo/ApproxAligner/build/
+demo/ApproxAligner/cmake-build-debug/
+demo/ApproxAligner/.idea/
 src/build/
+src/cmake-build-debug/
+src/.idea/
