@@ -8,10 +8,12 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "webrtc/base/common.h"
 #include "webrtc/base/base64.h"
 #include "webrtc/base/gunit.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/stringutils.h"
+#include "webrtc/base/stream.h"
 
 #include "webrtc/base/testbase64.h"
 
@@ -339,14 +341,14 @@ size_t Base64Escape(const unsigned char *src, size_t szsrc, char *dest,
 size_t Base64Unescape(const char *src, size_t szsrc, char *dest,
                       size_t szdest) {
   std::string unescaped;
-  EXPECT_TRUE(
-      Base64::DecodeFromArray(src, szsrc, Base64::DO_LAX, &unescaped, nullptr));
+  EXPECT_TRUE(Base64::DecodeFromArray(src, szsrc, Base64::DO_LAX, &unescaped,
+                                      NULL));
   memcpy(dest, unescaped.data(), min(unescaped.size(), szdest));
   return unescaped.size();
 }
 
-size_t Base64Unescape(const char *src, size_t szsrc, std::string *s) {
-  EXPECT_TRUE(Base64::DecodeFromArray(src, szsrc, Base64::DO_LAX, s, nullptr));
+size_t Base64Unescape(const char *src, size_t szsrc, string *s) {
+  EXPECT_TRUE(Base64::DecodeFromArray(src, szsrc, Base64::DO_LAX, s, NULL));
   return s->size();
 }
 
@@ -417,7 +419,7 @@ TEST(Base64, EncodeDecodeBattery) {
 
       // Try chopping off the equals sign(s) entirely.  The decoder
       // should still be okay with this.
-      std::string decoded2("this junk should also be ignored");
+      string decoded2("this junk should also be ignored");
       *first_equals = '\0';
       EXPECT_NE(0U, Base64Unescape(encode_buffer, first_equals-encode_buffer,
                            &decoded2));
@@ -995,5 +997,5 @@ TEST(Base64, GetNextBase64Char) {
   EXPECT_TRUE(Base64::GetNextBase64Char('/', &next_char));
   EXPECT_EQ('A', next_char);
   EXPECT_FALSE(Base64::GetNextBase64Char('&', &next_char));
-  EXPECT_FALSE(Base64::GetNextBase64Char('Z', nullptr));
+  EXPECT_FALSE(Base64::GetNextBase64Char('Z', NULL));
 }

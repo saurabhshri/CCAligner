@@ -12,11 +12,9 @@
 
 #include <math.h>
 
-#include "libyuv/convert_argb.h"
-#include "webrtc/api/video/i420_buffer.h"
 #include "webrtc/examples/peerconnection/client/defaults.h"
 #include "webrtc/base/arraysize.h"
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/logging.h"
 
 ATOM MainWnd::wnd_class_ = 0;
@@ -79,11 +77,11 @@ MainWnd::MainWnd(const char* server, int port, bool auto_connect,
 }
 
 MainWnd::~MainWnd() {
-  RTC_DCHECK(!IsWindow());
+  ASSERT(!IsWindow());
 }
 
 bool MainWnd::Create() {
-  RTC_DCHECK(wnd_ == NULL);
+  ASSERT(wnd_ == NULL);
   if (!RegisterWindowClass())
     return false;
 
@@ -146,7 +144,7 @@ bool MainWnd::PreTranslateMessage(MSG* msg) {
 }
 
 void MainWnd::SwitchToConnectUI() {
-  RTC_DCHECK(IsWindow());
+  ASSERT(IsWindow());
   LayoutPeerListUI(false);
   ui_ = CONNECT_TO_SERVER;
   LayoutConnectUI(true);
@@ -440,7 +438,7 @@ bool MainWnd::RegisterWindowClass() {
   wcex.lpfnWndProc = &WndProc;
   wcex.lpszClassName = kClassName;
   wnd_class_ = ::RegisterClassEx(&wcex);
-  RTC_DCHECK(wnd_class_ != 0);
+  ASSERT(wnd_class_ != 0);
   return wnd_class_ != 0;
 }
 
@@ -456,7 +454,7 @@ void MainWnd::CreateChildWindow(HWND* wnd, MainWnd::ChildWindowID id,
                           100, 100, 100, 100, wnd_,
                           reinterpret_cast<HMENU>(id),
                           GetModuleHandle(NULL), NULL);
-  RTC_DCHECK(::IsWindow(*wnd) != FALSE);
+  ASSERT(::IsWindow(*wnd) != FALSE);
   ::SendMessage(*wnd, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultFont()),
                 TRUE);
 }
@@ -601,27 +599,22 @@ void MainWnd::VideoRenderer::SetSize(int width, int height) {
 }
 
 void MainWnd::VideoRenderer::OnFrame(
-    const webrtc::VideoFrame& video_frame) {
+    const cricket::VideoFrame& video_frame) {
 
   {
     AutoLock<VideoRenderer> lock(this);
 
-    rtc::scoped_refptr<webrtc::I420BufferInterface> buffer(
-        video_frame.video_frame_buffer()->ToI420());
-    if (video_frame.rotation() != webrtc::kVideoRotation_0) {
-      buffer = webrtc::I420Buffer::Rotate(*buffer, video_frame.rotation());
-    }
+    const cricket::VideoFrame* frame =
+        video_frame.GetCopyWithRotationApplied();
 
-    SetSize(buffer->width(), buffer->height());
+    SetSize(frame->width(), frame->height());
 
-    RTC_DCHECK(image_.get() != NULL);
-    libyuv::I420ToARGB(buffer->DataY(), buffer->StrideY(),
-                       buffer->DataU(), buffer->StrideU(),
-                       buffer->DataV(), buffer->StrideV(),
-                       image_.get(),
-                       bmi_.bmiHeader.biWidth *
-                           bmi_.bmiHeader.biBitCount / 8,
-                       buffer->width(), buffer->height());
+    ASSERT(image_.get() != NULL);
+    frame->ConvertToRgbBuffer(cricket::FOURCC_ARGB,
+                              image_.get(),
+                              bmi_.bmiHeader.biSizeImage,
+                              bmi_.bmiHeader.biWidth *
+                              bmi_.bmiHeader.biBitCount / 8);
   }
   InvalidateRect(wnd_, NULL, TRUE);
 }

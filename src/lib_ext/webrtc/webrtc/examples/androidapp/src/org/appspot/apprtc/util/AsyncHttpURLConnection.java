@@ -38,7 +38,8 @@ public class AsyncHttpURLConnection {
     void onHttpComplete(String response);
   }
 
-  public AsyncHttpURLConnection(String method, String url, String message, AsyncHttpEvents events) {
+  public AsyncHttpURLConnection(String method, String url, String message,
+      AsyncHttpEvents events) {
     this.method = method;
     this.url = url;
     this.message = message;
@@ -60,7 +61,8 @@ public class AsyncHttpURLConnection {
 
   private void sendHttpMessage() {
     try {
-      HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+      HttpURLConnection connection =
+        (HttpURLConnection) new URL(url).openConnection();
       byte[] postData = new byte[0];
       if (message != null) {
         postData = message.getBytes("UTF-8");
@@ -94,8 +96,8 @@ public class AsyncHttpURLConnection {
       // Get response.
       int responseCode = connection.getResponseCode();
       if (responseCode != 200) {
-        events.onHttpError("Non-200 response to " + method + " to URL: " + url + " : "
-            + connection.getHeaderField(null));
+        events.onHttpError("Non-200 response to " + method + " to URL: "
+            + url + " : " + connection.getHeaderField(null));
         connection.disconnect();
         return;
       }
@@ -107,7 +109,8 @@ public class AsyncHttpURLConnection {
     } catch (SocketTimeoutException e) {
       events.onHttpError("HTTP " + method + " to " + url + " timeout");
     } catch (IOException e) {
-      events.onHttpError("HTTP " + method + " to " + url + " error: " + e.getMessage());
+      events.onHttpError("HTTP " + method + " to " + url + " error: "
+          + e.getMessage());
     }
   }
 

@@ -132,7 +132,7 @@ class StunUInt16ListAttribute;
 class StunMessage {
  public:
   StunMessage();
-  virtual ~StunMessage() = default;
+  virtual ~StunMessage();
 
   int type() const { return type_; }
   size_t length() const { return length_; }
@@ -156,13 +156,12 @@ class StunMessage {
 
   // Gets these specific attribute values.
   const StunErrorCodeAttribute* GetErrorCode() const;
-  // Returns the code inside the error code attribute, if present, and
-  // STUN_ERROR_GLOBAL_FAILURE otherwise.
-  int GetErrorCodeValue() const;
   const StunUInt16ListAttribute* GetUnknownAttributes() const;
 
-  // Takes ownership of the specified attribute and adds it to the message.
-  void AddAttribute(std::unique_ptr<StunAttribute> attr);
+  // Takes ownership of the specified attribute, verifies it is of the correct
+  // type, and adds it to the message. The return value indicates whether this
+  // was successful.
+  bool AddAttribute(StunAttribute* attr);
 
   // Validates that a raw STUN message has a correct MESSAGE-INTEGRITY value.
   // This can't currently be done on a StunMessage, since it is affected by
@@ -202,7 +201,7 @@ class StunMessage {
   uint16_t type_;
   uint16_t length_;
   std::string transaction_id_;
-  std::vector<std::unique_ptr<StunAttribute>> attrs_;
+  std::vector<StunAttribute*>* attrs_;
 };
 
 // Base class for all STUN/TURN attributes.
@@ -235,15 +234,13 @@ class StunAttribute {
                                StunMessage* owner);
   // TODO: Allow these create functions to take parameters, to reduce
   // the amount of work callers need to do to initialize attributes.
-  static std::unique_ptr<StunAddressAttribute> CreateAddress(uint16_t type);
-  static std::unique_ptr<StunXorAddressAttribute> CreateXorAddress(
-      uint16_t type);
-  static std::unique_ptr<StunUInt32Attribute> CreateUInt32(uint16_t type);
-  static std::unique_ptr<StunUInt64Attribute> CreateUInt64(uint16_t type);
-  static std::unique_ptr<StunByteStringAttribute> CreateByteString(
-      uint16_t type);
-  static std::unique_ptr<StunErrorCodeAttribute> CreateErrorCode();
-  static std::unique_ptr<StunUInt16ListAttribute> CreateUnknownAttributes();
+  static StunAddressAttribute* CreateAddress(uint16_t type);
+  static StunXorAddressAttribute* CreateXorAddress(uint16_t type);
+  static StunUInt32Attribute* CreateUInt32(uint16_t type);
+  static StunUInt64Attribute* CreateUInt64(uint16_t type);
+  static StunByteStringAttribute* CreateByteString(uint16_t type);
+  static StunErrorCodeAttribute* CreateErrorCode();
+  static StunUInt16ListAttribute* CreateUnknownAttributes();
 
  protected:
   StunAttribute(uint16_t type, uint16_t length);
@@ -416,7 +413,7 @@ class StunByteStringAttribute : public StunAttribute {
 // Implements STUN attributes that record an error code.
 class StunErrorCodeAttribute : public StunAttribute {
  public:
-  static const uint16_t MIN_SIZE;
+  static const uint16_t MIN_SIZE = 4;
   StunErrorCodeAttribute(uint16_t type, int code, const std::string& reason);
   StunErrorCodeAttribute(uint16_t type, uint16_t length);
   ~StunErrorCodeAttribute();
@@ -609,7 +606,6 @@ enum IceAttributeType {
   STUN_ATTR_USE_CANDIDATE = 0x0025,    // No content, Length = 0
   STUN_ATTR_ICE_CONTROLLED = 0x8029,   // UInt64
   STUN_ATTR_ICE_CONTROLLING = 0x802A,  // UInt64
-  STUN_ATTR_NOMINATION = 0xC001,       // UInt32
   // UInt32. The higher 16 bits are the network ID. The lower 16 bits are the
   // network cost.
   STUN_ATTR_NETWORK_INFO = 0xC057
@@ -628,7 +624,6 @@ class IceMessage : public StunMessage {
     switch (type) {
       case STUN_ATTR_PRIORITY:
       case STUN_ATTR_NETWORK_INFO:
-      case STUN_ATTR_NOMINATION:
         return STUN_VALUE_UINT32;
       case STUN_ATTR_USE_CANDIDATE:   return STUN_VALUE_BYTE_STRING;
       case STUN_ATTR_ICE_CONTROLLED:  return STUN_VALUE_UINT64;

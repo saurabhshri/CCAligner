@@ -8,23 +8,15 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-// This file contains declarations of interfaces that wrap SDP-related
-// constructs; session descriptions and ICE candidates. The inner "cricket::"
-// objects shouldn't be accessed directly; the intention is that an application
-// using the PeerConnection API only creates these objects from strings, and
-// them passes them into the PeerConnection.
-//
-// Though in the future, we're planning to provide an SDP parsing API, with a
-// structure more friendly than cricket::SessionDescription.
+// Interfaces matching the draft-ietf-rtcweb-jsep-01.
 
 #ifndef WEBRTC_API_JSEP_H_
 #define WEBRTC_API_JSEP_H_
 
-#include <stddef.h>
-
 #include <string>
 #include <vector>
 
+#include "webrtc/base/basictypes.h"
 #include "webrtc/base/refcount.h"
 
 namespace cricket {
@@ -43,40 +35,34 @@ struct SdpParseError {
 };
 
 // Class representation of an ICE candidate.
-//
 // An instance of this interface is supposed to be owned by one class at
 // a time and is therefore not expected to be thread safe.
-//
-// An instance can be created by CreateIceCandidate.
 class IceCandidateInterface {
  public:
   virtual ~IceCandidateInterface() {}
-  // If present, this is the value of the "a=mid" attribute of the candidate's
-  // m= section in SDP, which identifies the m= section.
+  /// If present, this contains the identierfier of the "media stream
+  // identification" as defined in [RFC 3388] for m-line this candidate is
+  // assocated with.
   virtual std::string sdp_mid() const = 0;
-  // This indicates the index (starting at zero) of m= section this candidate
-  // is assocated with. Needed when an endpoint doesn't support MIDs.
+  // This indeicates the index (starting at zero) of m-line in the SDP this
+  // candidate is assocated with.
   virtual int sdp_mline_index() const = 0;
-  // Only for use internally.
   virtual const cricket::Candidate& candidate() const = 0;
-  // The URL of the ICE server which this candidate was gathered from.
-  // TODO(zhihuang): Remove the default implementation once the subclasses
-  // implement this method.
-  virtual std::string server_url() const { return ""; }
   // Creates a SDP-ized form of this candidate.
   virtual bool ToString(std::string* out) const = 0;
 };
 
 // Creates a IceCandidateInterface based on SDP string.
-// Returns null if the sdp string can't be parsed.
-// |error| may be null.
+// Returns NULL if the sdp string can't be parsed.
+// |error| can be NULL if doesn't care about the failure reason.
 IceCandidateInterface* CreateIceCandidate(const std::string& sdp_mid,
                                           int sdp_mline_index,
                                           const std::string& sdp,
                                           SdpParseError* error);
 
-// This class represents a collection of candidates for a specific m= section.
-// Used in SessionDescriptionInterface.
+// This class represents a collection of candidates for a specific m-line.
+// This class is used in SessionDescriptionInterface to represent all known
+// candidates for a certain m-line.
 class IceCandidateCollection {
  public:
   virtual ~IceCandidateCollection() {}
@@ -86,12 +72,9 @@ class IceCandidateCollection {
   virtual const IceCandidateInterface* at(size_t index) const = 0;
 };
 
-// Class representation of an SDP session description.
-//
-// An instance of this interface is supposed to be owned by one class at a time
-// and is therefore not expected to be thread safe.
-//
-// An instance can be created by CreateSessionDescription.
+// Class representation of a Session description.
+// An instance of this interface is supposed to be owned by one class at
+// a time and is therefore not expected to be thread safe.
 class SessionDescriptionInterface {
  public:
   // Supported types:
@@ -100,59 +83,44 @@ class SessionDescriptionInterface {
   static const char kAnswer[];
 
   virtual ~SessionDescriptionInterface() {}
-
-  // Only for use internally.
   virtual cricket::SessionDescription* description() = 0;
   virtual const cricket::SessionDescription* description() const = 0;
-
   // Get the session id and session version, which are defined based on
   // RFC 4566 for the SDP o= line.
   virtual std::string session_id() const = 0;
   virtual std::string session_version() const = 0;
-
-  // kOffer/kPrAnswer/kAnswer
   virtual std::string type() const = 0;
-
   // Adds the specified candidate to the description.
-  //
   // Ownership is not transferred.
-  //
-  // Returns false if the session description does not have a media section
-  // that corresponds to |candidate.sdp_mid()| or
-  // |candidate.sdp_mline_index()|.
+  // Returns false if the session description does not have a media section that
+  // corresponds to the |candidate| label.
   virtual bool AddCandidate(const IceCandidateInterface* candidate) = 0;
-
-  // Removes the candidates from the description, if found.
-  //
+  // Removes the candidates from the description.
   // Returns the number of candidates removed.
   virtual size_t RemoveCandidates(
       const std::vector<cricket::Candidate>& candidates) { return 0; }
 
-  // Returns the number of m= sections in the session description.
+  // Returns the number of m- lines in the session description.
   virtual size_t number_of_mediasections() const = 0;
-
-  // Returns a collection of all candidates that belong to a certain m=
-  // section.
+  // Returns a collection of all candidates that belong to a certain m-line
   virtual const IceCandidateCollection* candidates(
       size_t mediasection_index) const = 0;
-
   // Serializes the description to SDP.
   virtual bool ToString(std::string* out) const = 0;
 };
 
-// Creates a SessionDescriptionInterface based on the SDP string and the type.
-// Returns null if the sdp string can't be parsed or the type is unsupported.
-// |error| may be null.
+// Creates a SessionDescriptionInterface based on SDP string and the type.
+// Returns NULL if the sdp string can't be parsed or the type is unsupported.
+// |error| can be NULL if doesn't care about the failure reason.
 SessionDescriptionInterface* CreateSessionDescription(const std::string& type,
                                                       const std::string& sdp,
                                                       SdpParseError* error);
 
-// CreateOffer and CreateAnswer callback interface.
+// Jsep CreateOffer and CreateAnswer callback interface.
 class CreateSessionDescriptionObserver : public rtc::RefCountInterface {
  public:
-  // This callback transfers the ownership of the |desc|.
-  // TODO(deadbeef): Make this take an std::unique_ptr<> to avoid confusion
-  // around ownership.
+  // The implementation of the CreateSessionDescriptionObserver takes
+  // the ownership of the |desc|.
   virtual void OnSuccess(SessionDescriptionInterface* desc) = 0;
   virtual void OnFailure(const std::string& error) = 0;
 
@@ -160,7 +128,7 @@ class CreateSessionDescriptionObserver : public rtc::RefCountInterface {
   ~CreateSessionDescriptionObserver() {}
 };
 
-// SetLocalDescription and SetRemoteDescription callback interface.
+// Jsep SetLocalDescription and SetRemoteDescription callback interface.
 class SetSessionDescriptionObserver : public rtc::RefCountInterface {
  public:
   virtual void OnSuccess() = 0;

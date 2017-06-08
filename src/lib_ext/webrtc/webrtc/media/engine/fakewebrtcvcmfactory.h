@@ -22,14 +22,16 @@
 class FakeWebRtcVcmFactory : public cricket::WebRtcVcmFactoryInterface {
  public:
   virtual rtc::scoped_refptr<webrtc::VideoCaptureModule> Create(
+      int module_id,
       const char* device_id) {
     if (!device_info.GetDeviceById(device_id)) return NULL;
     rtc::scoped_refptr<FakeWebRtcVideoCaptureModule> module(
-        new rtc::RefCountedObject<FakeWebRtcVideoCaptureModule>(this));
+        new rtc::RefCountedObject<FakeWebRtcVideoCaptureModule>(this,
+                                                                module_id));
     modules.push_back(module);
     return module;
   }
-  virtual webrtc::VideoCaptureModule::DeviceInfo* CreateDeviceInfo() {
+  virtual webrtc::VideoCaptureModule::DeviceInfo* CreateDeviceInfo(int id) {
     return &device_info;
   }
   virtual void DestroyDeviceInfo(webrtc::VideoCaptureModule::DeviceInfo* info) {

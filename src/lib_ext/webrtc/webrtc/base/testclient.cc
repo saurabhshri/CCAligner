@@ -9,7 +9,6 @@
  */
 
 #include "webrtc/base/testclient.h"
-#include "webrtc/base/ptr_util.h"
 #include "webrtc/base/thread.h"
 #include "webrtc/base/timeutils.h"
 
@@ -19,13 +18,19 @@ namespace rtc {
 //         Callers can retrieve received packets from any thread by calling
 //         NextPacket.
 
-TestClient::TestClient(std::unique_ptr<AsyncPacketSocket> socket)
-    : socket_(std::move(socket)), prev_packet_timestamp_(-1) {
+TestClient::TestClient(AsyncPacketSocket* socket)
+    : socket_(socket), ready_to_send_(false), prev_packet_timestamp_(-1) {
+  packets_ = new std::vector<Packet*>();
   socket_->SignalReadPacket.connect(this, &TestClient::OnPacket);
   socket_->SignalReadyToSend.connect(this, &TestClient::OnReadyToSend);
 }
 
-TestClient::~TestClient() {}
+TestClient::~TestClient() {
+  delete socket_;
+  for (unsigned i = 0; i < packets_->size(); i++)
+    delete (*packets_)[i];
+  delete packets_;
+}
 
 bool TestClient::CheckConnState(AsyncPacketSocket::State state) {
   // Wait for our timeout value until the socket reaches the desired state.
@@ -47,7 +52,7 @@ int TestClient::SendTo(const char* buf, size_t size,
   return socket_->SendTo(buf, size, dest, options);
 }
 
-std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
+TestClient::Packet* TestClient::NextPacket(int timeout_ms) {
   // If no packets are currently available, we go into a get/dispatch loop for
   // at most timeout_ms.  If, during the loop, a packet arrives, then we can
   // stop early and return it.
@@ -63,7 +68,7 @@ std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
   while (TimeUntil(end) > 0) {
     {
       CritScope cs(&crit_);
-      if (packets_.size() != 0) {
+      if (packets_->size() != 0) {
         break;
       }
     }
@@ -71,11 +76,11 @@ std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
   }
 
   // Return the first packet placed in the queue.
-  std::unique_ptr<Packet> packet;
+  Packet* packet = NULL;
   CritScope cs(&crit_);
-  if (packets_.size() > 0) {
-    packet = std::move(packets_.front());
-    packets_.erase(packets_.begin());
+  if (packets_->size() > 0) {
+    packet = packets_->front();
+    packets_->erase(packets_->begin());
   }
 
   return packet;
@@ -84,12 +89,13 @@ std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
 bool TestClient::CheckNextPacket(const char* buf, size_t size,
                                  SocketAddress* addr) {
   bool res = false;
-  std::unique_ptr<Packet> packet = NextPacket(kTimeoutMs);
+  Packet* packet = NextPacket(kTimeoutMs);
   if (packet) {
     res = (packet->size == size && memcmp(packet->buf, buf, size) == 0 &&
            CheckTimestamp(packet->packet_time.timestamp));
     if (addr)
       *addr = packet->addr;
+    delete packet;
   }
   return res;
 }
@@ -109,7 +115,11 @@ bool TestClient::CheckTimestamp(int64_t packet_timestamp) {
 }
 
 bool TestClient::CheckNoPacket() {
-  return NextPacket(kNoPacketTimeoutMs) == nullptr;
+  bool res;
+  Packet* packet = NextPacket(kNoPacketTimeoutMs);
+  res = (packet == NULL);
+  delete packet;
+  return res;
 }
 
 int TestClient::GetError() {
@@ -120,15 +130,19 @@ int TestClient::SetOption(Socket::Option opt, int value) {
   return socket_->SetOption(opt, value);
 }
 
+bool TestClient::ready_to_send() const {
+  return ready_to_send_;
+}
+
 void TestClient::OnPacket(AsyncPacketSocket* socket, const char* buf,
                           size_t size, const SocketAddress& remote_addr,
                           const PacketTime& packet_time) {
   CritScope cs(&crit_);
-  packets_.push_back(MakeUnique<Packet>(remote_addr, buf, size, packet_time));
+  packets_->push_back(new Packet(remote_addr, buf, size, packet_time));
 }
 
 void TestClient::OnReadyToSend(AsyncPacketSocket* socket) {
-  ++ready_to_send_count_;
+  ready_to_send_ = true;
 }
 
 TestClient::Packet::Packet(const SocketAddress& a,

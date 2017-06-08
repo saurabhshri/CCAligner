@@ -22,7 +22,7 @@ class UnixFilesystem : public FilesystemInterface {
   UnixFilesystem();
   ~UnixFilesystem() override;
 
-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_MAC)
+#if defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS)
   // Android does not have a native code API to fetch the app data or temp
   // folders. That needs to be passed into this class from Java. Similarly, iOS
   // only supports an Objective-C API for fetching the folder locations, so that
@@ -34,12 +34,21 @@ class UnixFilesystem : public FilesystemInterface {
   static void SetAppTempFolder(const std::string& folder);
 #endif
 
+  // Opens a file. Returns an open StreamInterface if function succeeds.
+  // Otherwise, returns NULL.
+  FileStream* OpenFile(const Pathname& filename,
+                       const std::string& mode) override;
+
+  // Atomically creates an empty file accessible only to the current user if one
+  // does not already exist at the given path, otherwise fails.
+  bool CreatePrivateFile(const Pathname& filename) override;
+
   // This will attempt to delete the file located at filename.
   // It will fail with VERIY if you pass it a non-existant file, or a directory.
   bool DeleteFile(const Pathname& filename) override;
 
   // This will attempt to delete the folder located at 'folder'
-  // It DCHECKs and returns false if you pass it a non-existant folder or a
+  // It ASSERTs and returns false if you pass it a non-existant folder or a
   // plain file.
   bool DeleteEmptyFolder(const Pathname& folder) override;
 
@@ -56,9 +65,18 @@ class UnixFilesystem : public FilesystemInterface {
   // file or directory, which will be moved recursively.
   // Returns true if function succeeds.
   bool MoveFile(const Pathname& old_path, const Pathname& new_path) override;
+  bool MoveFolder(const Pathname& old_path, const Pathname& new_path) override;
+
+  // This copies a file from old_path to _new_path where "file" can be a plain
+  // file or directory, which will be copied recursively.
+  // Returns true if function succeeds
+  bool CopyFile(const Pathname& old_path, const Pathname& new_path) override;
 
   // Returns true if a pathname is a directory
   bool IsFolder(const Pathname& pathname) override;
+
+  // Returns true if pathname represents a temporary location on the system.
+  bool IsTemporaryPath(const Pathname& pathname) override;
 
   // Returns true of pathname represents an existing file
   bool IsFile(const Pathname& pathname) override;
@@ -81,8 +99,21 @@ class UnixFilesystem : public FilesystemInterface {
                    FileTimeType which,
                    time_t* time) override;
 
+  // Returns the path to the running application.
+  bool GetAppPathname(Pathname* path) override;
+
+  bool GetAppDataFolder(Pathname* path, bool per_user) override;
+
+  // Get a temporary folder that is unique to the current user and application.
+  bool GetAppTempFolder(Pathname* path) override;
+
+  bool GetDiskFreeSpace(const Pathname& path, int64_t* freebytes) override;
+
+  // Returns the absolute path of the current directory.
+  Pathname GetCurrentDirectory() override;
+
  private:
-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_MAC)
+#if defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS)
   static char* provided_app_data_folder_;
   static char* provided_app_temp_folder_;
 #else

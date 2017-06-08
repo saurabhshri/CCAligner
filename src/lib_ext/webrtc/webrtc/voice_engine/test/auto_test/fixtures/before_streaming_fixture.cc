@@ -8,7 +8,6 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "webrtc/test/testsupport/fileutils.h"
 #include "webrtc/voice_engine/test/auto_test/fixtures/before_streaming_fixture.h"
 
 BeforeStreamingFixture::BeforeStreamingFixture()
@@ -16,8 +15,8 @@ BeforeStreamingFixture::BeforeStreamingFixture()
       transport_(NULL) {
   EXPECT_GE(channel_, 0);
 
-  fake_microphone_input_file_ =
-      webrtc::test::ResourcePath("voice_engine/audio_long16", "pcm");
+  fake_microphone_input_file_ = resource_manager_.long_audio_file_path();
+  EXPECT_FALSE(fake_microphone_input_file_.empty());
 
   SetUpLocalPlayback();
   RestartFakeMicrophone();
@@ -48,9 +47,11 @@ void BeforeStreamingFixture::RestartFakeMicrophone() {
 void BeforeStreamingFixture::PausePlaying() {
   EXPECT_EQ(0, voe_base_->StopSend(channel_));
   EXPECT_EQ(0, voe_base_->StopPlayout(channel_));
+  EXPECT_EQ(0, voe_base_->StopReceive(channel_));
 }
 
 void BeforeStreamingFixture::ResumePlaying() {
+  EXPECT_EQ(0, voe_base_->StartReceive(channel_));
   EXPECT_EQ(0, voe_base_->StartPlayout(channel_));
   EXPECT_EQ(0, voe_base_->StartSend(channel_));
 }

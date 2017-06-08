@@ -14,7 +14,7 @@
 
 #include <memory>
 
-#include "webrtc/test/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 
 namespace webrtc {
 namespace {

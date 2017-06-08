@@ -10,7 +10,7 @@
 
 #include "webrtc/base/networkmonitor.h"
 
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 
 namespace {
 const uint32_t UPDATE_NETWORKS_MESSAGE = 1;
@@ -35,7 +35,7 @@ void NetworkMonitorBase::OnNetworksChanged() {
 }
 
 void NetworkMonitorBase::OnMessage(Message* msg) {
-  RTC_DCHECK(msg->message_id == UPDATE_NETWORKS_MESSAGE);
+  ASSERT(msg->message_id == UPDATE_NETWORKS_MESSAGE);
   SignalNetworksChanged();
 }
 

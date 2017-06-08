@@ -16,7 +16,7 @@
 #define SEC_E_CERT_EXPIRED (-2146893016)
 #endif  // !WEBRTC_WIN
 
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/httpbase.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/socket.h"
@@ -64,7 +64,7 @@ HttpParser::Process(const char* buffer, size_t len, size_t* processed,
   *error = HE_NONE;
 
   if (state_ >= ST_COMPLETE) {
-    RTC_NOTREACHED();
+    ASSERT(false);
     return PR_COMPLETE;
   }
 
@@ -176,7 +176,7 @@ HttpParser::ProcessLine(const char* line, size_t len, HttpError* error) {
 
   case ST_CHUNKSIZE:
     if (len > 0) {
-      char* ptr = nullptr;
+      char* ptr = NULL;
       data_size_ = strtoul(line, &ptr, 16);
       if (ptr != line + len) {
         *error = HE_PROTOCOL;
@@ -206,7 +206,7 @@ HttpParser::ProcessLine(const char* line, size_t len, HttpError* error) {
     break;
 
   default:
-    RTC_NOTREACHED();
+    ASSERT(false);
     break;
   }
 
@@ -245,7 +245,7 @@ public:
   DocumentStream(HttpBase* base) : base_(base), error_(HE_DEFAULT) { }
 
   StreamState GetState() const override {
-    if (nullptr == base_)
+    if (NULL == base_)
       return SS_CLOSED;
     if (HM_RECV == base_->mode_)
       return SS_OPEN;
@@ -342,11 +342,11 @@ public:
   }
 
   HttpBase* Disconnect(HttpError error) {
-    RTC_DCHECK(nullptr != base_);
-    RTC_DCHECK(nullptr != base_->doc_stream_);
+    ASSERT(NULL != base_);
+    ASSERT(NULL != base_->doc_stream_);
     HttpBase* base = base_;
-    base_->doc_stream_ = nullptr;
-    base_ = nullptr;
+    base_->doc_stream_ = NULL;
+    base_ = NULL;
     error_ = error;
     return base;
   }
@@ -360,26 +360,23 @@ private:
 // HttpBase
 //////////////////////////////////////////////////////////////////////
 
-HttpBase::HttpBase()
-    : mode_(HM_NONE),
-      data_(nullptr),
-      notify_(nullptr),
-      http_stream_(nullptr),
-      doc_stream_(nullptr) {}
+HttpBase::HttpBase() : mode_(HM_NONE), data_(NULL), notify_(NULL),
+                       http_stream_(NULL), doc_stream_(NULL) {
+}
 
 HttpBase::~HttpBase() {
-  RTC_DCHECK(HM_NONE == mode_);
+  ASSERT(HM_NONE == mode_);
 }
 
 bool
 HttpBase::isConnected() const {
-  return (http_stream_ != nullptr) && (http_stream_->GetState() == SS_OPEN);
+  return (http_stream_ != NULL) && (http_stream_->GetState() == SS_OPEN);
 }
 
 bool
 HttpBase::attach(StreamInterface* stream) {
-  if ((mode_ != HM_NONE) || (http_stream_ != nullptr) || (stream == nullptr)) {
-    RTC_NOTREACHED();
+  if ((mode_ != HM_NONE) || (http_stream_ != NULL) || (stream == NULL)) {
+    ASSERT(false);
     return false;
   }
   http_stream_ = stream;
@@ -390,12 +387,12 @@ HttpBase::attach(StreamInterface* stream) {
 
 StreamInterface*
 HttpBase::detach() {
-  RTC_DCHECK(HM_NONE == mode_);
+  ASSERT(HM_NONE == mode_);
   if (mode_ != HM_NONE) {
-    return nullptr;
+    return NULL;
   }
   StreamInterface* stream = http_stream_;
-  http_stream_ = nullptr;
+  http_stream_ = NULL;
   if (stream) {
     stream->SignalEvent.disconnect(this);
   }
@@ -404,7 +401,7 @@ HttpBase::detach() {
 
 void
 HttpBase::send(HttpData* data) {
-  RTC_DCHECK(HM_NONE == mode_);
+  ASSERT(HM_NONE == mode_);
   if (mode_ != HM_NONE) {
     return;
   } else if (!isConnected()) {
@@ -441,7 +438,7 @@ HttpBase::send(HttpData* data) {
 
 void
 HttpBase::recv(HttpData* data) {
-  RTC_DCHECK(HM_NONE == mode_);
+  ASSERT(HM_NONE == mode_);
   if (mode_ != HM_NONE) {
     return;
   } else if (!isConnected()) {
@@ -465,7 +462,7 @@ HttpBase::recv(HttpData* data) {
 void
 HttpBase::abort(HttpError err) {
   if (mode_ != HM_NONE) {
-    if (http_stream_ != nullptr) {
+    if (http_stream_ != NULL) {
       http_stream_->Close();
     }
     do_complete(err);
@@ -474,13 +471,13 @@ HttpBase::abort(HttpError err) {
 
 StreamInterface* HttpBase::GetDocumentStream() {
   if (doc_stream_)
-    return nullptr;
+    return NULL;
   doc_stream_ = new DocumentStream(this);
   return doc_stream_;
 }
 
 HttpError HttpBase::HandleStreamClose(int error) {
-  if (http_stream_ != nullptr) {
+  if (http_stream_ != NULL) {
     http_stream_->Close();
   }
   if (error == 0) {
@@ -499,8 +496,8 @@ HttpError HttpBase::HandleStreamClose(int error) {
 }
 
 bool HttpBase::DoReceiveLoop(HttpError* error) {
-  RTC_DCHECK(HM_RECV == mode_);
-  RTC_DCHECK(nullptr != error);
+  ASSERT(HM_RECV == mode_);
+  ASSERT(NULL != error);
 
   // Do to the latency between receiving read notifications from
   // pseudotcpchannel, we rely on repeated calls to read in order to acheive
@@ -524,7 +521,7 @@ bool HttpBase::DoReceiveLoop(HttpError* error) {
                                                     &read, &read_error);
       switch (read_result) {
       case SR_SUCCESS:
-        RTC_DCHECK(len_ + read <= sizeof(buffer_));
+        ASSERT(len_ + read <= sizeof(buffer_));
         len_ += read;
         break;
       case SR_BLOCK:
@@ -559,7 +556,7 @@ bool HttpBase::DoReceiveLoop(HttpError* error) {
     size_t processed;
     ProcessResult process_result = Process(buffer_, len_, &processed,
                                             error);
-    RTC_DCHECK(processed <= len_);
+    ASSERT(processed <= len_);
     len_ -= processed;
     memmove(buffer_, buffer_ + processed, len_);
     switch (process_result) {
@@ -590,14 +587,14 @@ HttpBase::read_and_process_data() {
 
 void
 HttpBase::flush_data() {
-  RTC_DCHECK(HM_SEND == mode_);
+  ASSERT(HM_SEND == mode_);
 
   // When send_required is true, no more buffering can occur without a network
   // write.
   bool send_required = (len_ >= sizeof(buffer_));
 
   while (true) {
-    RTC_DCHECK(len_ <= sizeof(buffer_));
+    ASSERT(len_ <= sizeof(buffer_));
 
     // HTTP is inherently sensitive to round trip latency, since a frequent use
     // case is for small requests and responses to be sent back and forth, and
@@ -635,7 +632,7 @@ HttpBase::flush_data() {
                                                     sizeof(buffer_) - reserve,
                                                     &read, &error);
         if (result == SR_SUCCESS) {
-          RTC_DCHECK(reserve + read <= sizeof(buffer_));
+          ASSERT(reserve + read <= sizeof(buffer_));
           if (chunk_data_) {
             // Prepend the chunk length in hex.
             // Note: sprintfn appends a null terminator, which is why we can't
@@ -655,7 +652,7 @@ HttpBase::flush_data() {
           if (chunk_data_) {
             // Append the empty chunk and empty trailers, then turn off
             // chunking.
-            RTC_DCHECK(len_ + 5 <= sizeof(buffer_));
+            ASSERT(len_ + 5 <= sizeof(buffer_));
             memcpy(buffer_ + len_, "0\r\n\r\n", 5);
             len_ += 5;
             chunk_data_ = false;
@@ -688,7 +685,7 @@ HttpBase::flush_data() {
     int error;
     StreamResult result = http_stream_->Write(buffer_, len_, &written, &error);
     if (result == SR_SUCCESS) {
-      RTC_DCHECK(written <= len_);
+      ASSERT(written <= len_);
       len_ -= written;
       memmove(buffer_, buffer_ + written, len_);
       send_required = false;
@@ -698,19 +695,19 @@ HttpBase::flush_data() {
         return;
       }
     } else {
-      RTC_DCHECK(result == SR_ERROR);
+      ASSERT(result == SR_ERROR);
       LOG_F(LS_ERROR) << "error";
       OnHttpStreamEvent(http_stream_, SE_CLOSE, error);
       return;
     }
   }
 
-  RTC_NOTREACHED();
+  ASSERT(false);
 }
 
 bool
 HttpBase::queue_headers() {
-  RTC_DCHECK(HM_SEND == mode_);
+  ASSERT(HM_SEND == mode_);
   while (header_ != data_->end()) {
     size_t len = sprintfn(buffer_ + len_, sizeof(buffer_) - len_,
                           "%.*s: %.*s\r\n",
@@ -734,16 +731,15 @@ HttpBase::queue_headers() {
 
 void
 HttpBase::do_complete(HttpError err) {
-  RTC_DCHECK(mode_ != HM_NONE);
+  ASSERT(mode_ != HM_NONE);
   HttpMode mode = mode_;
   mode_ = HM_NONE;
   if (data_ && data_->document) {
     data_->document->SignalEvent.disconnect(this);
   }
-  data_ = nullptr;
+  data_ = NULL;
   if ((HM_RECV == mode) && doc_stream_) {
-    RTC_DCHECK(HE_NONE !=
-               err);  // We should have Disconnected doc_stream_ already.
+    ASSERT(HE_NONE != err);  // We should have Disconnected doc_stream_ already.
     DocumentStream* ds = doc_stream_;
     ds->Disconnect(err);
     ds->SignalEvent(ds, SE_CLOSE, err);
@@ -759,7 +755,7 @@ HttpBase::do_complete(HttpError err) {
 
 void
 HttpBase::OnHttpStreamEvent(StreamInterface* stream, int events, int error) {
-  RTC_DCHECK(stream == http_stream_);
+  ASSERT(stream == http_stream_);
   if ((events & SE_OPEN) && (mode_ == HM_CONNECT)) {
     do_complete();
     return;
@@ -794,7 +790,7 @@ HttpBase::OnHttpStreamEvent(StreamInterface* stream, int events, int error) {
 
 void
 HttpBase::OnDocumentEvent(StreamInterface* stream, int events, int error) {
-  RTC_DCHECK(stream == data_->document.get());
+  ASSERT(stream == data_->document.get());
   if ((events & SE_WRITE) && (mode_ == HM_RECV)) {
     read_and_process_data();
     return;
@@ -837,7 +833,7 @@ HttpBase::ProcessHeaderComplete(bool chunked, size_t& data_size,
   if (notify_) {
     *error = notify_->onHttpHeaderComplete(chunked, data_size);
     // The request must not be aborted as a result of this callback.
-    RTC_DCHECK(nullptr != data_);
+    ASSERT(NULL != data_);
   }
   if ((HE_NONE == *error) && data_->document) {
     data_->document->SignalEvent.connect(this, &HttpBase::OnDocumentEvent);

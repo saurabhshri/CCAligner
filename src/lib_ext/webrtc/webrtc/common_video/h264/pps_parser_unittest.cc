@@ -11,26 +11,17 @@
 #include "webrtc/common_video/h264/pps_parser.h"
 
 #include <limits>
-#include <memory>
+
+#include "testing/gtest/include/gtest/gtest.h"
 
 #include "webrtc/base/bitbuffer.h"
 #include "webrtc/base/buffer.h"
 #include "webrtc/common_video/h264/h264_common.h"
-#include "webrtc/test/gtest.h"
 
 namespace webrtc {
 
-namespace {
-// Contains enough of the image slice to contain slice QP.
-const uint8_t kH264BitstreamChunk[] = {
-    0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0x80, 0x20, 0xda, 0x01, 0x40, 0x16,
-    0xe8, 0x06, 0xd0, 0xa1, 0x35, 0x00, 0x00, 0x00, 0x01, 0x68, 0xce, 0x06,
-    0xe2, 0x00, 0x00, 0x00, 0x01, 0x65, 0xb8, 0x40, 0xf0, 0x8c, 0x03, 0xf2,
-    0x75, 0x67, 0xad, 0x41, 0x64, 0x24, 0x0e, 0xa0, 0xb2, 0x12, 0x1e, 0xf8,
-};
-const size_t kPpsBufferMaxSize = 256;
-const uint32_t kIgnored = 0;
-}  // namespace
+static const size_t kPpsBufferMaxSize = 256;
+static const uint32_t kIgnored = 0;
 
 void WritePps(const PpsParser::PpsState& pps,
               int slice_group_map_type,
@@ -41,11 +32,11 @@ void WritePps(const PpsParser::PpsState& pps,
   rtc::BitBufferWriter bit_buffer(data, kPpsBufferMaxSize);
 
   // pic_parameter_set_id: ue(v)
-  bit_buffer.WriteExponentialGolomb(pps.id);
+  bit_buffer.WriteExponentialGolomb(kIgnored);
   // seq_parameter_set_id: ue(v)
-  bit_buffer.WriteExponentialGolomb(pps.sps_id);
+  bit_buffer.WriteExponentialGolomb(kIgnored);
   // entropy_coding_mode_flag: u(1)
-  bit_buffer.WriteBits(pps.entropy_coding_mode_flag, 1);
+  bit_buffer.WriteBits(kIgnored, 1);
   // bottom_field_pic_order_in_frame_present_flag: u(1)
   bit_buffer.WriteBits(pps.bottom_field_pic_order_in_frame_present_flag ? 1 : 0,
                        1);
@@ -181,13 +172,9 @@ class PpsParserTest : public ::testing::Test {
               parsed_pps_->bottom_field_pic_order_in_frame_present_flag);
     EXPECT_EQ(pps.weighted_pred_flag, parsed_pps_->weighted_pred_flag);
     EXPECT_EQ(pps.weighted_bipred_idc, parsed_pps_->weighted_bipred_idc);
-    EXPECT_EQ(pps.entropy_coding_mode_flag,
-              parsed_pps_->entropy_coding_mode_flag);
     EXPECT_EQ(pps.redundant_pic_cnt_present_flag,
               parsed_pps_->redundant_pic_cnt_present_flag);
     EXPECT_EQ(pps.pic_init_qp_minus26, parsed_pps_->pic_init_qp_minus26);
-    EXPECT_EQ(pps.id, parsed_pps_->id);
-    EXPECT_EQ(pps.sps_id, parsed_pps_->sps_id);
   }
 
   PpsParser::PpsState generated_pps_;
@@ -201,24 +188,14 @@ TEST_F(PpsParserTest, ZeroPps) {
 
 TEST_F(PpsParserTest, MaxPps) {
   generated_pps_.bottom_field_pic_order_in_frame_present_flag = true;
-  generated_pps_.pic_init_qp_minus26 = 25;
+  generated_pps_.pic_init_qp_minus26 = std::numeric_limits<int32_t>::max();
   generated_pps_.redundant_pic_cnt_present_flag = 1;  // 1 bit value.
   generated_pps_.weighted_bipred_idc = (1 << 2) - 1;  // 2 bit value.
   generated_pps_.weighted_pred_flag = true;
-  generated_pps_.entropy_coding_mode_flag = true;
-  generated_pps_.id = 2;
-  generated_pps_.sps_id = 1;
   RunTest();
 
-  generated_pps_.pic_init_qp_minus26 = -25;
+  generated_pps_.pic_init_qp_minus26 = std::numeric_limits<int32_t>::min() + 1;
   RunTest();
-}
-
-TEST_F(PpsParserTest, PpsIdFromSlice) {
-  rtc::Optional<uint32_t> pps_id = PpsParser::ParsePpsIdFromSlice(
-      kH264BitstreamChunk, sizeof(kH264BitstreamChunk));
-  ASSERT_TRUE(pps_id);
-  EXPECT_EQ(2u, *pps_id);
 }
 
 }  // namespace webrtc

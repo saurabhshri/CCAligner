@@ -125,8 +125,6 @@ Blocker::Blocker(size_t chunk_size,
   input_buffer_.MoveReadPositionBackward(initial_delay_);
 }
 
-Blocker::~Blocker() = default;
-
 // When block_size < chunk_size the input and output buffers look like this:
 //
 //                      delay*             chunk_size    chunk_size + delay*

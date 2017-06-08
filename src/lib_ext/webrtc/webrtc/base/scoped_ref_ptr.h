@@ -30,7 +30,7 @@
 //   void some_other_function() {
 //     scoped_refptr<MyFoo> foo = new MyFoo();
 //     ...
-//     foo = nullptr;  // explicitly releases |foo|
+//     foo = NULL;  // explicitly releases |foo|
 //     ...
 //     if (foo)
 //       foo->Method(param);
@@ -45,7 +45,7 @@
 //     scoped_refptr<MyFoo> b;
 //
 //     b.swap(a);
-//     // now, |b| references the MyFoo object, and |a| references null.
+//     // now, |b| references the MyFoo object, and |a| references NULL.
 //   }
 //
 // To make both |a| and |b| in the above example reference the same MyFoo
@@ -63,14 +63,15 @@
 #ifndef WEBRTC_BASE_SCOPED_REF_PTR_H_
 #define WEBRTC_BASE_SCOPED_REF_PTR_H_
 
-#include <memory>
+#include <stddef.h>
 
 namespace rtc {
 
 template <class T>
 class scoped_refptr {
  public:
-  scoped_refptr() : ptr_(nullptr) {}
+  scoped_refptr() : ptr_(NULL) {
+  }
 
   scoped_refptr(T* p) : ptr_(p) {
     if (ptr_)
@@ -105,12 +106,12 @@ class scoped_refptr {
 
   // Release a pointer.
   // The return value is the current pointer held by this object.
-  // If this object holds a null pointer, the return value is null.
-  // After this operation, this object will hold a null pointer,
+  // If this object holds a NULL pointer, the return value is NULL.
+  // After this operation, this object will hold a NULL pointer,
   // and will not own the object any more.
   T* release() {
     T* retVal = ptr_;
-    ptr_ = nullptr;
+    ptr_ = NULL;
     return retVal;
   }
 
@@ -131,17 +132,6 @@ class scoped_refptr {
   template <typename U>
   scoped_refptr<T>& operator=(const scoped_refptr<U>& r) {
     return *this = r.get();
-  }
-
-  scoped_refptr<T>& operator=(scoped_refptr<T>&& r) {
-    scoped_refptr<T>(std::move(r)).swap(*this);
-    return *this;
-  }
-
-  template <typename U>
-  scoped_refptr<T>& operator=(scoped_refptr<U>&& r) {
-    scoped_refptr<T>(std::move(r)).swap(*this);
-    return *this;
   }
 
   void swap(T** pp) {

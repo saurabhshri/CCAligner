@@ -16,8 +16,7 @@
 #include <vector>
 
 #include "webrtc/base/event.h"
-#include "webrtc/call/call.h"
-#include "webrtc/logging/rtc_event_log/rtc_event_log.h"
+#include "webrtc/call.h"
 #include "webrtc/test/call_test.h"
 
 namespace webrtc {
@@ -33,23 +32,19 @@ class RampUpTester : public test::EndToEndTest {
  public:
   RampUpTester(size_t num_video_streams,
                size_t num_audio_streams,
-               size_t num_flexfec_streams,
                unsigned int start_bitrate_bps,
-               int64_t min_run_time_ms,
                const std::string& extension_type,
                bool rtx,
-               bool red,
-               bool report_perf_stats);
+               bool red);
   ~RampUpTester() override;
 
   size_t GetNumVideoStreams() const override;
   size_t GetNumAudioStreams() const override;
-  size_t GetNumFlexfecStreams() const override;
 
   void PerformTest() override;
 
  protected:
-  virtual void PollStats();
+  virtual bool PollStats();
 
   void AccumulateStats(const VideoSendStream::StreamStats& stream,
                        size_t* total_packets_sent,
@@ -62,23 +57,18 @@ class RampUpTester : public test::EndToEndTest {
                     const std::string& units) const;
   void TriggerTestDone();
 
-  webrtc::RtcEventLogNullImpl event_log_;
-  rtc::Event stop_event_;
+  rtc::Event event_;
   Clock* const clock_;
   FakeNetworkPipe::Config forward_transport_config_;
   const size_t num_video_streams_;
   const size_t num_audio_streams_;
-  const size_t num_flexfec_streams_;
   const bool rtx_;
   const bool red_;
-  const bool report_perf_stats_;
-  Call* sender_call_;
   VideoSendStream* send_stream_;
   test::PacketTransport* send_transport_;
 
  private:
   typedef std::map<uint32_t, uint32_t> SsrcMap;
-  class VideoStreamFactory;
 
   Call::Config GetSenderCallConfig() override;
   void OnVideoStreamsCreated(
@@ -92,14 +82,12 @@ class RampUpTester : public test::EndToEndTest {
   void ModifyAudioConfigs(
       AudioSendStream::Config* send_config,
       std::vector<AudioReceiveStream::Config>* receive_configs) override;
-  void ModifyFlexfecConfigs(
-      std::vector<FlexfecReceiveStream::Config>* receive_configs) override;
   void OnCallsCreated(Call* sender_call, Call* receiver_call) override;
 
-  static void BitrateStatsPollingThread(void* obj);
+  static bool BitrateStatsPollingThread(void* obj);
 
   const int start_bitrate_bps_;
-  const int64_t min_run_time_ms_;
+  bool start_bitrate_verified_;
   int expected_bitrate_bps_;
   int64_t test_start_ms_;
   int64_t ramp_up_finished_ms_;
@@ -108,51 +96,41 @@ class RampUpTester : public test::EndToEndTest {
   std::vector<uint32_t> video_ssrcs_;
   std::vector<uint32_t> video_rtx_ssrcs_;
   std::vector<uint32_t> audio_ssrcs_;
+  SsrcMap rtx_ssrc_map_;
 
   rtc::PlatformThread poller_thread_;
+  Call* sender_call_;
 };
 
 class RampUpDownUpTester : public RampUpTester {
  public:
   RampUpDownUpTester(size_t num_video_streams,
                      size_t num_audio_streams,
-                     size_t num_flexfec_streams,
                      unsigned int start_bitrate_bps,
                      const std::string& extension_type,
                      bool rtx,
-                     bool red,
-                     const std::vector<int>& loss_rates,
-                     bool report_perf_stats);
+                     bool red);
   ~RampUpDownUpTester() override;
 
  protected:
-  void PollStats() override;
+  bool PollStats() override;
 
  private:
-  enum TestStates {
-    kFirstRampup = 0,
-    kLowRate,
-    kSecondRampup,
-    kTestEnd,
-    kTransitionToNextState,
-  };
+  static const int kHighBandwidthLimitBps = 80000;
+  static const int kExpectedHighBitrateBps = 60000;
+  static const int kLowBandwidthLimitBps = 20000;
+  static const int kExpectedLowBitrateBps = 20000;
+  enum TestStates { kFirstRampup, kLowRate, kSecondRampup };
 
   Call::Config GetReceiverCallConfig() override;
 
   std::string GetModifierString() const;
-  int GetExpectedHighBitrate() const;
-  int GetHighLinkCapacity() const;
-  size_t GetFecBytes() const;
-  bool ExpectingFec() const;
   void EvolveTestState(int bitrate_bps, bool suspended);
 
-  const std::vector<int> link_rates_;
   TestStates test_state_;
-  TestStates next_state_;
   int64_t state_start_ms_;
   int64_t interval_start_ms_;
   int sent_bytes_;
-  std::vector<int> loss_rates_;
 };
 }  // namespace webrtc
 #endif  // WEBRTC_CALL_RAMPUP_TESTS_H_

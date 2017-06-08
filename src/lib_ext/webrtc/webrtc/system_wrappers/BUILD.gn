@@ -10,43 +10,63 @@ if (is_android) {
   import("//build/config/android/config.gni")
   import("//build/config/android/rules.gni")
 }
-import("../webrtc.gni")
+import("//testing/test.gni")
+import("../build/webrtc.gni")
 
-rtc_static_library("system_wrappers") {
+source_set("system_wrappers") {
   sources = [
     "include/aligned_array.h",
     "include/aligned_malloc.h",
     "include/atomic32.h",
     "include/clock.h",
+    "include/cpu_features_wrapper.h",
     "include/cpu_info.h",
+    "include/critical_section_wrapper.h",
+    "include/data_log.h",
+    "include/data_log_c.h",
+    "include/data_log_impl.h",
     "include/event_wrapper.h",
+    "include/field_trial.h",
     "include/file_wrapper.h",
     "include/fix_interlocked_exchange_pointer_win.h",
+    "include/logging.h",
+    "include/metrics.h",
     "include/ntp_time.h",
-    "include/rtp_to_ntp_estimator.h",
+    "include/rtp_to_ntp.h",
     "include/rw_lock_wrapper.h",
     "include/sleep.h",
+    "include/sort.h",
     "include/static_instance.h",
+    "include/stl_util.h",
+    "include/stringize_macros.h",
     "include/timestamp_extrapolator.h",
     "include/trace.h",
+    "include/utf_util_win.h",
     "source/aligned_malloc.cc",
     "source/atomic32_win.cc",
     "source/clock.cc",
+    "source/condition_variable_event_win.cc",
+    "source/condition_variable_event_win.h",
     "source/cpu_features.cc",
     "source/cpu_info.cc",
+    "source/data_log_c.cc",
     "source/event.cc",
     "source/event_timer_posix.cc",
     "source/event_timer_posix.h",
     "source/event_timer_win.cc",
     "source/event_timer_win.h",
     "source/file_impl.cc",
-    "source/rtp_to_ntp_estimator.cc",
+    "source/logging.cc",
+    "source/rtp_to_ntp.cc",
     "source/rw_lock.cc",
     "source/rw_lock_posix.cc",
     "source/rw_lock_posix.h",
     "source/rw_lock_win.cc",
     "source/rw_lock_win.h",
+    "source/rw_lock_winxp_win.cc",
+    "source/rw_lock_winxp_win.h",
     "source/sleep.cc",
+    "source/sort.cc",
     "source/timestamp_extrapolator.cc",
     "source/trace_impl.cc",
     "source/trace_impl.h",
@@ -56,15 +76,20 @@ rtc_static_library("system_wrappers") {
     "source/trace_win.h",
   ]
 
+  configs += [ "..:common_config" ]
+
+  public_configs = [ "..:common_inherited_config" ]
+
+  if (rtc_enable_data_logging) {
+    sources += [ "source/data_log.cc" ]
+  } else {
+    sources += [ "source/data_log_no_op.cc" ]
+  }
+
   defines = []
   libs = []
   deps = [
     "..:webrtc_common",
-  ]
-  public_deps = [
-    ":cpu_features_api",
-    ":field_trial_api",
-    ":metrics_api",
   ]
 
   if (is_android) {
@@ -106,74 +131,35 @@ rtc_static_library("system_wrappers") {
     libs += [ "winmm.lib" ]
 
     cflags = [ "/wd4334" ]  # Ignore warning on shift operator promotion.
-
-    # Windows needs //webrtc/base:rtc_base due to include of webrtc/base/win32.h
-    # in source/clock.cc.
-    # TODO(kjellander): Remove (bugs.webrtc.org/6828)
-    deps += [ "../base:rtc_base" ]
-  }
-
-  if (is_win && is_clang) {
-    # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-    suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
   }
 
   deps += [ "../base:rtc_base_approved" ]
 }
 
-rtc_source_set("cpu_features_api") {
-  sources = [
-    "include/cpu_features_wrapper.h",
-  ]
-  deps = [
-    "..:webrtc_common",
-  ]
-}
-
-rtc_source_set("asm_defines") {
-  sources = [
-    "include/asm_defines.h",
-  ]
-}
-
-rtc_source_set("field_trial_api") {
-  sources = [
-    "include/field_trial.h",
-  ]
-}
-
-rtc_source_set("metrics_api") {
-  sources = [
-    "include/metrics.h",
-  ]
-  deps = [
-    "..:webrtc_common",
-    "../base:rtc_base_approved",
-  ]
-}
-
-rtc_static_library("field_trial_default") {
+source_set("field_trial_default") {
   sources = [
     "include/field_trial_default.h",
     "source/field_trial_default.cc",
   ]
-  deps = [
-    ":field_trial_api",
-  ]
+
+  configs += [ "..:common_config" ]
+  public_configs = [ "..:common_inherited_config" ]
 }
 
-rtc_static_library("metrics_default") {
+source_set("metrics_default") {
   sources = [
     "include/metrics_default.h",
     "source/metrics_default.cc",
   ]
-  deps = [
-    ":metrics_api",
-    "../base:rtc_base_approved",
-  ]
+
+  configs += [ "..:common_config" ]
+  public_configs = [ "..:common_inherited_config" ]
 }
 
-group("system_wrappers_default") {
+source_set("system_wrappers_default") {
+  configs += [ "..:common_config" ]
+  public_configs = [ "..:common_inherited_config" ]
+
   deps = [
     ":field_trial_default",
     ":metrics_default",
@@ -182,11 +168,13 @@ group("system_wrappers_default") {
 }
 
 if (is_android) {
-  rtc_static_library("cpu_features_android") {
+  source_set("cpu_features_android") {
     sources = [
       "source/cpu_features_android.c",
     ]
 
+    configs += [ "..:common_config" ]
+    public_configs = [ "..:common_inherited_config" ]
     deps = [
       "//third_party/android_tools:cpu_features",
     ]
@@ -194,49 +182,64 @@ if (is_android) {
 }
 
 if (is_linux) {
-  rtc_static_library("cpu_features_linux") {
+  source_set("cpu_features_linux") {
     sources = [
       "source/cpu_features_linux.c",
     ]
-    deps = [
-      ":cpu_features_api",
-    ]
+
+    configs += [ "..:common_config" ]
+    public_configs = [ "..:common_inherited_config" ]
   }
 }
 
 if (rtc_include_tests) {
-  rtc_test("system_wrappers_unittests") {
+  test("system_wrappers_unittests") {
     testonly = true
     sources = [
       "source/aligned_array_unittest.cc",
       "source/aligned_malloc_unittest.cc",
       "source/clock_unittest.cc",
+      "source/condition_variable_unittest.cc",
+      "source/critical_section_unittest.cc",
+      "source/data_log_c_helpers_unittest.c",
+      "source/data_log_c_helpers_unittest.h",
+      "source/data_log_helpers_unittest.cc",
       "source/event_timer_posix_unittest.cc",
+      "source/logging_unittest.cc",
       "source/metrics_default_unittest.cc",
       "source/metrics_unittest.cc",
       "source/ntp_time_unittest.cc",
-      "source/rtp_to_ntp_estimator_unittest.cc",
+      "source/rtp_to_ntp_unittest.cc",
+      "source/stl_util_unittest.cc",
+      "source/stringize_macros_unittest.cc",
     ]
+    if (rtc_enable_data_logging) {
+      sources += [
+        "source/data_log_unittest.cc",
+        "source/data_log_unittest_disabled.cc",
+      ]
+    }
+
+    configs += [ "..:common_config" ]
+    public_configs = [ "..:common_inherited_config" ]
+
     configs += [ "//build/config/compiler:no_size_t_to_int_warning" ]
 
-    if (!build_with_chromium && is_clang) {
-      # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-      suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
+    if (is_clang) {
+      # Suppress warnings from Chrome's Clang plugins.
+      # See http://code.google.com/p/webrtc/issues/detail?id=163 for details.
+      configs -= [ "//build/config/clang:find_bad_constructs" ]
     }
 
     deps = [
       ":metrics_default",
       ":system_wrappers",
-      "..:webrtc_common",
-      "../base:rtc_base_approved",
-      "../test:test_main",
+      "../test:test_support_main",
       "//testing/gtest",
     ]
 
     if (is_android) {
       deps += [ "//testing/android/native_test:native_test_support" ]
-
-      shard_timeout = 900
     }
   }
 }

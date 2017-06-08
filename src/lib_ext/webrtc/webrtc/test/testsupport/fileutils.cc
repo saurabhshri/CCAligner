@@ -18,13 +18,9 @@
 #include <windows.h>
 #include <algorithm>
 
-#include "Shlwapi.h"
-#include "WinDef.h"
-
-#include "webrtc/base/win32.h"
+#include "webrtc/system_wrappers/include/utf_util_win.h"
 #define GET_CURRENT_DIR _getcwd
 #else
-#include <dirent.h>
 #include <unistd.h>
 
 #define GET_CURRENT_DIR getcwd
@@ -40,9 +36,7 @@
 #include <string.h>
 
 #include <memory>
-#include <utility>
 
-#include "webrtc/base/checks.h"
 #include "webrtc/typedefs.h"  // For architecture defines
 
 namespace webrtc {
@@ -51,7 +45,6 @@ namespace test {
 #if defined(WEBRTC_IOS)
 // Defined in iosfileutils.mm.  No header file to discourage use elsewhere.
 std::string IOSOutputPath();
-std::string IOSRootPath();
 std::string IOSResourcePath(std::string name, std::string extension);
 #endif
 
@@ -66,6 +59,8 @@ const char* kPathDelimiter = "/";
 #ifdef WEBRTC_ANDROID
 const char* kRootDirName = "/sdcard/chromium_tests_root/";
 #else
+// The file we're looking for to identify the project root dir.
+const char* kProjectRootFileName = "DEPS";
 #if !defined(WEBRTC_IOS)
 const char* kOutputDirName = "out";
 #endif
@@ -104,15 +99,9 @@ void SetExecutablePath(const std::string& path) {
   relative_dir_path_set = true;
 }
 
-bool FileExists(const std::string& file_name) {
+bool FileExists(std::string& file_name) {
   struct stat file_info = {0};
   return stat(file_name.c_str(), &file_info) == 0;
-}
-
-bool DirExists(const std::string& directory_name) {
-  struct stat directory_info = {0};
-  return stat(directory_name.c_str(), &directory_info) == 0 && S_ISDIR(
-      directory_info.st_mode);
 }
 
 #ifdef WEBRTC_ANDROID
@@ -129,12 +118,9 @@ std::string WorkingDir() {
   return kRootDirName;
 }
 
-#else  // WEBRTC_ANDROID
+#else // WEBRTC_ANDROID
 
 std::string ProjectRootPath() {
-#if defined(WEBRTC_IOS)
-  return IOSRootPath();
-#else
   std::string path = WorkingDir();
   if (path == kFallbackPath) {
     return kCannotFindProjectRootDir;
@@ -142,21 +128,20 @@ std::string ProjectRootPath() {
   if (relative_dir_path_set) {
     path = path + kPathDelimiter + relative_dir_path;
   }
-  path = path + kPathDelimiter + ".." + kPathDelimiter + "..";
-  char canonical_path[FILENAME_MAX];
-#ifdef WIN32
-  BOOL succeeded = PathCanonicalizeA(canonical_path, path.c_str());
-#else
-  bool succeeded = realpath(path.c_str(), canonical_path) != NULL;
-#endif
-  if (succeeded) {
-    path = std::string(canonical_path) + kPathDelimiter;
-    return path;
-  } else {
-    fprintf(stderr, "Cannot find project root directory!\n");
-    return kCannotFindProjectRootDir;
+  // Check for our file that verifies the root dir.
+  size_t path_delimiter_index = path.find_last_of(kPathDelimiter);
+  while (path_delimiter_index != std::string::npos) {
+    std::string root_filename = path + kPathDelimiter + kProjectRootFileName;
+    if (FileExists(root_filename)) {
+      return path + kPathDelimiter;
+    }
+    // Move up one directory in the directory tree.
+    path = path.substr(0, path_delimiter_index);
+    path_delimiter_index = path.find_last_of(kPathDelimiter);
   }
-#endif
+  // Reached the root directory.
+  fprintf(stderr, "Cannot find project root directory!\n");
+  return kCannotFindProjectRootDir;
 }
 
 std::string OutputPath() {
@@ -192,9 +177,9 @@ std::string WorkingDir() {
 std::string TempFilename(const std::string &dir, const std::string &prefix) {
 #ifdef WIN32
   wchar_t filename[MAX_PATH];
-  if (::GetTempFileName(rtc::ToUtf16(dir).c_str(),
-                        rtc::ToUtf16(prefix).c_str(), 0, filename) != 0)
-    return rtc::ToUtf8(filename);
+  if (::GetTempFileName(ToUtf16(dir).c_str(),
+                        ToUtf16(prefix).c_str(), 0, filename) != 0)
+    return ToUtf8(filename);
   assert(false);
   return "";
 #else
@@ -215,58 +200,7 @@ std::string TempFilename(const std::string &dir, const std::string &prefix) {
 #endif
 }
 
-rtc::Optional<std::vector<std::string>> ReadDirectory(std::string path) {
-  if (path.length() == 0)
-    return rtc::Optional<std::vector<std::string>>();
-
-#if defined(WEBRTC_WIN)
-  // Append separator character if needed.
-  if (path.back() != '\\')
-    path += '\\';
-
-  // Init.
-  WIN32_FIND_DATA data;
-  HANDLE handle = ::FindFirstFile(rtc::ToUtf16(path + '*').c_str(), &data);
-  if (handle == INVALID_HANDLE_VALUE)
-    return rtc::Optional<std::vector<std::string>>();
-
-  // Populate output.
-  std::vector<std::string> found_entries;
-  do {
-    const std::string name = rtc::ToUtf8(data.cFileName);
-    if (name != "." && name != "..")
-      found_entries.emplace_back(path + name);
-  } while (::FindNextFile(handle, &data) == TRUE);
-
-  // Release resources.
-  if (handle != INVALID_HANDLE_VALUE)
-    ::FindClose(handle);
-#else
-  // Append separator character if needed.
-  if (path.back() != '/')
-    path += '/';
-
-  // Init.
-  DIR* dir = ::opendir(path.c_str());
-  if (dir == nullptr)
-    return rtc::Optional<std::vector<std::string>>();
-
-  // Populate output.
-  std::vector<std::string> found_entries;
-  while (dirent* dirent = readdir(dir)) {
-    const std::string& name = dirent->d_name;
-    if (name != "." && name != "..")
-      found_entries.emplace_back(path + name);
-  }
-
-  // Release resources.
-  closedir(dir);
-#endif
-
-  return rtc::Optional<std::vector<std::string>>(std::move(found_entries));
-}
-
-bool CreateDir(const std::string& directory_name) {
+bool CreateDir(std::string directory_name) {
   struct stat path_info = {0};
   // Check if the path exists already:
   if (stat(directory_name.c_str(), &path_info) == 0) {
@@ -286,24 +220,7 @@ bool CreateDir(const std::string& directory_name) {
   return true;
 }
 
-bool RemoveDir(const std::string& directory_name) {
-#ifdef WIN32
-    return RemoveDirectoryA(directory_name.c_str()) != FALSE;
-#else
-    return rmdir(directory_name.c_str()) == 0;
-#endif
-}
-
-bool RemoveFile(const std::string& file_name) {
-#ifdef WIN32
-  return DeleteFileA(file_name.c_str()) != FALSE;
-#else
-  return unlink(file_name.c_str()) == 0;
-#endif
-}
-
-std::string ResourcePath(const std::string& name,
-                         const std::string& extension) {
+std::string ResourcePath(std::string name, std::string extension) {
 #if defined(WEBRTC_IOS)
   return IOSResourcePath(name, extension);
 #else
@@ -347,7 +264,7 @@ std::string ResourcePath(const std::string& name,
 #endif  // defined (WEBRTC_IOS)
 }
 
-size_t GetFileSize(const std::string& filename) {
+size_t GetFileSize(std::string filename) {
   FILE* f = fopen(filename.c_str(), "rb");
   size_t size = 0;
   if (f != NULL) {

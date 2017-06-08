@@ -15,9 +15,8 @@ import org.appspot.apprtc.WebSocketChannelClient.WebSocketChannelEvents;
 import org.appspot.apprtc.WebSocketChannelClient.WebSocketConnectionState;
 import org.appspot.apprtc.util.AsyncHttpURLConnection;
 import org.appspot.apprtc.util.AsyncHttpURLConnection.AsyncHttpEvents;
+import org.appspot.apprtc.util.LooperExecutor;
 
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -36,17 +35,20 @@ import org.webrtc.SessionDescription;
  * Messages to other party (with local Ice candidates and answer SDP) can
  * be sent after WebSocket connection is established.
  */
-public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents {
+public class WebSocketRTCClient implements AppRTCClient,
+    WebSocketChannelEvents {
   private static final String TAG = "WSRTCClient";
   private static final String ROOM_JOIN = "join";
   private static final String ROOM_MESSAGE = "message";
   private static final String ROOM_LEAVE = "leave";
 
-  private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
-
-  private enum MessageType { MESSAGE, LEAVE }
-
-  private final Handler handler;
+  private enum ConnectionState {
+    NEW, CONNECTED, CLOSED, ERROR
+  };
+  private enum MessageType {
+    MESSAGE, LEAVE
+  };
+  private final LooperExecutor executor;
   private boolean initiator;
   private SignalingEvents events;
   private WebSocketChannelClient wsClient;
@@ -55,12 +57,11 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
   private String messageUrl;
   private String leaveUrl;
 
-  public WebSocketRTCClient(SignalingEvents events) {
+  public WebSocketRTCClient(SignalingEvents events, LooperExecutor executor) {
     this.events = events;
+    this.executor = executor;
     roomState = ConnectionState.NEW;
-    final HandlerThread handlerThread = new HandlerThread(TAG);
-    handlerThread.start();
-    handler = new Handler(handlerThread.getLooper());
+    executor.requestStart();
   }
 
   // --------------------------------------------------------------------
@@ -70,7 +71,7 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
   @Override
   public void connectToRoom(RoomConnectionParameters connectionParameters) {
     this.connectionParameters = connectionParameters;
-    handler.post(new Runnable() {
+    executor.execute(new Runnable() {
       @Override
       public void run() {
         connectToRoomInternal();
@@ -80,13 +81,13 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
 
   @Override
   public void disconnectFromRoom() {
-    handler.post(new Runnable() {
+    executor.execute(new Runnable() {
       @Override
       public void run() {
         disconnectFromRoomInternal();
-        handler.getLooper().quit();
       }
     });
+    executor.requestStop();
   }
 
   // Connects to room - function runs on a local looper thread.
@@ -94,12 +95,13 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
     String connectionUrl = getConnectionUrl(connectionParameters);
     Log.d(TAG, "Connect to room: " + connectionUrl);
     roomState = ConnectionState.NEW;
-    wsClient = new WebSocketChannelClient(handler, this);
+    wsClient = new WebSocketChannelClient(executor, this);
 
     RoomParametersFetcherEvents callbacks = new RoomParametersFetcherEvents() {
       @Override
-      public void onSignalingParametersReady(final SignalingParameters params) {
-        WebSocketRTCClient.this.handler.post(new Runnable() {
+      public void onSignalingParametersReady(
+          final SignalingParameters params) {
+        WebSocketRTCClient.this.executor.execute(new Runnable() {
           @Override
           public void run() {
             WebSocketRTCClient.this.signalingParametersReady(params);
@@ -130,41 +132,37 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
   }
 
   // Helper functions to get connection, post message and leave message URLs
-  private String getConnectionUrl(RoomConnectionParameters connectionParameters) {
-    return connectionParameters.roomUrl + "/" + ROOM_JOIN + "/" + connectionParameters.roomId
-        + getQueryString(connectionParameters);
+  private String getConnectionUrl(
+      RoomConnectionParameters connectionParameters) {
+    return connectionParameters.roomUrl + "/" + ROOM_JOIN + "/"
+        + connectionParameters.roomId;
   }
 
-  private String getMessageUrl(
-      RoomConnectionParameters connectionParameters, SignalingParameters signalingParameters) {
-    return connectionParameters.roomUrl + "/" + ROOM_MESSAGE + "/" + connectionParameters.roomId
-        + "/" + signalingParameters.clientId + getQueryString(connectionParameters);
+  private String getMessageUrl(RoomConnectionParameters connectionParameters,
+      SignalingParameters signalingParameters) {
+    return connectionParameters.roomUrl + "/" + ROOM_MESSAGE + "/"
+      + connectionParameters.roomId + "/" + signalingParameters.clientId;
   }
 
-  private String getLeaveUrl(
-      RoomConnectionParameters connectionParameters, SignalingParameters signalingParameters) {
-    return connectionParameters.roomUrl + "/" + ROOM_LEAVE + "/" + connectionParameters.roomId + "/"
-        + signalingParameters.clientId + getQueryString(connectionParameters);
-  }
-
-  private String getQueryString(RoomConnectionParameters connectionParameters) {
-    if (connectionParameters.urlParameters != null) {
-      return "?" + connectionParameters.urlParameters;
-    } else {
-      return "";
-    }
+  private String getLeaveUrl(RoomConnectionParameters connectionParameters,
+      SignalingParameters signalingParameters) {
+    return connectionParameters.roomUrl + "/" + ROOM_LEAVE + "/"
+        + connectionParameters.roomId + "/" + signalingParameters.clientId;
   }
 
   // Callback issued when room parameters are extracted. Runs on local
   // looper thread.
-  private void signalingParametersReady(final SignalingParameters signalingParameters) {
+  private void signalingParametersReady(
+      final SignalingParameters signalingParameters) {
     Log.d(TAG, "Room connection completed.");
     if (connectionParameters.loopback
-        && (!signalingParameters.initiator || signalingParameters.offerSdp != null)) {
+        && (!signalingParameters.initiator
+            || signalingParameters.offerSdp != null)) {
       reportError("Loopback room is busy.");
       return;
     }
-    if (!connectionParameters.loopback && !signalingParameters.initiator
+    if (!connectionParameters.loopback
+        && !signalingParameters.initiator
         && signalingParameters.offerSdp == null) {
       Log.w(TAG, "No offer SDP in room response.");
     }
@@ -186,7 +184,7 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
   // Send local offer SDP to the other participant.
   @Override
   public void sendOfferSdp(final SessionDescription sdp) {
-    handler.post(new Runnable() {
+    executor.execute(new Runnable() {
       @Override
       public void run() {
         if (roomState != ConnectionState.CONNECTED) {
@@ -200,7 +198,8 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
         if (connectionParameters.loopback) {
           // In loopback mode rename this offer to answer and route it back.
           SessionDescription sdpAnswer = new SessionDescription(
-              SessionDescription.Type.fromCanonicalForm("answer"), sdp.description);
+              SessionDescription.Type.fromCanonicalForm("answer"),
+              sdp.description);
           events.onRemoteDescription(sdpAnswer);
         }
       }
@@ -210,7 +209,7 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
   // Send local answer SDP to the other participant.
   @Override
   public void sendAnswerSdp(final SessionDescription sdp) {
-    handler.post(new Runnable() {
+    executor.execute(new Runnable() {
       @Override
       public void run() {
         if (connectionParameters.loopback) {
@@ -228,7 +227,7 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
   // Send Ice candidate to the other participant.
   @Override
   public void sendLocalIceCandidate(final IceCandidate candidate) {
-    handler.post(new Runnable() {
+    executor.execute(new Runnable() {
       @Override
       public void run() {
         JSONObject json = new JSONObject();
@@ -257,12 +256,12 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
   // Send removed Ice candidates to the other participant.
   @Override
   public void sendLocalIceCandidateRemovals(final IceCandidate[] candidates) {
-    handler.post(new Runnable() {
+    executor.execute(new Runnable() {
       @Override
       public void run() {
         JSONObject json = new JSONObject();
         jsonPut(json, "type", "remove-candidates");
-        JSONArray jsonArray = new JSONArray();
+        JSONArray jsonArray =  new JSONArray();
         for (final IceCandidate candidate : candidates) {
           jsonArray.put(toJsonCandidate(candidate));
         }
@@ -307,14 +306,15 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
         } else if (type.equals("remove-candidates")) {
           JSONArray candidateArray = json.getJSONArray("candidates");
           IceCandidate[] candidates = new IceCandidate[candidateArray.length()];
-          for (int i = 0; i < candidateArray.length(); ++i) {
+          for (int i =0; i < candidateArray.length(); ++i) {
             candidates[i] = toJavaCandidate(candidateArray.getJSONObject(i));
           }
           events.onRemoteIceCandidatesRemoved(candidates);
         } else if (type.equals("answer")) {
           if (initiator) {
             SessionDescription sdp = new SessionDescription(
-                SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+                SessionDescription.Type.fromCanonicalForm(type),
+                json.getString("sdp"));
             events.onRemoteDescription(sdp);
           } else {
             reportError("Received answer for call initiator: " + msg);
@@ -322,7 +322,8 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
         } else if (type.equals("offer")) {
           if (!initiator) {
             SessionDescription sdp = new SessionDescription(
-                SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+                SessionDescription.Type.fromCanonicalForm(type),
+                json.getString("sdp"));
             events.onRemoteDescription(sdp);
           } else {
             reportError("Received offer for call receiver: " + msg);
@@ -358,7 +359,7 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
   // Helper functions.
   private void reportError(final String errorMessage) {
     Log.e(TAG, errorMessage);
-    handler.post(new Runnable() {
+    executor.execute(new Runnable() {
       @Override
       public void run() {
         if (roomState != ConnectionState.ERROR) {
@@ -386,28 +387,28 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
       logInfo += ". Message: " + message;
     }
     Log.d(TAG, "C->GAE: " + logInfo);
-    AsyncHttpURLConnection httpConnection =
-        new AsyncHttpURLConnection("POST", url, message, new AsyncHttpEvents() {
-          @Override
-          public void onHttpError(String errorMessage) {
-            reportError("GAE POST error: " + errorMessage);
-          }
+    AsyncHttpURLConnection httpConnection = new AsyncHttpURLConnection(
+      "POST", url, message, new AsyncHttpEvents() {
+        @Override
+        public void onHttpError(String errorMessage) {
+          reportError("GAE POST error: " + errorMessage);
+        }
 
-          @Override
-          public void onHttpComplete(String response) {
-            if (messageType == MessageType.MESSAGE) {
-              try {
-                JSONObject roomJson = new JSONObject(response);
-                String result = roomJson.getString("result");
-                if (!result.equals("SUCCESS")) {
-                  reportError("GAE POST error: " + result);
-                }
-              } catch (JSONException e) {
-                reportError("GAE POST JSON error: " + e.toString());
+        @Override
+        public void onHttpComplete(String response) {
+          if (messageType == MessageType.MESSAGE) {
+            try {
+              JSONObject roomJson = new JSONObject(response);
+              String result = roomJson.getString("result");
+              if (!result.equals("SUCCESS")) {
+                reportError("GAE POST error: " + result);
               }
+            } catch (JSONException e) {
+              reportError("GAE POST JSON error: " + e.toString());
             }
           }
-        });
+        }
+      });
     httpConnection.send();
   }
 
@@ -422,7 +423,8 @@ public class WebSocketRTCClient implements AppRTCClient, WebSocketChannelEvents 
 
   // Converts a JSON candidate to a Java object.
   IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
-    return new IceCandidate(
-        json.getString("id"), json.getInt("label"), json.getString("candidate"));
+    return new IceCandidate(json.getString("id"),
+                            json.getInt("label"),
+                            json.getString("candidate"));
   }
 }

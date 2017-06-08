@@ -10,7 +10,8 @@
 
 #include "webrtc/voice_engine/channel_manager.h"
 
-#include "webrtc/base/timeutils.h"
+#include "webrtc/common.h"
+#include "webrtc/modules/audio_coding/codecs/builtin_audio_decoder_factory.h"
 #include "webrtc/voice_engine/channel.h"
 
 namespace webrtc {
@@ -45,19 +46,37 @@ ChannelOwner& ChannelOwner::operator=(const ChannelOwner& other) {
 ChannelOwner::ChannelRef::ChannelRef(class Channel* channel)
     : channel(channel), ref_count(1) {}
 
-ChannelManager::ChannelManager(uint32_t instance_id)
+ChannelManager::ChannelManager(uint32_t instance_id, const Config& config)
     : instance_id_(instance_id),
       last_channel_id_(-1),
-      random_(rtc::TimeNanos()) {}
+      config_(config),
+      event_log_(RtcEventLog::Create(Clock::GetRealTimeClock())) {}
+
+ChannelOwner ChannelManager::CreateChannel() {
+  return CreateChannel(CreateBuiltinAudioDecoderFactory());
+}
+
+ChannelOwner ChannelManager::CreateChannel(const Config& external_config) {
+  return CreateChannel(external_config, CreateBuiltinAudioDecoderFactory());
+}
 
 ChannelOwner ChannelManager::CreateChannel(
-    const VoEBase::ChannelConfig& config) {
-  Channel* channel;
-  Channel::CreateChannel(channel, ++last_channel_id_, instance_id_, config);
-  // TODO(solenberg): Delete this, users should configure ssrc
-  // explicitly.
-  channel->SetLocalSSRC(random_.Rand<uint32_t>());
+    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
+  return CreateChannelInternal(config_, decoder_factory);
+}
 
+ChannelOwner ChannelManager::CreateChannel(
+    const Config& external_config,
+    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
+  return CreateChannelInternal(external_config, decoder_factory);
+}
+
+ChannelOwner ChannelManager::CreateChannelInternal(
+    const Config& config,
+    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
+  Channel* channel;
+  Channel::CreateChannel(channel, ++last_channel_id_, instance_id_,
+                         event_log_.get(), config, decoder_factory);
   ChannelOwner channel_owner(channel);
 
   rtc::CritScope crit(&lock_);
@@ -106,12 +125,6 @@ void ChannelManager::DestroyChannel(int32_t channel_id) {
       channels_.erase(to_delete);
     }
   }
-  if (reference.channel()) {
-    // Ensure the channel is torn down now, on this thread, since a reference
-    // may still be held on a different thread (e.g. in the audio capture
-    // thread).
-    reference.channel()->Terminate();
-  }
 }
 
 void ChannelManager::DestroyAllChannels() {
@@ -123,15 +136,15 @@ void ChannelManager::DestroyAllChannels() {
     references = channels_;
     channels_.clear();
   }
-  for (auto& owner : references) {
-    if (owner.channel())
-      owner.channel()->Terminate();
-  }
 }
 
 size_t ChannelManager::NumOfChannels() const {
   rtc::CritScope crit(&lock_);
   return channels_.size();
+}
+
+RtcEventLog* ChannelManager::GetEventLog() const {
+  return event_log_.get();
 }
 
 ChannelManager::Iterator::Iterator(ChannelManager* channel_manager)

@@ -19,7 +19,6 @@
 
 #include "webrtc/base/array_view.h"
 #include "webrtc/base/checks.h"
-#include "webrtc/base/type_traits.h"
 
 namespace rtc {
 
@@ -125,11 +124,6 @@ class BufferT {
     return reinterpret_cast<U*>(data_.get());
   }
 
-  bool empty() const {
-    RTC_DCHECK(IsConsistent());
-    return size_ == 0;
-  }
-
   size_t size() const {
     RTC_DCHECK(IsConsistent());
     return size_;
@@ -179,13 +173,6 @@ class BufferT {
     return data()[index];
   }
 
-  T* begin() { return data(); }
-  T* end() { return data() + size(); }
-  const T* begin() const { return data(); }
-  const T* end() const { return data() + size(); }
-  const T* cbegin() const { return data(); }
-  const T* cend() const { return data() + size(); }
-
   // The SetData functions replace the contents of the buffer. They accept the
   // same input types as the constructors.
   template <typename U,
@@ -205,12 +192,7 @@ class BufferT {
     SetData(array, N);
   }
 
-  template <typename W,
-            typename std::enable_if<
-                HasDataAndSize<const W, const T>::value>::type* = nullptr>
-  void SetData(const W& w) {
-    SetData(w.data(), w.size());
-  }
+  void SetData(const BufferT& buf) { SetData(buf.data(), buf.size()); }
 
   // Replace the data in the buffer with at most |max_elements| of data, using
   // the function |setter|, which should have the following signature:
@@ -252,12 +234,7 @@ class BufferT {
     AppendData(array, N);
   }
 
-  template <typename W,
-            typename std::enable_if<
-                HasDataAndSize<const W, const T>::value>::type* = nullptr>
-  void AppendData(const W& w) {
-    AppendData(w.data(), w.size());
-  }
+  void AppendData(const BufferT& buf) { AppendData(buf.data(), buf.size()); }
 
   template <typename U,
             typename std::enable_if<
@@ -356,7 +333,7 @@ class BufferT {
   // Called when *this has been moved from. Conceptually it's a no-op, but we
   // can mutate the state slightly to help subsequent sanity checks catch bugs.
   void OnMovedFrom() {
-#if RTC_DCHECK_IS_ON
+#ifdef NDEBUG
     // Make *this consistent and empty. Shouldn't be necessary, but better safe
     // than sorry.
     size_ = 0;

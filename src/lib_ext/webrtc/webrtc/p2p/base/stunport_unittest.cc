@@ -15,6 +15,7 @@
 #include "webrtc/p2p/base/teststunserver.h"
 #include "webrtc/base/gunit.h"
 #include "webrtc/base/helpers.h"
+#include "webrtc/base/physicalsocketserver.h"
 #include "webrtc/base/socketaddress.h"
 #include "webrtc/base/ssladapter.h"
 #include "webrtc/base/virtualsocketserver.h"
@@ -29,20 +30,26 @@ static const SocketAddress kStunAddr3("127.0.0.1", 3000);
 static const SocketAddress kBadAddr("0.0.0.1", 5000);
 static const SocketAddress kStunHostnameAddr("localhost", 5000);
 static const SocketAddress kBadHostnameAddr("not-a-real-hostname", 5000);
-// STUN timeout (with all retries) is cricket::STUN_TOTAL_TIMEOUT.
+// STUN timeout (with all retries) is 9500ms.
 // Add some margin of error for slow bots.
-static const int kTimeoutMs = cricket::STUN_TOTAL_TIMEOUT;
+// TODO(deadbeef): Use simulated clock instead of just increasing timeouts to
+// fix flaky tests.
+static const int kTimeoutMs = 15000;
 // stun prio = 100 << 24 | 30 (IPV4) << 8 | 256 - 0
 static const uint32_t kStunCandidatePriority = 1677729535;
 static const int kInfiniteLifetime = -1;
 static const int kHighCostPortKeepaliveLifetimeMs = 2 * 60 * 1000;
 
 // Tests connecting a StunPort to a fake STUN server (cricket::StunServer)
-class StunPortTestBase : public testing::Test, public sigslot::has_slots<> {
+// TODO: Use a VirtualSocketServer here. We have to use a
+// PhysicalSocketServer right now since DNS is not part of SocketServer yet.
+class StunPortTest : public testing::Test,
+                     public sigslot::has_slots<> {
  public:
-  StunPortTestBase()
-      : ss_(new rtc::VirtualSocketServer()),
-        thread_(ss_.get()),
+  StunPortTest()
+      : pss_(new rtc::PhysicalSocketServer),
+        ss_(new rtc::VirtualSocketServer(pss_.get())),
+        ss_scope_(ss_.get()),
         network_("unittest", "unittest", rtc::IPAddress(INADDR_ANY), 32),
         socket_factory_(rtc::Thread::Current()),
         stun_server_1_(cricket::TestStunServer::Create(rtc::Thread::Current(),
@@ -51,7 +58,7 @@ class StunPortTestBase : public testing::Test, public sigslot::has_slots<> {
                                                        kStunAddr2)),
         done_(false),
         error_(false),
-        stun_keepalive_delay_(1),
+        stun_keepalive_delay_(0),
         stun_keepalive_lifetime_(-1) {}
 
   cricket::UDPPort* port() const { return stun_port_.get(); }
@@ -80,15 +87,16 @@ class StunPortTestBase : public testing::Test, public sigslot::has_slots<> {
       stun_port_->set_stun_keepalive_lifetime(stun_keepalive_lifetime_);
     }
     stun_port_->SignalPortComplete.connect(this,
-                                           &StunPortTestBase::OnPortComplete);
-    stun_port_->SignalPortError.connect(this, &StunPortTestBase::OnPortError);
+        &StunPortTest::OnPortComplete);
+    stun_port_->SignalPortError.connect(this,
+        &StunPortTest::OnPortError);
   }
 
-  void CreateSharedUdpPort(const rtc::SocketAddress& server_addr) {
+  void CreateSharedStunPort(const rtc::SocketAddress& server_addr) {
     socket_.reset(socket_factory_.CreateUdpSocket(
         rtc::SocketAddress(kLocalAddr.ipaddr(), 0), 0, 0));
     ASSERT_TRUE(socket_ != NULL);
-    socket_->SignalReadPacket.connect(this, &StunPortTestBase::OnReadPacket);
+    socket_->SignalReadPacket.connect(this, &StunPortTest::OnReadPacket);
     stun_port_.reset(cricket::UDPPort::Create(
         rtc::Thread::Current(), &socket_factory_,
         &network_, socket_.get(),
@@ -99,8 +107,9 @@ class StunPortTestBase : public testing::Test, public sigslot::has_slots<> {
     stun_servers.insert(server_addr);
     stun_port_->set_server_addresses(stun_servers);
     stun_port_->SignalPortComplete.connect(this,
-                                           &StunPortTestBase::OnPortComplete);
-    stun_port_->SignalPortError.connect(this, &StunPortTestBase::OnPortError);
+        &StunPortTest::OnPortComplete);
+    stun_port_->SignalPortError.connect(this,
+        &StunPortTest::OnPortError);
   }
 
   void PrepareAddress() {
@@ -152,8 +161,9 @@ class StunPortTestBase : public testing::Test, public sigslot::has_slots<> {
   }
 
  private:
+  std::unique_ptr<rtc::PhysicalSocketServer> pss_;
   std::unique_ptr<rtc::VirtualSocketServer> ss_;
-  rtc::AutoSocketServerThread thread_;
+  rtc::SocketServerScope ss_scope_;
   rtc::Network network_;
   rtc::BasicPacketSocketFactory socket_factory_;
   std::unique_ptr<cricket::UDPPort> stun_port_;
@@ -166,26 +176,10 @@ class StunPortTestBase : public testing::Test, public sigslot::has_slots<> {
   int stun_keepalive_lifetime_;
 };
 
-class StunPortTestWithRealClock : public StunPortTestBase {};
-
-class FakeClockBase {
- public:
-  rtc::ScopedFakeClock fake_clock;
-};
-
-class StunPortTest : public FakeClockBase, public StunPortTestBase {};
-
-// Test that we can create a STUN port.
-TEST_F(StunPortTest, TestCreateStunPort) {
+// Test that we can create a STUN port
+TEST_F(StunPortTest, TestBasic) {
   CreateStunPort(kStunAddr1);
   EXPECT_EQ("stun", port()->Type());
-  EXPECT_EQ(0U, port()->Candidates().size());
-}
-
-// Test that we can create a UDP port.
-TEST_F(StunPortTest, TestCreateUdpPort) {
-  CreateSharedUdpPort(kStunAddr1);
-  EXPECT_EQ("local", port()->Type());
   EXPECT_EQ(0U, port()->Candidates().size());
 }
 
@@ -193,42 +187,35 @@ TEST_F(StunPortTest, TestCreateUdpPort) {
 TEST_F(StunPortTest, TestPrepareAddress) {
   CreateStunPort(kStunAddr1);
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   ASSERT_EQ(1U, port()->Candidates().size());
   EXPECT_TRUE(kLocalAddr.EqualIPs(port()->Candidates()[0].address()));
-  std::string expected_server_url = "stun:127.0.0.1:5000";
-  EXPECT_EQ(port()->Candidates()[0].url(), expected_server_url);
 
-  // TODO(deadbeef): Add IPv6 tests here.
+  // TODO: Add IPv6 tests here, once either physicalsocketserver supports
+  // IPv6, or this test is changed to use VirtualSocketServer.
 }
 
 // Test that we fail properly if we can't get an address.
 TEST_F(StunPortTest, TestPrepareAddressFail) {
   CreateStunPort(kBadAddr);
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   EXPECT_TRUE(error());
   EXPECT_EQ(0U, port()->Candidates().size());
 }
 
 // Test that we can get an address from a STUN server specified by a hostname.
-// Crashes on Linux, see webrtc:7416
-#if defined(WEBRTC_LINUX)
-#define MAYBE_TestPrepareAddressHostname DISABLED_TestPrepareAddressHostname
-#else
-#define MAYBE_TestPrepareAddressHostname TestPrepareAddressHostname
-#endif
-TEST_F(StunPortTest, MAYBE_TestPrepareAddressHostname) {
+TEST_F(StunPortTest, TestPrepareAddressHostname) {
   CreateStunPort(kStunHostnameAddr);
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   ASSERT_EQ(1U, port()->Candidates().size());
   EXPECT_TRUE(kLocalAddr.EqualIPs(port()->Candidates()[0].address()));
   EXPECT_EQ(kStunCandidatePriority, port()->Candidates()[0].priority());
 }
 
 // Test that we handle hostname lookup failures properly.
-TEST_F(StunPortTestWithRealClock, TestPrepareAddressHostnameFail) {
+TEST_F(StunPortTest, TestPrepareAddressHostnameFail) {
   CreateStunPort(kBadHostnameAddr);
   PrepareAddress();
   EXPECT_TRUE_WAIT(done(), kTimeoutMs);
@@ -240,20 +227,22 @@ TEST_F(StunPortTestWithRealClock, TestPrepareAddressHostnameFail) {
 // additional candidate generation.
 TEST_F(StunPortTest, TestKeepAliveResponse) {
   SetKeepaliveDelay(500);  // 500ms of keepalive delay.
-  CreateStunPort(kStunAddr1);
+  CreateStunPort(kStunHostnameAddr);
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   ASSERT_EQ(1U, port()->Candidates().size());
   EXPECT_TRUE(kLocalAddr.EqualIPs(port()->Candidates()[0].address()));
-  SIMULATED_WAIT(false, 1000, fake_clock);
-  EXPECT_EQ(1U, port()->Candidates().size());
+  // Waiting for 1 seond, which will allow us to process
+  // response for keepalive binding request. 500 ms is the keepalive delay.
+  rtc::Thread::Current()->ProcessMessages(1000);
+  ASSERT_EQ(1U, port()->Candidates().size());
 }
 
 // Test that a local candidate can be generated using a shared socket.
 TEST_F(StunPortTest, TestSharedSocketPrepareAddress) {
-  CreateSharedUdpPort(kStunAddr1);
+  CreateSharedStunPort(kStunAddr1);
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   ASSERT_EQ(1U, port()->Candidates().size());
   EXPECT_TRUE(kLocalAddr.EqualIPs(port()->Candidates()[0].address()));
 }
@@ -261,9 +250,8 @@ TEST_F(StunPortTest, TestSharedSocketPrepareAddress) {
 // Test that we still a get a local candidate with invalid stun server hostname.
 // Also verifing that UDPPort can receive packets when stun address can't be
 // resolved.
-TEST_F(StunPortTestWithRealClock,
-       TestSharedSocketPrepareAddressInvalidHostname) {
-  CreateSharedUdpPort(kBadHostnameAddr);
+TEST_F(StunPortTest, TestSharedSocketPrepareAddressInvalidHostname) {
+  CreateSharedStunPort(kBadHostnameAddr);
   PrepareAddress();
   EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   ASSERT_EQ(1U, port()->Candidates().size());
@@ -284,7 +272,7 @@ TEST_F(StunPortTest, TestNoDuplicatedAddressWithTwoStunServers) {
   CreateStunPort(stun_servers);
   EXPECT_EQ("stun", port()->Type());
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   EXPECT_EQ(1U, port()->Candidates().size());
   EXPECT_EQ(port()->Candidates()[0].relay_protocol(), "");
 }
@@ -298,7 +286,7 @@ TEST_F(StunPortTest, TestMultipleStunServersWithBadServer) {
   CreateStunPort(stun_servers);
   EXPECT_EQ("stun", port()->Type());
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   EXPECT_EQ(1U, port()->Candidates().size());
 }
 
@@ -316,7 +304,7 @@ TEST_F(StunPortTest, TestTwoCandidatesWithTwoStunServersAcrossNat) {
   CreateStunPort(stun_servers);
   EXPECT_EQ("stun", port()->Type());
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   EXPECT_EQ(2U, port()->Candidates().size());
   EXPECT_EQ(port()->Candidates()[0].relay_protocol(), "");
   EXPECT_EQ(port()->Candidates()[1].relay_protocol(), "");
@@ -345,7 +333,7 @@ TEST_F(StunPortTest, TestStunPortGetStunKeepaliveLifetime) {
 // if the network type changes.
 TEST_F(StunPortTest, TestUdpPortGetStunKeepaliveLifetime) {
   // Lifetime for the default (unknown) network type is |kInfiniteLifetime|.
-  CreateSharedUdpPort(kStunAddr1);
+  CreateSharedStunPort(kStunAddr1);
   EXPECT_EQ(kInfiniteLifetime, port()->stun_keepalive_lifetime());
   // Lifetime for the cellular network is |kHighCostPortKeepaliveLifetimeMs|.
   SetNetworkType(rtc::ADAPTER_TYPE_CELLULAR);
@@ -354,7 +342,7 @@ TEST_F(StunPortTest, TestUdpPortGetStunKeepaliveLifetime) {
 
   // Lifetime for the wifi network type is |kInfiniteLifetime|.
   SetNetworkType(rtc::ADAPTER_TYPE_WIFI);
-  CreateSharedUdpPort(kStunAddr2);
+  CreateSharedStunPort(kStunAddr2);
   EXPECT_EQ(kInfiniteLifetime, port()->stun_keepalive_lifetime());
 }
 
@@ -365,10 +353,9 @@ TEST_F(StunPortTest, TestStunBindingRequestShortLifetime) {
   SetKeepaliveLifetime(100);
   CreateStunPort(kStunAddr1);
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
-  EXPECT_TRUE_SIMULATED_WAIT(
-      !port()->HasPendingRequest(cricket::STUN_BINDING_REQUEST), 2000,
-      fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
+  EXPECT_TRUE_WAIT(!port()->HasPendingRequest(cricket::STUN_BINDING_REQUEST),
+                   2000);
 }
 
 // Test that by default, the STUN binding requests will last for a long time.
@@ -376,8 +363,7 @@ TEST_F(StunPortTest, TestStunBindingRequestLongLifetime) {
   SetKeepaliveDelay(101);
   CreateStunPort(kStunAddr1);
   PrepareAddress();
-  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
-  EXPECT_TRUE_SIMULATED_WAIT(
-      port()->HasPendingRequest(cricket::STUN_BINDING_REQUEST), 1000,
-      fake_clock);
+  EXPECT_TRUE_WAIT(done(), kTimeoutMs);
+  rtc::Thread::Current()->ProcessMessages(1000);
+  EXPECT_TRUE(port()->HasPendingRequest(cricket::STUN_BINDING_REQUEST));
 }

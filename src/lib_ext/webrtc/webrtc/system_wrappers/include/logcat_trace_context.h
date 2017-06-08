@@ -24,10 +24,10 @@ namespace webrtc {
 class LogcatTraceContext : public webrtc::TraceCallback {
  public:
   LogcatTraceContext();
-  ~LogcatTraceContext() override;
+  virtual ~LogcatTraceContext();
 
   // TraceCallback impl.
-  void Print(TraceLevel level, const char* message, int length) override;
+  virtual void Print(TraceLevel level, const char* message, int length);
 };
 
 }  // namespace webrtc

@@ -57,7 +57,7 @@ const char* InternalTypeToString(StatsReport::StatsType type) {
     case StatsReport::kStatsReportTypeDataChannel:
       return "datachannel";
   }
-  RTC_NOTREACHED();
+  RTC_DCHECK(false);
   return nullptr;
 }
 
@@ -276,7 +276,7 @@ bool StatsReport::Value::Equals(const Value& other) const {
     case kFloat:
       return value_.float_ == other.value_.float_;
     case kStaticString: {
-#if RTC_DCHECK_IS_ON
+#if (!defined(NDEBUG) || defined(DCHECK_ALWAYS_ON))
       if (value_.static_string_ != other.value_.static_string_) {
         RTC_DCHECK(strcmp(value_.static_string_, other.value_.static_string_) !=
                    0)
@@ -306,7 +306,7 @@ bool StatsReport::Value::operator==(const char* value) const {
     return value_.string_->compare(value) == 0;
   if (type_ != kStaticString)
     return false;
-#if RTC_DCHECK_IS_ON
+#if (!defined(NDEBUG) || defined(DCHECK_ALWAYS_ON))
   if (value_.static_string_ != value)
     RTC_DCHECK(strcmp(value_.static_string_, value) != 0)
         << "Duplicate global?";
@@ -393,16 +393,10 @@ const char* StatsReport::Value::display_name() const {
       return "state";
     case kStatsValueNameDataChannelId:
       return "datachannelid";
-    case kStatsValueNameFramesDecoded:
-      return "framesDecoded";
-    case kStatsValueNameFramesEncoded:
-      return "framesEncoded";
     case kStatsValueNameCodecImplementationName:
       return "codecImplementationName";
     case kStatsValueNameMediaType:
       return "mediaType";
-    case kStatsValueNameQpSum:
-      return "qpSum";
     // 'goog' prefixed constants.
     case kStatsValueNameAccelerateRate:
       return "googAccelerateRate";
@@ -462,8 +456,6 @@ const char* StatsReport::Value::display_name() const {
       return "googDecodingCTSG";
     case kStatsValueNameDecodingCTN:
       return "googDecodingCTN";
-    case kStatsValueNameDecodingMutedOutput:
-      return "googDecodingMuted";
     case kStatsValueNameDecodingNormal:
       return "googDecodingNormal";
     case kStatsValueNameDecodingPLC:
@@ -574,10 +566,6 @@ const char* StatsReport::Value::display_name() const {
       return "googRemoteCandidateType";
     case kStatsValueNameRemoteCertificateId:
       return "remoteCertificateId";
-    case kStatsValueNameResidualEchoLikelihood:
-      return "googResidualEchoLikelihood";
-    case kStatsValueNameResidualEchoLikelihoodRecentMax:
-      return "googResidualEchoLikelihoodRecentMax";
     case kStatsValueNameRetransmitBitrate:
       return "googRetransmitBitrate";
     case kStatsValueNameRtt:
@@ -600,6 +588,8 @@ const char* StatsReport::Value::display_name() const {
       return "googTrackId";
     case kStatsValueNameTypingNoiseState:
       return "googTypingNoiseState";
+    case kStatsValueNameViewLimitedResolution:
+      return "googViewLimitedResolution";
     case kStatsValueNameWritable:
       return "googWritable";
   }
@@ -631,8 +621,6 @@ std::string StatsReport::Value::ToString() const {
 StatsReport::StatsReport(const Id& id) : id_(id), timestamp_(0.0) {
   RTC_DCHECK(id_.get());
 }
-
-StatsReport::~StatsReport() = default;
 
 // static
 StatsReport::Id StatsReport::NewBandwidthEstimationId() {
@@ -779,7 +767,7 @@ StatsReport* StatsCollection::ReplaceOrAddNew(const StatsReport::Id& id) {
   return InsertNew(id);
 }
 
-// Looks for a report with the given |id|.  If one is not found, null
+// Looks for a report with the given |id|.  If one is not found, NULL
 // will be returned.
 StatsReport* StatsCollection::Find(const StatsReport::Id& id) {
   RTC_DCHECK(thread_checker_.CalledOnValidThread());

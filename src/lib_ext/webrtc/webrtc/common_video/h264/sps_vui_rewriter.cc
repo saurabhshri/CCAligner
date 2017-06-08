@@ -13,12 +13,10 @@
 
 #include <algorithm>
 #include <memory>
-#include <vector>
 
 #include "webrtc/base/bitbuffer.h"
 #include "webrtc/base/checks.h"
 #include "webrtc/base/logging.h"
-#include "webrtc/base/safe_minmax.h"
 
 #include "webrtc/common_video/h264/h264_common.h"
 #include "webrtc/common_video/h264/sps_parser.h"
@@ -74,10 +72,7 @@ SpsVuiRewriter::ParseResult SpsVuiRewriter::ParseAndRewriteSps(
     size_t length,
     rtc::Optional<SpsParser::SpsState>* sps,
     rtc::Buffer* destination) {
-  // Create temporary RBSP decoded buffer of the payload (exlcuding the
-  // leading nalu type header byte (the SpsParser uses only the payload).
-  std::vector<uint8_t> rbsp_buffer = H264::ParseRbsp(buffer, length);
-  rtc::BitBuffer source_buffer(rbsp_buffer.data(), rbsp_buffer.size());
+  rtc::BitBuffer source_buffer(buffer, length);
   rtc::Optional<SpsParser::SpsState> sps_state =
       SpsParser::ParseSpsUpToVui(&source_buffer);
   if (!sps_state)
@@ -99,7 +94,7 @@ SpsVuiRewriter::ParseResult SpsVuiRewriter::ParseAndRewriteSps(
   size_t byte_offset;
   size_t bit_offset;
   source_buffer.GetCurrentOffset(&byte_offset, &bit_offset);
-  memcpy(out_buffer.data(), rbsp_buffer.data(),
+  memcpy(out_buffer.data(), buffer,
          byte_offset + (bit_offset > 0 ? 1 : 0));  // OK to copy the last bits.
 
   // SpsParser will have read the vui_params_present flag, which we want to
@@ -352,7 +347,8 @@ bool CopyRemainingBits(rtc::BitBuffer* source,
     COPY_BITS(source, destination, bits_tmp, misaligned_bits);
   }
   while (source->RemainingBitCount() > 0) {
-    auto count = rtc::SafeMin<size_t>(32u, source->RemainingBitCount());
+    size_t count = std::min(static_cast<size_t>(32u),
+                            static_cast<size_t>(source->RemainingBitCount()));
     COPY_BITS(source, destination, bits_tmp, count);
   }
   // TODO(noahric): The last byte could be all zeroes now, which we should just

@@ -12,26 +12,18 @@
 #include "webrtc/system_wrappers/include/clock.h"
 
 namespace webrtc {
-namespace {
-
-class NullModuleRtpRtcp : public RTCPReceiver::ModuleRtpRtcp {
- public:
-  void SetTmmbn(std::vector<rtcp::TmmbItem>) override {}
-  void OnRequestSendReport() override {}
-  void OnReceivedNack(const std::vector<uint16_t>&) override {};
-  void OnReceivedRtcpReportBlocks(const ReportBlockList&) override {};
-};
-
-}
 
 void FuzzOneInput(const uint8_t* data, size_t size) {
-  NullModuleRtpRtcp rtp_rtcp_module;
-  SimulatedClock clock(1234);
+  RTCPUtility::RTCPParserV2 rtcp_parser(data, size, true);
+  if (!rtcp_parser.IsValid())
+    return;
 
+  webrtc::SimulatedClock clock(1234);
   RTCPReceiver receiver(&clock, false, nullptr, nullptr, nullptr, nullptr,
-                        nullptr, &rtp_rtcp_module);
+                        nullptr);
 
-  receiver.IncomingPacket(data, size);
+  RTCPHelp::RTCPPacketInformation rtcp_packet_information;
+  receiver.IncomingRTCPPacket(rtcp_packet_information, &rtcp_parser);
 }
 }  // namespace webrtc
 

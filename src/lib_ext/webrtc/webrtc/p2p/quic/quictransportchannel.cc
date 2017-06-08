@@ -126,9 +126,9 @@ namespace cricket {
 
 QuicTransportChannel::QuicTransportChannel(TransportChannelImpl* channel)
     : TransportChannelImpl(channel->transport_name(), channel->component()),
-      network_thread_(rtc::Thread::Current()),
+      worker_thread_(rtc::Thread::Current()),
       channel_(channel),
-      helper_(network_thread_) {
+      helper_(worker_thread_) {
   channel_->SignalWritableState.connect(this,
                                         &QuicTransportChannel::OnWritableState);
   channel_->SignalReadPacket.connect(this, &QuicTransportChannel::OnReadPacket);
@@ -273,8 +273,8 @@ int QuicTransportChannel::SendPacket(const char* data,
 //     - Once the QUIC handshake completes, the state is that of the
 //       |channel_| again.
 void QuicTransportChannel::OnWritableState(TransportChannel* channel) {
-  RTC_DCHECK(rtc::Thread::Current() == network_thread_);
-  RTC_DCHECK(channel == channel_.get());
+  ASSERT(rtc::Thread::Current() == worker_thread_);
+  ASSERT(channel == channel_.get());
   LOG_J(LS_VERBOSE, this)
       << "QuicTransportChannel: channel writable state changed to "
       << channel_->writable();
@@ -307,8 +307,8 @@ void QuicTransportChannel::OnWritableState(TransportChannel* channel) {
 }
 
 void QuicTransportChannel::OnReceivingState(TransportChannel* channel) {
-  RTC_DCHECK(rtc::Thread::Current() == network_thread_);
-  RTC_DCHECK(channel == channel_.get());
+  ASSERT(rtc::Thread::Current() == worker_thread_);
+  ASSERT(channel == channel_.get());
   LOG_J(LS_VERBOSE, this)
       << "QuicTransportChannel: channel receiving state changed to "
       << channel_->receiving();
@@ -323,9 +323,9 @@ void QuicTransportChannel::OnReadPacket(TransportChannel* channel,
                                         size_t size,
                                         const rtc::PacketTime& packet_time,
                                         int flags) {
-  RTC_DCHECK(rtc::Thread::Current() == network_thread_);
-  RTC_DCHECK(channel == channel_.get());
-  RTC_DCHECK(flags == 0);
+  ASSERT(rtc::Thread::Current() == worker_thread_);
+  ASSERT(channel == channel_.get());
+  ASSERT(flags == 0);
 
   switch (quic_state_) {
     case QUIC_TRANSPORT_NEW:
@@ -360,7 +360,7 @@ void QuicTransportChannel::OnReadPacket(TransportChannel* channel,
 
 void QuicTransportChannel::OnSentPacket(TransportChannel* channel,
                                         const rtc::SentPacket& sent_packet) {
-  RTC_DCHECK(rtc::Thread::Current() == network_thread_);
+  ASSERT(rtc::Thread::Current() == worker_thread_);
   SignalSentPacket(this, sent_packet);
 }
 
@@ -371,40 +371,39 @@ void QuicTransportChannel::OnReadyToSend(TransportChannel* channel) {
 }
 
 void QuicTransportChannel::OnGatheringState(TransportChannelImpl* channel) {
-  RTC_DCHECK(channel == channel_.get());
+  ASSERT(channel == channel_.get());
   SignalGatheringState(this);
 }
 
 void QuicTransportChannel::OnCandidateGathered(TransportChannelImpl* channel,
                                                const Candidate& c) {
-  RTC_DCHECK(channel == channel_.get());
+  ASSERT(channel == channel_.get());
   SignalCandidateGathered(this, c);
 }
 
 void QuicTransportChannel::OnRoleConflict(TransportChannelImpl* channel) {
-  RTC_DCHECK(channel == channel_.get());
+  ASSERT(channel == channel_.get());
   SignalRoleConflict(this);
 }
 
 void QuicTransportChannel::OnRouteChange(TransportChannel* channel,
                                          const Candidate& candidate) {
-  RTC_DCHECK(channel == channel_.get());
+  ASSERT(channel == channel_.get());
   SignalRouteChange(this, candidate);
 }
 
 void QuicTransportChannel::OnSelectedCandidatePairChanged(
     TransportChannel* channel,
     CandidatePairInterface* selected_candidate_pair,
-    int last_sent_packet_id,
-    bool ready_to_send) {
-  RTC_DCHECK(channel == channel_.get());
+    int last_sent_packet_id) {
+  ASSERT(channel == channel_.get());
   SignalSelectedCandidatePairChanged(this, selected_candidate_pair,
-                                     last_sent_packet_id, ready_to_send);
+                                     last_sent_packet_id);
 }
 
 void QuicTransportChannel::OnChannelStateChanged(
     TransportChannelImpl* channel) {
-  RTC_DCHECK(channel == channel_.get());
+  ASSERT(channel == channel_.get());
   SignalStateChanged(this);
 }
 
@@ -506,7 +505,7 @@ bool QuicTransportChannel::StartQuicHandshake() {
 }
 
 bool QuicTransportChannel::HandleQuicPacket(const char* data, size_t size) {
-  RTC_DCHECK(rtc::Thread::Current() == network_thread_);
+  ASSERT(rtc::Thread::Current() == worker_thread_);
   return quic_->OnReadPacket(data, size);
 }
 

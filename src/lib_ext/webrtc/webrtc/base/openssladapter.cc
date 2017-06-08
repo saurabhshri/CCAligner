@@ -8,6 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#if HAVE_OPENSSL_SSL_H
+
 #include "webrtc/base/openssladapter.h"
 
 #if defined(WEBRTC_POSIX)
@@ -26,7 +28,7 @@
 #include <openssl/x509v3.h>
 
 #include "webrtc/base/arraysize.h"
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/openssl.h"
 #include "webrtc/base/safe_conversions.h"
@@ -40,14 +42,14 @@
 
 #if defined(WEBRTC_WIN)
   #define MUTEX_TYPE HANDLE
-#define MUTEX_SETUP(x) (x) = CreateMutex(nullptr, FALSE, nullptr)
-#define MUTEX_CLEANUP(x) CloseHandle(x)
-#define MUTEX_LOCK(x) WaitForSingleObject((x), INFINITE)
-#define MUTEX_UNLOCK(x) ReleaseMutex(x)
-#define THREAD_ID GetCurrentThreadId()
+  #define MUTEX_SETUP(x) (x) = CreateMutex(NULL, FALSE, NULL)
+  #define MUTEX_CLEANUP(x) CloseHandle(x)
+  #define MUTEX_LOCK(x) WaitForSingleObject((x), INFINITE)
+  #define MUTEX_UNLOCK(x) ReleaseMutex(x)
+  #define THREAD_ID GetCurrentThreadId()
 #elif defined(WEBRTC_POSIX)
   #define MUTEX_TYPE pthread_mutex_t
-  #define MUTEX_SETUP(x) pthread_mutex_init(&(x), nullptr)
+  #define MUTEX_SETUP(x) pthread_mutex_init(&(x), NULL)
   #define MUTEX_CLEANUP(x) pthread_mutex_destroy(&(x))
   #define MUTEX_LOCK(x) pthread_mutex_lock(&(x))
   #define MUTEX_UNLOCK(x) pthread_mutex_unlock(&(x))
@@ -75,16 +77,24 @@ static int socket_free(BIO* data);
 
 // TODO(davidben): This should be const once BoringSSL is assumed.
 static BIO_METHOD methods_socket = {
-    BIO_TYPE_BIO, "socket",   socket_write, socket_read, socket_puts, 0,
-    socket_ctrl,  socket_new, socket_free,  nullptr,
+  BIO_TYPE_BIO,
+  "socket",
+  socket_write,
+  socket_read,
+  socket_puts,
+  0,
+  socket_ctrl,
+  socket_new,
+  socket_free,
+  NULL,
 };
 
 static BIO_METHOD* BIO_s_socket2() { return(&methods_socket); }
 
 static BIO* BIO_new_socket(rtc::AsyncSocket* socket) {
   BIO* ret = BIO_new(BIO_s_socket2());
-  if (ret == nullptr) {
-    return nullptr;
+  if (ret == NULL) {
+          return NULL;
   }
   ret->ptr = socket;
   return ret;
@@ -99,7 +109,7 @@ static int socket_new(BIO* b) {
 }
 
 static int socket_free(BIO* b) {
-  if (b == nullptr)
+  if (b == NULL)
     return 0;
   return 1;
 }
@@ -139,6 +149,9 @@ static int socket_puts(BIO* b, const char* str) {
 }
 
 static long socket_ctrl(BIO* b, int cmd, long num, void* ptr) {
+  RTC_UNUSED(num);
+  RTC_UNUSED(ptr);
+
   switch (cmd) {
   case BIO_CTRL_RESET:
     return 0;
@@ -154,21 +167,6 @@ static long socket_ctrl(BIO* b, int cmd, long num, void* ptr) {
   }
 }
 
-static void LogSslError() {
-  // Walk down the error stack to find the SSL error.
-  uint32_t error_code;
-  const char* file;
-  int line;
-  do {
-    error_code = ERR_get_error_line(&file, &line);
-    if (ERR_GET_LIB(error_code) == ERR_LIB_SSL) {
-      LOG(LS_ERROR) << "ERR_LIB_SSL: " << error_code << ", " << file << ":"
-                    << line;
-      break;
-    }
-  } while (error_code != 0);
-}
-
 /////////////////////////////////////////////////////////////////////////////
 // OpenSSLAdapter
 /////////////////////////////////////////////////////////////////////////////
@@ -178,7 +176,7 @@ namespace rtc {
 #ifndef OPENSSL_IS_BORINGSSL
 
 // This array will store all of the mutexes available to OpenSSL.
-static MUTEX_TYPE* mutex_buf = nullptr;
+static MUTEX_TYPE* mutex_buf = NULL;
 
 static void locking_function(int mode, int n, const char * file, int line) {
   if (mode & CRYPTO_LOCK) {
@@ -198,7 +196,7 @@ static unsigned long id_function() {  // NOLINT
 static CRYPTO_dynlock_value* dyn_create_function(const char* file, int line) {
   CRYPTO_dynlock_value* value = new CRYPTO_dynlock_value;
   if (!value)
-    return nullptr;
+    return NULL;
   MUTEX_SETUP(value->mutex);
   return value;
 }
@@ -220,7 +218,7 @@ static void dyn_destroy_function(CRYPTO_dynlock_value* l,
 
 #endif  // #ifndef OPENSSL_IS_BORINGSSL
 
-VerificationCallback OpenSSLAdapter::custom_verify_callback_ = nullptr;
+VerificationCallback OpenSSLAdapter::custom_verify_callback_ = NULL;
 
 bool OpenSSLAdapter::InitializeSSL(VerificationCallback callback) {
   if (!InitializeSSLThread() || !SSL_library_init())
@@ -261,29 +259,29 @@ bool OpenSSLAdapter::CleanupSSL() {
 #ifndef OPENSSL_IS_BORINGSSL
   if (!mutex_buf)
     return false;
-  CRYPTO_set_id_callback(nullptr);
-  CRYPTO_set_locking_callback(nullptr);
-  CRYPTO_set_dynlock_create_callback(nullptr);
-  CRYPTO_set_dynlock_lock_callback(nullptr);
-  CRYPTO_set_dynlock_destroy_callback(nullptr);
+  CRYPTO_set_id_callback(NULL);
+  CRYPTO_set_locking_callback(NULL);
+  CRYPTO_set_dynlock_create_callback(NULL);
+  CRYPTO_set_dynlock_lock_callback(NULL);
+  CRYPTO_set_dynlock_destroy_callback(NULL);
   for (int i = 0; i < CRYPTO_num_locks(); ++i)
     MUTEX_CLEANUP(mutex_buf[i]);
   delete [] mutex_buf;
-  mutex_buf = nullptr;
+  mutex_buf = NULL;
 #endif  // #ifndef OPENSSL_IS_BORINGSSL
   return true;
 }
 
 OpenSSLAdapter::OpenSSLAdapter(AsyncSocket* socket)
-    : SSLAdapter(socket),
-      state_(SSL_NONE),
-      ssl_read_needs_write_(false),
-      ssl_write_needs_read_(false),
-      restartable_(false),
-      ssl_(nullptr),
-      ssl_ctx_(nullptr),
-      ssl_mode_(SSL_MODE_TLS),
-      custom_verification_succeeded_(false) {}
+  : SSLAdapter(socket),
+    state_(SSL_NONE),
+    ssl_read_needs_write_(false),
+    ssl_write_needs_read_(false),
+    restartable_(false),
+    ssl_(NULL), ssl_ctx_(NULL),
+    ssl_mode_(SSL_MODE_TLS),
+    custom_verification_succeeded_(false) {
+}
 
 OpenSSLAdapter::~OpenSSLAdapter() {
   Cleanup();
@@ -291,7 +289,7 @@ OpenSSLAdapter::~OpenSSLAdapter() {
 
 void
 OpenSSLAdapter::SetMode(SSLMode mode) {
-  RTC_DCHECK(state_ == SSL_NONE);
+  ASSERT(state_ == SSL_NONE);
   ssl_mode_ = mode;
 }
 
@@ -320,10 +318,10 @@ OpenSSLAdapter::StartSSL(const char* hostname, bool restartable) {
 int
 OpenSSLAdapter::BeginSSL() {
   LOG(LS_INFO) << "BeginSSL: " << ssl_host_name_;
-  RTC_DCHECK(state_ == SSL_CONNECTING);
+  ASSERT(state_ == SSL_CONNECTING);
 
   int err = 0;
-  BIO* bio = nullptr;
+  BIO* bio = NULL;
 
   // First set up the context
   if (!ssl_ctx_)
@@ -349,19 +347,11 @@ OpenSSLAdapter::BeginSSL() {
   SSL_set_app_data(ssl_, this);
 
   SSL_set_bio(ssl_, bio, bio);
-  // SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER allows different buffers to be passed
-  // into SSL_write when a record could only be partially transmitted (and thus
-  // requires another call to SSL_write to finish transmission). This allows us
-  // to copy the data into our own buffer when this occurs, since the original
-  // buffer can't safely be accessed after control exits Send.
-  // TODO(deadbeef): Do we want SSL_MODE_ENABLE_PARTIAL_WRITE? It doesn't
-  // appear Send handles partial writes properly, though maybe we never notice
-  // since we never send more than 16KB at once..
   SSL_set_mode(ssl_, SSL_MODE_ENABLE_PARTIAL_WRITE |
                      SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
 
   // the SSL object owns the bio now
-  bio = nullptr;
+  bio = NULL;
 
   // Do the connect
   err = ContinueSSL();
@@ -380,7 +370,7 @@ ssl_error:
 
 int
 OpenSSLAdapter::ContinueSSL() {
-  RTC_DCHECK(state_ == SSL_CONNECTING);
+  ASSERT(state_ == SSL_CONNECTING);
 
   // Clear the DTLS timer
   Thread::Current()->Clear(this, MSG_TIMEOUT);
@@ -449,60 +439,19 @@ OpenSSLAdapter::Cleanup() {
   ssl_read_needs_write_ = false;
   ssl_write_needs_read_ = false;
   custom_verification_succeeded_ = false;
-  pending_data_.Clear();
 
   if (ssl_) {
     SSL_free(ssl_);
-    ssl_ = nullptr;
+    ssl_ = NULL;
   }
 
   if (ssl_ctx_) {
     SSL_CTX_free(ssl_ctx_);
-    ssl_ctx_ = nullptr;
+    ssl_ctx_ = NULL;
   }
 
   // Clear the DTLS timer
   Thread::Current()->Clear(this, MSG_TIMEOUT);
-}
-
-int OpenSSLAdapter::DoSslWrite(const void* pv, size_t cb, int* error) {
-  // If we have pending data (that was previously only partially written by
-  // SSL_write), we shouldn't be attempting to write anything else.
-  RTC_DCHECK(pending_data_.empty() || pv == pending_data_.data());
-  RTC_DCHECK(error != nullptr);
-
-  ssl_write_needs_read_ = false;
-  int ret = SSL_write(ssl_, pv, checked_cast<int>(cb));
-  *error = SSL_get_error(ssl_, ret);
-  switch (*error) {
-    case SSL_ERROR_NONE:
-      // Success!
-      return ret;
-    case SSL_ERROR_WANT_READ:
-      LOG(LS_INFO) << " -- error want read";
-      ssl_write_needs_read_ = true;
-      SetError(EWOULDBLOCK);
-      break;
-    case SSL_ERROR_WANT_WRITE:
-      LOG(LS_INFO) << " -- error want write";
-      SetError(EWOULDBLOCK);
-      break;
-    case SSL_ERROR_ZERO_RETURN:
-      // LOG(LS_INFO) << " -- remote side closed";
-      SetError(EWOULDBLOCK);
-      // do we need to signal closure?
-      break;
-    case SSL_ERROR_SSL:
-      LogSslError();
-      Error("SSL_write", ret ? ret : -1, false);
-      break;
-    default:
-      LOG(LS_WARNING) << "Unknown error from SSL_write: " << *error;
-      Error("SSL_write", ret ? ret : -1, false);
-      break;
-  }
-
-  return SOCKET_ERROR;
 }
 
 //
@@ -519,7 +468,7 @@ OpenSSLAdapter::Send(const void* pv, size_t cb) {
 
   case SSL_WAIT:
   case SSL_CONNECTING:
-    SetError(ENOTCONN);
+    SetError(EWOULDBLOCK);
     return SOCKET_ERROR;
 
   case SSL_CONNECTED:
@@ -530,53 +479,38 @@ OpenSSLAdapter::Send(const void* pv, size_t cb) {
     return SOCKET_ERROR;
   }
 
-  int ret;
-  int error;
-
-  if (!pending_data_.empty()) {
-    ret = DoSslWrite(pending_data_.data(), pending_data_.size(), &error);
-    if (ret != static_cast<int>(pending_data_.size())) {
-      // We couldn't finish sending the pending data, so we definitely can't
-      // send any more data. Return with an EWOULDBLOCK error.
-      SetError(EWOULDBLOCK);
-      return SOCKET_ERROR;
-    }
-    // We completed sending the data previously passed into SSL_write! Now
-    // we're allowed to send more data.
-    pending_data_.Clear();
-  }
-
   // OpenSSL will return an error if we try to write zero bytes
   if (cb == 0)
     return 0;
 
-  ret = DoSslWrite(pv, cb, &error);
+  ssl_write_needs_read_ = false;
 
-  // If SSL_write fails with SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE, this
-  // means the underlying socket is blocked on reading or (more typically)
-  // writing. When this happens, OpenSSL requires that the next call to
-  // SSL_write uses the same arguments (though, with
-  // SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER, the actual buffer pointer may be
-  // different).
-  //
-  // However, after Send exits, we will have lost access to data the user of
-  // this class is trying to send, and there's no guarantee that the user of
-  // this class will call Send with the same arguements when it fails. So, we
-  // buffer the data ourselves. When we know the underlying socket is writable
-  // again from OnWriteEvent (or if Send is called again before that happens),
-  // we'll retry sending this buffered data.
-  if (error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE) {
-    // Shouldn't be able to get to this point if we already have pending data.
-    RTC_DCHECK(pending_data_.empty());
-    LOG(LS_WARNING)
-        << "SSL_write couldn't write to the underlying socket; buffering data.";
-    pending_data_.SetData(static_cast<const uint8_t*>(pv), cb);
-    // Since we're taking responsibility for sending this data, return its full
-    // size. The user of this class can consider it sent.
-    return cb;
+  int code = SSL_write(ssl_, pv, checked_cast<int>(cb));
+  switch (SSL_get_error(ssl_, code)) {
+  case SSL_ERROR_NONE:
+    //LOG(LS_INFO) << " -- success";
+    return code;
+  case SSL_ERROR_WANT_READ:
+    //LOG(LS_INFO) << " -- error want read";
+    ssl_write_needs_read_ = true;
+    SetError(EWOULDBLOCK);
+    break;
+  case SSL_ERROR_WANT_WRITE:
+    //LOG(LS_INFO) << " -- error want write";
+    SetError(EWOULDBLOCK);
+    break;
+  case SSL_ERROR_ZERO_RETURN:
+    //LOG(LS_INFO) << " -- remote side closed";
+    SetError(EWOULDBLOCK);
+    // do we need to signal closure?
+    break;
+  default:
+    //LOG(LS_INFO) << " -- error " << code;
+    Error("SSL_write", (code ? code : -1), false);
+    break;
   }
 
-  return ret;
+  return SOCKET_ERROR;
 }
 
 int
@@ -600,7 +534,7 @@ int OpenSSLAdapter::Recv(void* pv, size_t cb, int64_t* timestamp) {
 
   case SSL_WAIT:
   case SSL_CONNECTING:
-    SetError(ENOTCONN);
+    SetError(EWOULDBLOCK);
     return SOCKET_ERROR;
 
   case SSL_CONNECTED:
@@ -618,33 +552,28 @@ int OpenSSLAdapter::Recv(void* pv, size_t cb, int64_t* timestamp) {
   ssl_read_needs_write_ = false;
 
   int code = SSL_read(ssl_, pv, checked_cast<int>(cb));
-  int error = SSL_get_error(ssl_, code);
-  switch (error) {
-    case SSL_ERROR_NONE:
-      // LOG(LS_INFO) << " -- success";
-      return code;
-    case SSL_ERROR_WANT_READ:
-      // LOG(LS_INFO) << " -- error want read";
-      SetError(EWOULDBLOCK);
-      break;
-    case SSL_ERROR_WANT_WRITE:
-      // LOG(LS_INFO) << " -- error want write";
-      ssl_read_needs_write_ = true;
-      SetError(EWOULDBLOCK);
-      break;
-    case SSL_ERROR_ZERO_RETURN:
-      // LOG(LS_INFO) << " -- remote side closed";
-      SetError(EWOULDBLOCK);
-      // do we need to signal closure?
-      break;
-    case SSL_ERROR_SSL:
-      LogSslError();
-      Error("SSL_read", (code ? code : -1), false);
-      break;
-    default:
-      LOG(LS_WARNING) << "Unknown error from SSL_read: " << error;
-      Error("SSL_read", (code ? code : -1), false);
-      break;
+  switch (SSL_get_error(ssl_, code)) {
+  case SSL_ERROR_NONE:
+    //LOG(LS_INFO) << " -- success";
+    return code;
+  case SSL_ERROR_WANT_READ:
+    //LOG(LS_INFO) << " -- error want read";
+    SetError(EWOULDBLOCK);
+    break;
+  case SSL_ERROR_WANT_WRITE:
+    //LOG(LS_INFO) << " -- error want write";
+    ssl_read_needs_write_ = true;
+    SetError(EWOULDBLOCK);
+    break;
+  case SSL_ERROR_ZERO_RETURN:
+    //LOG(LS_INFO) << " -- remote side closed";
+    SetError(EWOULDBLOCK);
+    // do we need to signal closure?
+    break;
+  default:
+    //LOG(LS_INFO) << " -- error " << code;
+    Error("SSL_read", (code ? code : -1), false);
+    break;
   }
 
   return SOCKET_ERROR;
@@ -698,7 +627,7 @@ void
 OpenSSLAdapter::OnConnectEvent(AsyncSocket* socket) {
   LOG(LS_INFO) << "OpenSSLAdapter::OnConnectEvent";
   if (state_ != SSL_WAIT) {
-    RTC_DCHECK(state_ == SSL_NONE);
+    ASSERT(state_ == SSL_NONE);
     AsyncSocketAdapter::OnConnectEvent(socket);
     return;
   }
@@ -766,16 +695,6 @@ OpenSSLAdapter::OnWriteEvent(AsyncSocket* socket) {
     AsyncSocketAdapter::OnReadEvent(socket);
   }
 
-  // If a previous SSL_write failed due to the underlying socket being blocked,
-  // this will attempt finishing the write operation.
-  if (!pending_data_.empty()) {
-    int error;
-    if (DoSslWrite(pending_data_.data(), pending_data_.size(), &error) ==
-        static_cast<int>(pending_data_.size())) {
-      pending_data_.Clear();
-    }
-  }
-
   //LOG(LS_INFO) << " -- onStreamWriteable";
   AsyncSocketAdapter::OnWriteEvent(socket);
 }
@@ -786,6 +705,9 @@ OpenSSLAdapter::OnCloseEvent(AsyncSocket* socket, int err) {
   AsyncSocketAdapter::OnCloseEvent(socket, err);
 }
 
+// This code is taken from the "Network Security with OpenSSL"
+// sample in chapter 5
+
 bool OpenSSLAdapter::VerifyServerName(SSL* ssl, const char* host,
                                       bool ignore_bad_cert) {
   if (!host)
@@ -793,7 +715,7 @@ bool OpenSSLAdapter::VerifyServerName(SSL* ssl, const char* host,
 
   // Checking the return from SSL_get_peer_certificate here is not strictly
   // necessary.  With our setup, it is not possible for it to return
-  // null.  However, it is good form to check the return.
+  // NULL.  However, it is good form to check the return.
   X509* certificate = SSL_get_peer_certificate(ssl);
   if (!certificate)
     return false;
@@ -811,39 +733,74 @@ bool OpenSSLAdapter::VerifyServerName(SSL* ssl, const char* host,
     BIO_free(mem);
 
     char* cipher_description =
-        SSL_CIPHER_description(SSL_get_current_cipher(ssl), nullptr, 128);
+      SSL_CIPHER_description(SSL_get_current_cipher(ssl), NULL, 128);
     LOG(LS_INFO) << "Cipher: " << cipher_description;
     OPENSSL_free(cipher_description);
   }
 #endif
 
   bool ok = false;
-  GENERAL_NAMES* names = reinterpret_cast<GENERAL_NAMES*>(
-      X509_get_ext_d2i(certificate, NID_subject_alt_name, nullptr, nullptr));
-  if (names) {
-    for (size_t i = 0; i < sk_GENERAL_NAME_num(names); i++) {
-      const GENERAL_NAME* name = sk_GENERAL_NAME_value(names, i);
-      if (name->type != GEN_DNS)
-        continue;
-      std::string value(
-          reinterpret_cast<const char*>(ASN1_STRING_data(name->d.dNSName)),
-          ASN1_STRING_length(name->d.dNSName));
-      // string_match takes NUL-terminated strings, so check for embedded NULs.
-      if (value.find('\0') != std::string::npos)
-        continue;
-      if (string_match(host, value.c_str())) {
-        ok = true;
+  int extension_count = X509_get_ext_count(certificate);
+  for (int i = 0; i < extension_count; ++i) {
+    X509_EXTENSION* extension = X509_get_ext(certificate, i);
+    int extension_nid = OBJ_obj2nid(X509_EXTENSION_get_object(extension));
+
+    if (extension_nid == NID_subject_alt_name) {
+      const X509V3_EXT_METHOD* meth = X509V3_EXT_get(extension);
+      if (!meth)
         break;
+
+      void* ext_str = NULL;
+
+      // We assign this to a local variable, instead of passing the address
+      // directly to ASN1_item_d2i.
+      // See http://readlist.com/lists/openssl.org/openssl-users/0/4761.html.
+      unsigned char* ext_value_data = extension->value->data;
+
+      const unsigned char **ext_value_data_ptr =
+          (const_cast<const unsigned char **>(&ext_value_data));
+
+      if (meth->it) {
+        ext_str = ASN1_item_d2i(NULL, ext_value_data_ptr,
+                                extension->value->length,
+                                ASN1_ITEM_ptr(meth->it));
+      } else {
+        ext_str = meth->d2i(NULL, ext_value_data_ptr, extension->value->length);
       }
+
+      STACK_OF(CONF_VALUE)* value = meth->i2v(meth, ext_str, NULL);
+
+      // Cast to size_t to be compilable for both OpenSSL and BoringSSL.
+      for (size_t j = 0; j < static_cast<size_t>(sk_CONF_VALUE_num(value));
+           ++j) {
+        CONF_VALUE* nval = sk_CONF_VALUE_value(value, j);
+        // The value for nval can contain wildcards
+        if (!strcmp(nval->name, "DNS") && string_match(host, nval->value)) {
+          ok = true;
+          break;
+        }
+      }
+      sk_CONF_VALUE_pop_free(value, X509V3_conf_free);
+      value = NULL;
+
+      if (meth->it) {
+        ASN1_item_free(reinterpret_cast<ASN1_VALUE*>(ext_str),
+                       ASN1_ITEM_ptr(meth->it));
+      } else {
+        meth->ext_free(ext_str);
+      }
+      ext_str = NULL;
     }
-    GENERAL_NAMES_free(names);
+    if (ok)
+      break;
   }
 
   char data[256];
   X509_NAME* subject;
-  if (!ok && ((subject = X509_get_subject_name(certificate)) != nullptr) &&
-      (X509_NAME_get_text_by_NID(subject, NID_commonName, data, sizeof(data)) >
-       0)) {
+  if (!ok
+      && ((subject = X509_get_subject_name(certificate)) != NULL)
+      && (X509_NAME_get_text_by_NID(subject, NID_commonName,
+                                    data, sizeof(data)) > 0)) {
     data[sizeof(data)-1] = 0;
     if (_stricmp(data, host) == 0)
       ok = true;
@@ -960,8 +917,8 @@ bool OpenSSLAdapter::ConfigureTrustedRootCertificates(SSL_CTX* ctx) {
   for (size_t i = 0; i < arraysize(kSSLCertCertificateList); i++) {
     const unsigned char* cert_buffer = kSSLCertCertificateList[i];
     size_t cert_buffer_len = kSSLCertCertificateSizeList[i];
-    X509* cert =
-        d2i_X509(nullptr, &cert_buffer, checked_cast<long>(cert_buffer_len));
+    X509* cert = d2i_X509(NULL, &cert_buffer,
+                          checked_cast<long>(cert_buffer_len));
     if (cert) {
       int return_value = X509_STORE_add_cert(SSL_CTX_get_cert_store(ctx), cert);
       if (return_value == 0) {
@@ -979,16 +936,16 @@ SSL_CTX*
 OpenSSLAdapter::SetupSSLContext() {
   SSL_CTX* ctx = SSL_CTX_new(ssl_mode_ == SSL_MODE_DTLS ?
       DTLSv1_client_method() : TLSv1_client_method());
-  if (ctx == nullptr) {
+  if (ctx == NULL) {
     unsigned long error = ERR_get_error();  // NOLINT: type used by OpenSSL.
     LOG(LS_WARNING) << "SSL_CTX creation failed: "
                     << '"' << ERR_reason_error_string(error) << "\" "
                     << "(error=" << error << ')';
-    return nullptr;
+    return NULL;
   }
   if (!ConfigureTrustedRootCertificates(ctx)) {
     SSL_CTX_free(ctx);
-    return nullptr;
+    return NULL;
   }
 
 #if !defined(NDEBUG)
@@ -1007,3 +964,5 @@ OpenSSLAdapter::SetupSSLContext() {
 }
 
 } // namespace rtc
+
+#endif  // HAVE_OPENSSL_SSL_H

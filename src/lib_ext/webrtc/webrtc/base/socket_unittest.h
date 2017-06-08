@@ -57,8 +57,7 @@ class SocketTest : public testing::Test {
   void TestUdpReadyToSendIPv6();
   void TestGetSetOptionsIPv4();
   void TestGetSetOptionsIPv6();
-  void TestSocketRecvTimestampIPv4();
-  void TestSocketRecvTimestampIPv6();
+  void TestSocketRecvTimestamp();
 
   static const int kTimeout = 5000;  // ms
   const IPAddress kIPv4Loopback;
@@ -66,7 +65,7 @@ class SocketTest : public testing::Test {
 
  protected:
   void TcpInternal(const IPAddress& loopback, size_t data_size,
-      ptrdiff_t max_send_size);
+      ssize_t max_send_size);
 
  private:
   void ConnectInternal(const IPAddress& loopback);

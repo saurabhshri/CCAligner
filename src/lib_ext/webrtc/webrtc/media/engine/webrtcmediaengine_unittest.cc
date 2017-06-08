@@ -8,10 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "webrtc/api/audio_codecs/builtin_audio_decoder_factory.h"
-#include "webrtc/api/audio_codecs/builtin_audio_encoder_factory.h"
+#include "testing/gtest/include/gtest/gtest.h"
+
+#include "webrtc/modules/audio_coding/codecs/builtin_audio_decoder_factory.h"
 #include "webrtc/media/engine/webrtcmediaengine.h"
-#include "webrtc/test/gtest.h"
 
 using webrtc::RtpExtension;
 
@@ -189,8 +189,7 @@ TEST(WebRtcMediaEngineFactoryTest, CreateOldApi) {
 
 TEST(WebRtcMediaEngineFactoryTest, CreateWithBuiltinDecoders) {
   std::unique_ptr<MediaEngineInterface> engine(WebRtcMediaEngineFactory::Create(
-      nullptr, webrtc::CreateBuiltinAudioEncoderFactory(),
-      webrtc::CreateBuiltinAudioDecoderFactory(), nullptr, nullptr));
+      nullptr, webrtc::CreateBuiltinAudioDecoderFactory(), nullptr, nullptr));
   EXPECT_TRUE(engine);
 }
 

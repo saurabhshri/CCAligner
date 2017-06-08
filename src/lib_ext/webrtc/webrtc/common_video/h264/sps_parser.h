@@ -11,6 +11,7 @@
 #ifndef WEBRTC_COMMON_VIDEO_H264_SPS_PARSER_H_
 #define WEBRTC_COMMON_VIDEO_H264_SPS_PARSER_H_
 
+#include "webrtc/base/common.h"
 #include "webrtc/base/optional.h"
 
 namespace rtc {
@@ -37,7 +38,6 @@ class SpsParser {
     uint32_t pic_order_cnt_type = 0;
     uint32_t max_num_ref_frames = 0;
     uint32_t vui_params_present = 0;
-    uint32_t id = 0;
   };
 
   // Unpack RBSP and parse SPS state from the supplied buffer.

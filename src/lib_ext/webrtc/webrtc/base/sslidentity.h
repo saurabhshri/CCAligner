@@ -28,18 +28,6 @@ namespace rtc {
 // Forward declaration due to circular dependency with SSLCertificate.
 class SSLCertChain;
 
-struct SSLCertificateStats {
-  SSLCertificateStats(std::string&& fingerprint,
-                      std::string&& fingerprint_algorithm,
-                      std::string&& base64_certificate,
-                      std::unique_ptr<SSLCertificateStats>&& issuer);
-  ~SSLCertificateStats();
-  std::string fingerprint;
-  std::string fingerprint_algorithm;
-  std::string base64_certificate;
-  std::unique_ptr<SSLCertificateStats> issuer;
-};
-
 // Abstract interface overridden by SSL library specific
 // implementations.
 
@@ -51,9 +39,9 @@ struct SSLCertificateStats {
 class SSLCertificate {
  public:
   // Parses and builds a certificate from a PEM encoded string.
-  // Returns null on failure.
+  // Returns NULL on failure.
   // The length of the string representation of the certificate is
-  // stored in *pem_length if it is non-null, and only if
+  // stored in *pem_length if it is non-NULL, and only if
   // parsing was successful.
   // Caller is responsible for freeing the returned object.
   static SSLCertificate* FromPEMString(const std::string& pem_string);
@@ -87,15 +75,6 @@ class SSLCertificate {
   // Returns the time in seconds relative to epoch, 1970-01-01T00:00:00Z (UTC),
   // or -1 if an expiration time could not be retrieved.
   virtual int64_t CertificateExpirationTime() const = 0;
-
-  // Gets information (fingerprint, etc.) about this certificate and its chain
-  // (if it has a certificate chain). This is used for certificate stats, see
-  // https://w3c.github.io/webrtc-stats/#certificatestats-dict*.
-  std::unique_ptr<SSLCertificateStats> GetStats() const;
-
- private:
-  std::unique_ptr<SSLCertificateStats> GetStats(
-    std::unique_ptr<SSLCertificateStats> issuer) const;
 };
 
 // SSLCertChain is a simple wrapper for a vector of SSLCertificates. It serves
@@ -216,7 +195,7 @@ class SSLIdentity {
   // parameters are defined in |key_param|. The certificate's lifetime in
   // seconds from the current time is defined in |certificate_lifetime|; it
   // should be a non-negative number.
-  // Returns null on failure.
+  // Returns NULL on failure.
   // Caller is responsible for freeing the returned object.
   static SSLIdentity* GenerateWithExpiration(const std::string& common_name,
                                              const KeyParams& key_param,

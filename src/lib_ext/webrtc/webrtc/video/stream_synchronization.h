@@ -13,21 +13,24 @@
 
 #include <list>
 
-#include "webrtc/system_wrappers/include/rtp_to_ntp_estimator.h"
+#include "webrtc/system_wrappers/include/rtp_to_ntp.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
 
+struct ViESyncDelay;
+
 class StreamSynchronization {
  public:
   struct Measurements {
-    Measurements() : latest_receive_time_ms(0), latest_timestamp(0) {}
-    RtpToNtpEstimator rtp_to_ntp;
+    Measurements() : rtcp(), latest_receive_time_ms(0), latest_timestamp(0) {}
+    RtcpList rtcp;
     int64_t latest_receive_time_ms;
     uint32_t latest_timestamp;
   };
 
-  StreamSynchronization(int video_stream_id, int audio_stream_id);
+  StreamSynchronization(uint32_t video_primary_ssrc, int audio_channel_id);
+  ~StreamSynchronization();
 
   bool ComputeDelays(int relative_delay_ms,
                      int current_audio_delay_ms,
@@ -45,16 +48,9 @@ class StreamSynchronization {
   void SetTargetBufferingDelay(int target_delay_ms);
 
  private:
-  struct SynchronizationDelays {
-    int extra_video_delay_ms = 0;
-    int last_video_delay_ms = 0;
-    int extra_audio_delay_ms = 0;
-    int last_audio_delay_ms = 0;
-  };
-
-  SynchronizationDelays channel_delay_;
-  const int video_stream_id_;
-  const int audio_stream_id_;
+  ViESyncDelay* channel_delay_;
+  const uint32_t video_primary_ssrc_;
+  const int audio_channel_id_;
   int base_target_delay_ms_;
   int avg_diff_ms_;
 };

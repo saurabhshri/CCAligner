@@ -16,13 +16,13 @@
 #include <memory>
 #include <utility>
 
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/base/basictypes.h"
 #include "webrtc/base/criticalsection.h"
 #include "webrtc/base/platform_thread.h"
 #include "webrtc/common_types.h"
 #include "webrtc/modules/rtp_rtcp/include/rtp_header_parser.h"
 #include "webrtc/system_wrappers/include/event_wrapper.h"
-#include "webrtc/test/gtest.h"
 #include "webrtc/voice_engine/include/voe_base.h"
 #include "webrtc/voice_engine/include/voe_codec.h"
 #include "webrtc/voice_engine/include/voe_file.h"
@@ -30,10 +30,9 @@
 #include "webrtc/voice_engine/include/voe_rtp_rtcp.h"
 #include "webrtc/voice_engine/test/auto_test/fakes/loudest_filter.h"
 
-namespace webrtc {
-namespace voetest {
-
 static const size_t kMaxPacketSizeByte = 1500;
+
+namespace voetest {
 
 // This class is to simulate a conference call. There are two Voice Engines, one
 // for local channels and the other for remote channels. There is a simulated
@@ -159,8 +158,6 @@ class ConferenceTransport: public webrtc::Transport {
 
   const std::unique_ptr<webrtc::RtpHeaderParser> rtp_header_parser_;
 };
-
 }  // namespace voetest
-}  // namespace webrtc
 
 #endif  // WEBRTC_VOICE_ENGINE_TEST_AUTO_TEST_FAKES_CONFERENCE_TRANSPORT_H_

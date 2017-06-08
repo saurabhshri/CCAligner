@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <memory>
 
-#include "webrtc/api/video/video_frame.h"
 #include "webrtc/base/bytebuffer.h"
 #include "webrtc/base/fileutils.h"
 #include "webrtc/base/gunit.h"
@@ -22,7 +21,9 @@
 #include "webrtc/base/stream.h"
 #include "webrtc/base/stringutils.h"
 #include "webrtc/base/testutils.h"
+#include "webrtc/media/base/rtpdump.h"
 #include "webrtc/media/base/videocapturer.h"
+#include "webrtc/media/base/videoframe.h"
 
 namespace cricket {
 
@@ -96,21 +97,130 @@ bool RawRtcpPacket::EqualsTo(const RawRtcpPacket& packet) const {
       0 == memcmp(payload, packet.payload, sizeof(payload));
 }
 
+/////////////////////////////////////////////////////////////////////////
+// Implementation of class RtpTestUtility
+/////////////////////////////////////////////////////////////////////////
+const RawRtpPacket RtpTestUtility::kTestRawRtpPackets[] = {
+    {0x80, 0, 0, 0,  RtpTestUtility::kDefaultSsrc, "RTP frame 0"},
+    {0x80, 0, 1, 30, RtpTestUtility::kDefaultSsrc, "RTP frame 1"},
+    {0x80, 0, 2, 30, RtpTestUtility::kDefaultSsrc, "RTP frame 1"},
+    {0x80, 0, 3, 60, RtpTestUtility::kDefaultSsrc, "RTP frame 2"}
+};
+const RawRtcpPacket RtpTestUtility::kTestRawRtcpPackets[] = {
+    // The Version is 2, the Length is 2, and the payload has 8 bytes.
+    {0x80, 0, 2, "RTCP0000"},
+    {0x80, 0, 2, "RTCP0001"},
+    {0x80, 0, 2, "RTCP0002"},
+    {0x80, 0, 2, "RTCP0003"},
+};
+
+size_t RtpTestUtility::GetTestPacketCount() {
+  return std::min(arraysize(kTestRawRtpPackets),
+                  arraysize(kTestRawRtcpPackets));
+}
+
+bool RtpTestUtility::WriteTestPackets(size_t count,
+                                      bool rtcp,
+                                      uint32_t rtp_ssrc,
+                                      RtpDumpWriter* writer) {
+  if (!writer || count > GetTestPacketCount()) return false;
+
+  bool result = true;
+  uint32_t elapsed_time_ms = 0;
+  for (size_t i = 0; i < count && result; ++i) {
+    rtc::ByteBufferWriter buf;
+    if (rtcp) {
+      kTestRawRtcpPackets[i].WriteToByteBuffer(&buf);
+    } else {
+      kTestRawRtpPackets[i].WriteToByteBuffer(rtp_ssrc, &buf);
+    }
+
+    RtpDumpPacket dump_packet(buf.Data(), buf.Length(), elapsed_time_ms, rtcp);
+    elapsed_time_ms += kElapsedTimeInterval;
+    result &= (rtc::SR_SUCCESS == writer->WritePacket(dump_packet));
+  }
+  return result;
+}
+
+bool RtpTestUtility::VerifyTestPacketsFromStream(size_t count,
+                                                 rtc::StreamInterface* stream,
+                                                 uint32_t ssrc) {
+  if (!stream) return false;
+
+  uint32_t prev_elapsed_time = 0;
+  bool result = true;
+  stream->Rewind();
+  RtpDumpLoopReader reader(stream);
+  for (size_t i = 0; i < count && result; ++i) {
+    // Which loop and which index in the loop are we reading now.
+    size_t loop = i / GetTestPacketCount();
+    size_t index = i % GetTestPacketCount();
+
+    RtpDumpPacket packet;
+    result &= (rtc::SR_SUCCESS == reader.ReadPacket(&packet));
+    // Check the elapsed time of the dump packet.
+    result &= (packet.elapsed_time >= prev_elapsed_time);
+    prev_elapsed_time = packet.elapsed_time;
+
+    // Check the RTP or RTCP packet.
+    rtc::ByteBufferReader buf(reinterpret_cast<const char*>(&packet.data[0]),
+                              packet.data.size());
+    if (packet.is_rtcp()) {
+      // RTCP packet.
+      RawRtcpPacket rtcp_packet;
+      result &= rtcp_packet.ReadFromByteBuffer(&buf);
+      result &= rtcp_packet.EqualsTo(kTestRawRtcpPackets[index]);
+    } else {
+      // RTP packet.
+      RawRtpPacket rtp_packet;
+      result &= rtp_packet.ReadFromByteBuffer(&buf);
+      result &= rtp_packet.SameExceptSeqNumTimestampSsrc(
+          kTestRawRtpPackets[index],
+          static_cast<uint16_t>(kTestRawRtpPackets[index].sequence_number +
+                                loop * GetTestPacketCount()),
+          static_cast<uint32_t>(kTestRawRtpPackets[index].timestamp +
+                                loop * kRtpTimestampIncrease),
+          ssrc);
+    }
+  }
+
+  stream->Rewind();
+  return result;
+}
+
+bool RtpTestUtility::VerifyPacket(const RtpDumpPacket* dump,
+                                  const RawRtpPacket* raw,
+                                  bool header_only) {
+  if (!dump || !raw) return false;
+
+  rtc::ByteBufferWriter buf;
+  raw->WriteToByteBuffer(RtpTestUtility::kDefaultSsrc, &buf);
+
+  if (header_only) {
+    size_t header_len = 0;
+    dump->GetRtpHeaderLen(&header_len);
+    return header_len == dump->data.size() &&
+        buf.Length() > dump->data.size() &&
+        0 == memcmp(buf.Data(), &dump->data[0], dump->data.size());
+  } else {
+    return buf.Length() == dump->data.size() &&
+        0 == memcmp(buf.Data(), &dump->data[0], dump->data.size());
+  }
+}
+
 // Implementation of VideoCaptureListener.
 VideoCapturerListener::VideoCapturerListener(VideoCapturer* capturer)
-    : capturer_(capturer),
-      last_capture_state_(CS_STARTING),
+    : last_capture_state_(CS_STARTING),
       frame_count_(0),
+      frame_fourcc_(0),
       frame_width_(0),
       frame_height_(0),
+      frame_size_(0),
       resolution_changed_(false) {
   capturer->SignalStateChange.connect(this,
       &VideoCapturerListener::OnStateChange);
-  capturer->AddOrUpdateSink(this, rtc::VideoSinkWants());
-}
-
-VideoCapturerListener::~VideoCapturerListener() {
-  capturer_->RemoveSink(this);
+  capturer->SignalFrameCaptured.connect(this,
+      &VideoCapturerListener::OnFrameCaptured);
 }
 
 void VideoCapturerListener::OnStateChange(VideoCapturer* capturer,
@@ -118,12 +228,15 @@ void VideoCapturerListener::OnStateChange(VideoCapturer* capturer,
   last_capture_state_ = result;
 }
 
-void VideoCapturerListener::OnFrame(const webrtc::VideoFrame& frame) {
+void VideoCapturerListener::OnFrameCaptured(VideoCapturer* capturer,
+                                            const CapturedFrame* frame) {
   ++frame_count_;
   if (1 == frame_count_) {
-    frame_width_ = frame.width();
-    frame_height_ = frame.height();
-  } else if (frame_width_ != frame.width() || frame_height_ != frame.height()) {
+    frame_fourcc_ = frame->fourcc;
+    frame_width_ = frame->width;
+    frame_height_ = frame->height;
+    frame_size_ = frame->data_size;
+  } else if (frame_width_ != frame->width || frame_height_ != frame->height) {
     resolution_changed_ = true;
   }
 }
@@ -153,19 +266,6 @@ cricket::StreamParams CreateSimWithRtxStreamParams(
     cricket::SsrcGroup fid_group(cricket::kFidSsrcGroupSemantics, fid_ssrcs);
     sp.ssrc_groups.push_back(fid_group);
   }
-  return sp;
-}
-
-cricket::StreamParams CreatePrimaryWithFecFrStreamParams(
-    const std::string& cname,
-    uint32_t primary_ssrc,
-    uint32_t flexfec_ssrc) {
-  cricket::StreamParams sp;
-  cricket::SsrcGroup sg(cricket::kFecFrSsrcGroupSemantics,
-                        {primary_ssrc, flexfec_ssrc});
-  sp.ssrcs = {primary_ssrc};
-  sp.ssrc_groups.push_back(sg);
-  sp.cname = cname;
   return sp;
 }
 

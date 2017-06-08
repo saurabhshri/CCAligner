@@ -14,7 +14,7 @@
 #include "webrtc/base/helpers.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/ratelimiter.h"
-#include "webrtc/base/stringutils.h"
+#include "webrtc/base/timing.h"
 #include "webrtc/media/base/codec.h"
 #include "webrtc/media/base/mediaconstants.h"
 #include "webrtc/media/base/rtputils.h"
@@ -36,31 +36,42 @@ static const size_t kMaxSrtpHmacOverhead = 16;
 
 RtpDataEngine::RtpDataEngine() {
   data_codecs_.push_back(
-      DataCodec(kGoogleRtpDataCodecPlType, kGoogleRtpDataCodecName));
+      DataCodec(kGoogleRtpDataCodecId, kGoogleRtpDataCodecName));
+  SetTiming(new rtc::Timing());
 }
 
 DataMediaChannel* RtpDataEngine::CreateChannel(
-    const MediaConfig& config) {
-  return new RtpDataMediaChannel(config);
-}
-
-static const DataCodec* FindCodecByName(const std::vector<DataCodec>& codecs,
-                                        const std::string& name) {
-  for (const DataCodec& codec : codecs) {
-    if (_stricmp(name.c_str(), codec.name.c_str()) == 0)
-      return &codec;
+    DataChannelType data_channel_type) {
+  if (data_channel_type != DCT_RTP) {
+    return NULL;
   }
-  return nullptr;
+  return new RtpDataMediaChannel(timing_.get());
 }
 
-RtpDataMediaChannel::RtpDataMediaChannel(const MediaConfig& config)
-    : DataMediaChannel(config) {
-  Construct();
+bool FindCodecByName(const std::vector<DataCodec>& codecs,
+                     const std::string& name, DataCodec* codec_out) {
+  std::vector<DataCodec>::const_iterator iter;
+  for (iter = codecs.begin(); iter != codecs.end(); ++iter) {
+    if (iter->name == name) {
+      *codec_out = *iter;
+      return true;
+    }
+  }
+  return false;
 }
 
-void RtpDataMediaChannel::Construct() {
+RtpDataMediaChannel::RtpDataMediaChannel(rtc::Timing* timing) {
+  Construct(timing);
+}
+
+RtpDataMediaChannel::RtpDataMediaChannel() {
+  Construct(NULL);
+}
+
+void RtpDataMediaChannel::Construct(rtc::Timing* timing) {
   sending_ = false;
   receiving_ = false;
+  timing_ = timing;
   send_limiter_.reset(new rtc::RateLimiter(kDataMaxBandwidth / 8, 1.0));
 }
 
@@ -80,7 +91,7 @@ void RtpClock::Tick(double now, int* seq_num, uint32_t* timestamp) {
 }
 
 const DataCodec* FindUnknownCodec(const std::vector<DataCodec>& codecs) {
-  DataCodec data_codec(kGoogleRtpDataCodecPlType, kGoogleRtpDataCodecName);
+  DataCodec data_codec(kGoogleRtpDataCodecId, kGoogleRtpDataCodecName);
   std::vector<DataCodec>::const_iterator iter;
   for (iter = codecs.begin(); iter != codecs.end(); ++iter) {
     if (!iter->Matches(data_codec)) {
@@ -91,7 +102,7 @@ const DataCodec* FindUnknownCodec(const std::vector<DataCodec>& codecs) {
 }
 
 const DataCodec* FindKnownCodec(const std::vector<DataCodec>& codecs) {
-  DataCodec data_codec(kGoogleRtpDataCodecPlType, kGoogleRtpDataCodecName);
+  DataCodec data_codec(kGoogleRtpDataCodecId, kGoogleRtpDataCodecName);
   std::vector<DataCodec>::const_iterator iter;
   for (iter = codecs.begin(); iter != codecs.end(); ++iter) {
     if (iter->Matches(data_codec)) {
@@ -221,7 +232,8 @@ void RtpDataMediaChannel::OnPacketReceived(
     return;
   }
 
-  if (!FindCodecById(recv_codecs_, header.payload_type)) {
+  DataCodec codec;
+  if (!FindCodecById(recv_codecs_, header.payload_type, &codec)) {
     // For bundling, this will be logged for every message.
     // So disable this logging.
     // LOG(LS_WARNING) << "Not receiving packet "
@@ -288,9 +300,8 @@ bool RtpDataMediaChannel::SendData(
     return false;
   }
 
-  const DataCodec* found_codec =
-      FindCodecByName(send_codecs_, kGoogleRtpDataCodecName);
-  if (!found_codec) {
+  DataCodec found_codec;
+  if (!FindCodecByName(send_codecs_, kGoogleRtpDataCodecName, &found_codec)) {
     LOG(LS_WARNING) << "Not sending data because codec is unknown: "
                     << kGoogleRtpDataCodecName;
     return false;
@@ -302,8 +313,7 @@ bool RtpDataMediaChannel::SendData(
     return false;
   }
 
-  double now =
-      rtc::TimeMicros() / static_cast<double>(rtc::kNumMicrosecsPerSec);
+  double now = timing_->TimerNow();
 
   if (!send_limiter_->CanUse(packet_len, now)) {
     LOG(LS_VERBOSE) << "Dropped data packet of len=" << packet_len
@@ -313,7 +323,7 @@ bool RtpDataMediaChannel::SendData(
   }
 
   RtpHeader header;
-  header.payload_type = found_codec->id;
+  header.payload_type = found_codec.id;
   header.ssrc = params.ssrc;
   rtp_clock_by_send_ssrc_[header.ssrc]->Tick(
       now, &header.seq_num, &header.timestamp);
@@ -337,10 +347,6 @@ bool RtpDataMediaChannel::SendData(
     *result = SDR_SUCCESS;
   }
   return true;
-}
-
-rtc::DiffServCodePoint RtpDataMediaChannel::PreferredDscp() const {
-  return rtc::DSCP_AF41;
 }
 
 }  // namespace cricket

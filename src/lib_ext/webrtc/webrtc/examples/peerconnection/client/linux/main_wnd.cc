@@ -14,10 +14,8 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
-#include "libyuv/convert_from.h"
-#include "webrtc/api/video/i420_buffer.h"
 #include "webrtc/examples/peerconnection/client/defaults.h"
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/stringutils.h"
 
@@ -119,12 +117,6 @@ gboolean Redraw(gpointer data) {
   return false;
 }
 
-gboolean Draw(GtkWidget* widget, cairo_t* cr, gpointer data) {
-  GtkMainWnd* wnd = reinterpret_cast<GtkMainWnd*>(data);
-  wnd->Draw(widget, cr);
-  return false;
-}
-
 }  // namespace
 
 //
@@ -142,7 +134,7 @@ GtkMainWnd::GtkMainWnd(const char* server, int port, bool autoconnect,
 }
 
 GtkMainWnd::~GtkMainWnd() {
-  RTC_DCHECK(!IsWindow());
+  ASSERT(!IsWindow());
 }
 
 void GtkMainWnd::RegisterObserver(MainWndCallback* callback) {
@@ -198,7 +190,7 @@ void GtkMainWnd::QueueUIThreadCallback(int msg_id, void* data) {
 }
 
 bool GtkMainWnd::Create() {
-  RTC_DCHECK(window_ == NULL);
+  ASSERT(window_ == NULL);
 
   window_ = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   if (window_) {
@@ -229,8 +221,8 @@ bool GtkMainWnd::Destroy() {
 void GtkMainWnd::SwitchToConnectUI() {
   LOG(INFO) << __FUNCTION__;
 
-  RTC_DCHECK(IsWindow());
-  RTC_DCHECK(vbox_ == NULL);
+  ASSERT(IsWindow());
+  ASSERT(vbox_ == NULL);
 
   gtk_container_set_border_width(GTK_CONTAINER(window_), 10);
 
@@ -239,20 +231,12 @@ void GtkMainWnd::SwitchToConnectUI() {
     peer_list_ = NULL;
   }
 
-#if GTK_MAJOR_VERSION == 2
   vbox_ = gtk_vbox_new(FALSE, 5);
-#else
-  vbox_ = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-#endif
   GtkWidget* valign = gtk_alignment_new(0, 1, 0, 0);
   gtk_container_add(GTK_CONTAINER(vbox_), valign);
   gtk_container_add(GTK_CONTAINER(window_), vbox_);
 
-#if GTK_MAJOR_VERSION == 2
   GtkWidget* hbox = gtk_hbox_new(FALSE, 5);
-#else
-  GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-#endif
 
   GtkWidget* label = gtk_label_new("Server");
   gtk_container_add(GTK_CONTAINER(hbox), label);
@@ -322,7 +306,7 @@ void GtkMainWnd::SwitchToPeerList(const Peers& peers) {
 void GtkMainWnd::SwitchToStreamingUI() {
   LOG(INFO) << __FUNCTION__;
 
-  RTC_DCHECK(draw_area_ == NULL);
+  ASSERT(draw_area_ == NULL);
 
   gtk_container_set_border_width(GTK_CONTAINER(window_), 0);
   if (peer_list_) {
@@ -332,7 +316,6 @@ void GtkMainWnd::SwitchToStreamingUI() {
 
   draw_area_ = gtk_drawing_area_new();
   gtk_container_add(GTK_CONTAINER(window_), draw_area_);
-  g_signal_connect(G_OBJECT(draw_area_), "draw", G_CALLBACK(&::Draw), this);
 
   gtk_widget_show_all(window_);
 }
@@ -361,42 +344,33 @@ void GtkMainWnd::OnClicked(GtkWidget* widget) {
 void GtkMainWnd::OnKeyPress(GtkWidget* widget, GdkEventKey* key) {
   if (key->type == GDK_KEY_PRESS) {
     switch (key->keyval) {
-#if GTK_MAJOR_VERSION == 2
-      case GDK_Escape:
-#else
-      case GDK_KEY_Escape:
-#endif
-        if (draw_area_) {
-          callback_->DisconnectFromCurrentPeer();
-        } else if (peer_list_) {
-          callback_->DisconnectFromServer();
-        }
-        break;
+     case GDK_Escape:
+       if (draw_area_) {
+         callback_->DisconnectFromCurrentPeer();
+       } else if (peer_list_) {
+         callback_->DisconnectFromServer();
+       }
+       break;
 
-#if GTK_MAJOR_VERSION == 2
-      case GDK_KP_Enter:
-      case GDK_Return:
-#else
-      case GDK_KEY_KP_Enter:
-      case GDK_KEY_Return:
-#endif
-        if (vbox_) {
-          OnClicked(NULL);
-        } else if (peer_list_) {
-          // OnRowActivated will be called automatically when the user
-          // presses enter.
-        }
-        break;
+     case GDK_KP_Enter:
+     case GDK_Return:
+       if (vbox_) {
+         OnClicked(NULL);
+       } else if (peer_list_) {
+         // OnRowActivated will be called automatically when the user
+         // presses enter.
+       }
+       break;
 
-      default:
-        break;
+     default:
+       break;
     }
   }
 }
 
 void GtkMainWnd::OnRowActivated(GtkTreeView* tree_view, GtkTreePath* path,
                                 GtkTreeViewColumn* column) {
-  RTC_DCHECK(peer_list_ != NULL);
+  ASSERT(peer_list_ != NULL);
   GtkTreeIter iter;
   GtkTreeModel* model;
   GtkTreeSelection* selection =
@@ -417,30 +391,30 @@ void GtkMainWnd::OnRedraw() {
   VideoRenderer* remote_renderer = remote_renderer_.get();
   if (remote_renderer && remote_renderer->image() != NULL &&
       draw_area_ != NULL) {
-    width_ = remote_renderer->width();
-    height_ = remote_renderer->height();
+    int width = remote_renderer->width();
+    int height = remote_renderer->height();
 
     if (!draw_buffer_.get()) {
-      draw_buffer_size_ = (width_ * height_ * 4) * 4;
+      draw_buffer_size_ = (width * height * 4) * 4;
       draw_buffer_.reset(new uint8_t[draw_buffer_size_]);
-      gtk_widget_set_size_request(draw_area_, width_ * 2, height_ * 2);
+      gtk_widget_set_size_request(draw_area_, width * 2, height * 2);
     }
 
     const uint32_t* image =
         reinterpret_cast<const uint32_t*>(remote_renderer->image());
     uint32_t* scaled = reinterpret_cast<uint32_t*>(draw_buffer_.get());
-    for (int r = 0; r < height_; ++r) {
-      for (int c = 0; c < width_; ++c) {
+    for (int r = 0; r < height; ++r) {
+      for (int c = 0; c < width; ++c) {
         int x = c * 2;
         scaled[x] = scaled[x + 1] = image[c];
       }
 
       uint32_t* prev_line = scaled;
-      scaled += width_ * 2;
-      memcpy(scaled, prev_line, (width_ * 2) * 4);
+      scaled += width * 2;
+      memcpy(scaled, prev_line, (width * 2) * 4);
 
-      image += width_;
-      scaled += width_ * 2;
+      image += width;
+      scaled += width * 2;
     }
 
     VideoRenderer* local_renderer = local_renderer_.get();
@@ -448,48 +422,35 @@ void GtkMainWnd::OnRedraw() {
       image = reinterpret_cast<const uint32_t*>(local_renderer->image());
       scaled = reinterpret_cast<uint32_t*>(draw_buffer_.get());
       // Position the local preview on the right side.
-      scaled += (width_ * 2) - (local_renderer->width() / 2);
+      scaled += (width * 2) - (local_renderer->width() / 2);
       // right margin...
       scaled -= 10;
       // ... towards the bottom.
-      scaled += (height_ * width_ * 4) - ((local_renderer->height() / 2) *
-                                          (local_renderer->width() / 2) * 4);
+      scaled += (height * width * 4) -
+                ((local_renderer->height() / 2) *
+                 (local_renderer->width() / 2) * 4);
       // bottom margin...
-      scaled -= (width_ * 2) * 5;
+      scaled -= (width * 2) * 5;
       for (int r = 0; r < local_renderer->height(); r += 2) {
         for (int c = 0; c < local_renderer->width(); c += 2) {
           scaled[c / 2] = image[c + r * local_renderer->width()];
         }
-        scaled += width_ * 2;
+        scaled += width * 2;
       }
     }
 
-#if GTK_MAJOR_VERSION == 2
     gdk_draw_rgb_32_image(draw_area_->window,
-                          draw_area_->style->fg_gc[GTK_STATE_NORMAL], 0, 0,
-                          width_ * 2, height_ * 2, GDK_RGB_DITHER_MAX,
-                          draw_buffer_.get(), (width_ * 2) * 4);
-#else
-    gtk_widget_queue_draw(draw_area_);
-#endif
+                          draw_area_->style->fg_gc[GTK_STATE_NORMAL],
+                          0,
+                          0,
+                          width * 2,
+                          height * 2,
+                          GDK_RGB_DITHER_MAX,
+                          draw_buffer_.get(),
+                          (width * 2) * 4);
   }
 
   gdk_threads_leave();
-}
-
-void GtkMainWnd::Draw(GtkWidget* widget, cairo_t* cr) {
-#if GTK_MAJOR_VERSION != 2
-  cairo_format_t format = CAIRO_FORMAT_RGB24;
-  cairo_surface_t* surface = cairo_image_surface_create_for_data(
-      draw_buffer_.get(), format, width_ * 2, height_ * 2,
-      cairo_format_stride_for_width(format, width_ * 2));
-  cairo_set_source_surface(cr, surface, 0, 0);
-  cairo_rectangle(cr, 0, 0, width_ * 2, height_ * 2);
-  cairo_fill(cr);
-  cairo_surface_destroy(surface);
-#else
-  RTC_NOTREACHED();
-#endif
 }
 
 GtkMainWnd::VideoRenderer::VideoRenderer(
@@ -520,27 +481,30 @@ void GtkMainWnd::VideoRenderer::SetSize(int width, int height) {
 }
 
 void GtkMainWnd::VideoRenderer::OnFrame(
-    const webrtc::VideoFrame& video_frame) {
+    const cricket::VideoFrame& video_frame) {
   gdk_threads_enter();
 
-  rtc::scoped_refptr<webrtc::I420BufferInterface> buffer(
-      video_frame.video_frame_buffer()->ToI420());
-  if (video_frame.rotation() != webrtc::kVideoRotation_0) {
-    buffer = webrtc::I420Buffer::Rotate(*buffer, video_frame.rotation());
-  }
-  SetSize(buffer->width(), buffer->height());
+  const cricket::VideoFrame* frame = video_frame.GetCopyWithRotationApplied();
 
-  // The order in the name of libyuv::I420To(ABGR,RGBA) is ambiguous because
-  // it doesn't tell you if it is referring to how it is laid out in memory as
-  // bytes or if endiannes is taken into account.
-  // This was supposed to be a call to libyuv::I420ToRGBA but it was resulting
-  // in a reddish video output (see https://bugs.webrtc.org/6857) because it
-  // was producing an unexpected byte order (ABGR, byte swapped).
-  libyuv::I420ToABGR(buffer->DataY(), buffer->StrideY(),
-                     buffer->DataU(), buffer->StrideU(),
-                     buffer->DataV(), buffer->StrideV(),
-                     image_.get(), width_ * 4,
-                     buffer->width(), buffer->height());
+  SetSize(frame->width(), frame->height());
+
+  int size = width_ * height_ * 4;
+  // TODO(henrike): Convert directly to RGBA
+  frame->ConvertToRgbBuffer(cricket::FOURCC_ARGB,
+                            image_.get(),
+                            size,
+                            width_ * 4);
+  // Convert the B,G,R,A frame to R,G,B,A, which is accepted by GTK.
+  // The 'A' is just padding for GTK, so we can use it as temp.
+  uint8_t* pix = image_.get();
+  uint8_t* end = image_.get() + size;
+  while (pix < end) {
+    pix[3] = pix[0];     // Save B to A.
+    pix[0] = pix[2];  // Set Red.
+    pix[2] = pix[3];  // Set Blue.
+    pix[3] = 0xFF;     // Fixed Alpha.
+    pix += 4;
+  }
 
   gdk_threads_leave();
 

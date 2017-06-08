@@ -8,12 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <stdio.h>
-#include <string.h>
-
-#include "webrtc/api/video/i420_buffer.h"
-#include "webrtc/api/video/video_frame.h"
 #include "webrtc/test/frame_utils.h"
+#include "webrtc/video_frame.h"
 
 namespace webrtc {
 namespace test {
@@ -74,23 +70,6 @@ bool FrameBufsEqual(const rtc::scoped_refptr<webrtc::VideoFrameBuffer>& f1,
          EqualPlane(f1->DataV(), f2->DataV(),
                     f1->StrideV(), f2->StrideV(),
                     half_width, half_height);
-}
-
-rtc::scoped_refptr<I420Buffer> ReadI420Buffer(int width, int height, FILE *f) {
-  int half_width = (width + 1) / 2;
-  rtc::scoped_refptr<I420Buffer> buffer(
-      // Explicit stride, no padding between rows.
-      I420Buffer::Create(width, height, width, half_width, half_width));
-  size_t size_y = static_cast<size_t>(width) * height;
-  size_t size_uv = static_cast<size_t>(half_width) * ((height + 1) / 2);
-
-  if (fread(buffer->MutableDataY(), 1, size_y, f) < size_y)
-    return nullptr;
-  if (fread(buffer->MutableDataU(), 1, size_uv, f) < size_uv)
-    return nullptr;
-  if (fread(buffer->MutableDataV(), 1, size_uv, f) < size_uv)
-    return nullptr;
-  return buffer;
 }
 
 }  // namespace test

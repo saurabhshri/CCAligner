@@ -38,18 +38,16 @@ class VoEBaseImpl : public VoEBase,
   AudioDeviceModule* audio_device_module() override {
     return shared_->audio_device();
   }
-  voe::TransmitMixer* transmit_mixer() override {
-    return shared_->transmit_mixer();
-  }
   int Terminate() override;
 
   int CreateChannel() override;
-  int CreateChannel(const ChannelConfig& config) override;
+  int CreateChannel(const Config& config) override;
   int DeleteChannel(int channel) override;
 
   int StartReceive(int channel) override;
   int StartPlayout(int channel) override;
   int StartSend(int channel) override;
+  int StopReceive(int channel) override;
   int StopPlayout(int channel) override;
   int StopSend(int channel) override;
 
@@ -62,16 +60,16 @@ class VoEBaseImpl : public VoEBase,
   int AssociateSendChannel(int channel, int accociate_send_channel) override;
 
   // AudioTransport
-  int32_t RecordedDataIsAvailable(const void* audio_data,
-                                  const size_t number_of_frames,
-                                  const size_t bytes_per_sample,
-                                  const size_t number_of_channels,
-                                  const uint32_t sample_rate,
-                                  const uint32_t audio_delay_milliseconds,
-                                  const int32_t clock_drift,
-                                  const uint32_t volume,
-                                  const bool key_pressed,
-                                  uint32_t& new_mic_volume) override;
+  int32_t RecordedDataIsAvailable(const void* audioSamples,
+                                  const size_t nSamples,
+                                  const size_t nBytesPerSample,
+                                  const size_t nChannels,
+                                  const uint32_t samplesPerSec,
+                                  const uint32_t totalDelayMS,
+                                  const int32_t clockDrift,
+                                  const uint32_t currentMicLevel,
+                                  const bool keyPressed,
+                                  uint32_t& newMicLevel) override;
   int32_t NeedMorePlayData(const size_t nSamples,
                            const size_t nBytesPerSample,
                            const size_t nChannels,
@@ -80,6 +78,22 @@ class VoEBaseImpl : public VoEBase,
                            size_t& nSamplesOut,
                            int64_t* elapsed_time_ms,
                            int64_t* ntp_time_ms) override;
+  int OnDataAvailable(const int voe_channels[],
+                      size_t number_of_voe_channels,
+                      const int16_t* audio_data,
+                      int sample_rate,
+                      size_t number_of_channels,
+                      size_t number_of_frames,
+                      int audio_delay_milliseconds,
+                      int current_volume,
+                      bool key_pressed,
+                      bool need_audio_processing) override;
+  void OnData(int voe_channel,
+              const void* audio_data,
+              int bits_per_sample,
+              int sample_rate,
+              size_t number_of_channels,
+              size_t number_of_frames) override;
   void PushCaptureData(int voe_channel,
                        const void* audio_data,
                        int bits_per_sample,
@@ -108,6 +122,18 @@ class VoEBaseImpl : public VoEBase,
   int32_t StartSend();
   int32_t StopSend();
   int32_t TerminateInternal();
+
+  // Helper function to process the recorded data with AudioProcessing Module,
+  // demultiplex the data to specific voe channels, encode and send to the
+  // network. When |number_of_VoE_channels| is 0, it will demultiplex the
+  // data to all the existing VoE channels.
+  // It returns new AGC microphone volume or 0 if no volume changes
+  // should be done.
+  int ProcessRecordedDataWithAPM(
+      const int voe_channels[], size_t number_of_voe_channels,
+      const void* audio_data, uint32_t sample_rate, size_t number_of_channels,
+      size_t number_of_frames, uint32_t audio_delay_milliseconds,
+      int32_t clock_drift, uint32_t volume, bool key_pressed);
 
   void GetPlayoutData(int sample_rate, size_t number_of_channels,
                       size_t number_of_frames, bool feed_data_to_apm,

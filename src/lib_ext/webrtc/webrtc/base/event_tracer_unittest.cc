@@ -10,9 +10,9 @@
 
 #include "webrtc/base/event_tracer.h"
 
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/base/trace_event.h"
 #include "webrtc/system_wrappers/include/static_instance.h"
-#include "webrtc/test/gtest.h"
 
 namespace {
 
@@ -32,7 +32,7 @@ class TestStatistics {
   int Count() const { return events_logged_; }
 
   static TestStatistics* Get() {
-    static TestStatistics* test_stats = nullptr;
+    static TestStatistics* test_stats = NULL;
     if (!test_stats)
       test_stats = new TestStatistics();
     return test_stats;

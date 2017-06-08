@@ -55,6 +55,7 @@ class Win32Socket : public AsyncSocket {
   virtual int GetError() const;
   virtual void SetError(int error);
   virtual ConnState GetState() const;
+  virtual int EstimateMTU(uint16_t* mtu);
   virtual int GetOption(Option opt, int* value);
   virtual int SetOption(Option opt, int value);
 
@@ -92,7 +93,7 @@ class Win32Socket : public AsyncSocket {
 
 class Win32SocketServer : public SocketServer {
  public:
-  Win32SocketServer();
+  explicit Win32SocketServer(MessageQueue* message_queue);
   virtual ~Win32SocketServer();
 
   void set_modeless_dialog(HWND hdlg) {
@@ -137,9 +138,12 @@ class Win32SocketServer : public SocketServer {
 
 class Win32Thread : public Thread {
  public:
-  explicit Win32Thread(SocketServer* ss) : Thread(ss),  id_(0) {}
+  Win32Thread() : ss_(this), id_(0) {
+    set_socketserver(&ss_);
+  }
   virtual ~Win32Thread() {
     Stop();
+    set_socketserver(NULL);
   }
   virtual void Run() {
     id_ = GetCurrentThreadId();
@@ -150,6 +154,7 @@ class Win32Thread : public Thread {
     PostThreadMessage(id_, WM_QUIT, 0, 0);
   }
  private:
+  Win32SocketServer ss_;
   DWORD id_;
 };
 

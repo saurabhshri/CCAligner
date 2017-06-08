@@ -29,9 +29,6 @@ extern const float kProcessCpuThreshold;
 extern const char kRtxCodecName[];
 extern const char kRedCodecName[];
 extern const char kUlpfecCodecName[];
-extern const char kFlexfecCodecName[];
-
-extern const char kFlexfecFmtpRepairWindow[];
 
 // Codec parameters
 extern const char kCodecParamAssociatedPayloadType[];
@@ -106,16 +103,16 @@ extern const char kCodecParamStartBitrate[];
 extern const char kCodecParamMaxQuantization[];
 extern const char kCodecParamPort[];
 
-// We put the data codec names here so callers of DataEngine::CreateChannel
-// don't have to import rtpdataengine.h to get the codec names they want to
-// pass in.
-extern const int kGoogleRtpDataCodecPlType;
+// We put the data codec names here so callers of
+// DataEngine::CreateChannel don't have to import rtpdataengine.h or
+// sctpdataengine.h to get the codec names they want to pass in.
+extern const int kGoogleRtpDataCodecId;
 extern const char kGoogleRtpDataCodecName[];
 
 // TODO(pthatcher): Find an id that won't conflict with anything.  On
 // the other hand, it really shouldn't matter since the id won't be
 // used on the wire.
-extern const int kGoogleSctpDataCodecPlType;
+extern const int kGoogleSctpDataCodecId;
 extern const char kGoogleSctpDataCodecName[];
 
 extern const char kComfortNoiseCodecName[];
@@ -128,9 +125,20 @@ extern const char kH264CodecName[];
 extern const char kH264FmtpProfileLevelId[];
 extern const char kH264FmtpLevelAsymmetryAllowed[];
 extern const char kH264FmtpPacketizationMode[];
-extern const char kH264FmtpSpropParameterSets[];
 extern const char kH264ProfileLevelConstrainedBaseline[];
 
+extern const int kDefaultVp8PlType;
+extern const int kDefaultVp9PlType;
+extern const int kDefaultH264PlType;
+extern const int kDefaultRedPlType;
+extern const int kDefaultUlpfecType;
+extern const int kDefaultRtxVp8PlType;
+extern const int kDefaultRtxVp9PlType;
+extern const int kDefaultRtxRedPlType;
+extern const int kDefaultRtxH264PlType;
+
+extern const int kDefaultVideoMaxWidth;
+extern const int kDefaultVideoMaxHeight;
 extern const int kDefaultVideoMaxFramerate;
 }  // namespace cricket
 

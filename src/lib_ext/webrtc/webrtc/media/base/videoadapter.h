@@ -25,9 +25,6 @@ namespace cricket {
 class VideoAdapter {
  public:
   VideoAdapter();
-  // The output frames will have height and width that is divisible by
-  // |required_resolution_alignment|.
-  explicit VideoAdapter(int required_resolution_alignment);
   virtual ~VideoAdapter();
 
   // Return the adapted resolution and cropping parameters given the
@@ -50,17 +47,11 @@ class VideoAdapter {
   // 720x1280 is requested.
   void OnOutputFormatRequest(const VideoFormat& format);
 
-  // Requests the output frame size from |AdaptFrameResolution| to have as close
-  // as possible to |target_pixel_count| pixels (if set) but no more than
-  // |max_pixel_count|.
-  // |max_framerate_fps| is essentially analogous to |max_pixel_count|, but for
-  // framerate rather than resolution.
-  // Set |max_pixel_count| and/or |max_framerate_fps| to
-  // std::numeric_limit<int>::max() if no upper limit is desired.
-  void OnResolutionFramerateRequest(
-      const rtc::Optional<int>& target_pixel_count,
-      int max_pixel_count,
-      int max_framerate_fps);
+  // Requests the output frame size from |AdaptFrameResolution| to not have
+  // more than |max_pixel_count| pixels and have "one step" up more pixels than
+  // max_pixel_count_step_up.
+  void OnResolutionRequest(rtc::Optional<int> max_pixel_count,
+                           rtc::Optional<int> max_pixel_count_step_up);
 
  private:
   // Determine if frame should be dropped based on input fps and requested fps.
@@ -72,8 +63,6 @@ class VideoAdapter {
   int adaption_changes_;  // Number of changes in scale factor.
   int previous_width_;    // Previous adapter output width.
   int previous_height_;   // Previous adapter output height.
-  // Resolution must be divisible by this factor.
-  const int required_resolution_alignment_;
   // The target timestamp for the next frame based on requested format.
   rtc::Optional<int64_t> next_frame_timestamp_ns_ GUARDED_BY(critical_section_);
 
@@ -81,9 +70,8 @@ class VideoAdapter {
   // OnResolutionRequest respectively.
   // The adapted output format is the minimum of these.
   rtc::Optional<VideoFormat> requested_format_ GUARDED_BY(critical_section_);
-  int resolution_request_target_pixel_count_ GUARDED_BY(critical_section_);
   int resolution_request_max_pixel_count_ GUARDED_BY(critical_section_);
-  int max_framerate_request_ GUARDED_BY(critical_section_);
+  int resolution_request_max_pixel_count_step_up_ GUARDED_BY(critical_section_);
 
   // The critical section to protect the above variables.
   rtc::CriticalSection critical_section_;

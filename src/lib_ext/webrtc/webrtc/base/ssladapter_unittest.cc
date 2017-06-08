@@ -15,10 +15,9 @@
 #include "webrtc/base/ipaddress.h"
 #include "webrtc/base/socketstream.h"
 #include "webrtc/base/ssladapter.h"
-#include "webrtc/base/sslidentity.h"
 #include "webrtc/base/sslstreamadapter.h"
+#include "webrtc/base/sslidentity.h"
 #include "webrtc/base/stream.h"
-#include "webrtc/base/stringencode.h"
 #include "webrtc/base/virtualsocketserver.h"
 
 static const int kTimeout = 5000;
@@ -166,8 +165,8 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
   }
 
   int Send(const std::string& message) {
-    if (ssl_stream_adapter_ == nullptr ||
-        ssl_stream_adapter_->GetState() != rtc::SS_OPEN) {
+    if (ssl_stream_adapter_ == NULL
+        || ssl_stream_adapter_->GetState() != rtc::SS_OPEN) {
       // No connection yet.
       return -1;
     }
@@ -188,7 +187,7 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
 
   void AcceptConnection(const rtc::SocketAddress& address) {
     // Only a single connection is supported.
-    ASSERT_TRUE(ssl_stream_adapter_ == nullptr);
+    ASSERT_TRUE(ssl_stream_adapter_ == NULL);
 
     // This is only for DTLS.
     ASSERT_EQ(rtc::SSL_MODE_DTLS, ssl_mode_);
@@ -203,24 +202,27 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
 
   void OnServerSocketReadEvent(rtc::AsyncSocket* socket) {
     // Only a single connection is supported.
-    ASSERT_TRUE(ssl_stream_adapter_ == nullptr);
+    ASSERT_TRUE(ssl_stream_adapter_ == NULL);
 
-    DoHandshake(server_socket_->Accept(nullptr));
+    DoHandshake(server_socket_->Accept(NULL));
   }
 
   void OnSSLStreamAdapterEvent(rtc::StreamInterface* stream, int sig, int err) {
     if (sig & rtc::SE_READ) {
       char buffer[4096] = "";
+
       size_t read;
       int error;
 
       // Read data received from the client and store it in our internal
       // buffer.
-      rtc::StreamResult r =
-          stream->Read(buffer, sizeof(buffer) - 1, &read, &error);
+      rtc::StreamResult r = stream->Read(buffer,
+          sizeof(buffer) - 1, &read, &error);
       if (r == rtc::SR_SUCCESS) {
         buffer[read] = '\0';
+
         LOG(LS_INFO) << "Server received '" << buffer << "'";
+
         data_ += buffer;
       }
     }
@@ -250,7 +252,7 @@ class SSLAdapterTestDummyServer : public sigslot::has_slots<> {
     ssl_stream_adapter_->SetPeerCertificateDigest(rtc::DIGEST_SHA_1, digest,
         digest_len);
 
-    ssl_stream_adapter_->StartSSL();
+    ssl_stream_adapter_->StartSSLWithPeer();
 
     ssl_stream_adapter_->SignalEvent.connect(this,
         &SSLAdapterTestDummyServer::OnSSLStreamAdapterEvent);
@@ -272,8 +274,7 @@ class SSLAdapterTestBase : public testing::Test,
   explicit SSLAdapterTestBase(const rtc::SSLMode& ssl_mode,
                               const rtc::KeyParams& key_params)
       : ssl_mode_(ssl_mode),
-        vss_(new rtc::VirtualSocketServer()),
-        thread_(vss_.get()),
+        ss_scope_(new rtc::VirtualSocketServer(NULL)),
         server_(new SSLAdapterTestDummyServer(ssl_mode_, key_params)),
         client_(new SSLAdapterTestDummyClient(ssl_mode_)),
         handshake_wait_(kTimeout) {}
@@ -334,11 +335,11 @@ class SSLAdapterTestBase : public testing::Test,
     LOG(LS_INFO) << "Transfer complete.";
   }
 
- protected:
+ private:
   const rtc::SSLMode ssl_mode_;
 
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread thread_;
+  const rtc::SocketServerScope ss_scope_;
+
   std::unique_ptr<SSLAdapterTestDummyServer> server_;
   std::unique_ptr<SSLAdapterTestDummyClient> client_;
 
@@ -369,6 +370,8 @@ class SSLAdapterTestDTLS_ECDSA : public SSLAdapterTestBase {
       : SSLAdapterTestBase(rtc::SSL_MODE_DTLS, rtc::KeyParams::ECDSA()) {}
 };
 
+#if SSL_USE_OPENSSL
+
 // Basic tests: TLS
 
 // Test that handshake works, using RSA
@@ -385,47 +388,6 @@ TEST_F(SSLAdapterTestTLS_ECDSA, TestTLSConnect) {
 TEST_F(SSLAdapterTestTLS_RSA, TestTLSTransfer) {
   TestHandshake(true);
   TestTransfer("Hello, world!");
-}
-
-TEST_F(SSLAdapterTestTLS_RSA, TestTLSTransferWithBlockedSocket) {
-  TestHandshake(true);
-
-  // Tell the underlying socket to simulate being blocked.
-  vss_->SetSendingBlocked(true);
-
-  std::string expected;
-  int rv;
-  // Send messages until the SSL socket adapter starts applying backpressure.
-  // Note that this may not occur immediately since there may be some amount of
-  // intermediate buffering (either in our code or in BoringSSL).
-  for (int i = 0; i < 1024; ++i) {
-    std::string message = "Hello, world: " + rtc::ToString(i);
-    rv = client_->Send(message);
-    if (rv != static_cast<int>(message.size())) {
-      // This test assumes either the whole message or none of it is sent.
-      ASSERT_EQ(-1, rv);
-      break;
-    }
-    expected += message;
-  }
-  // Assert that the loop above exited due to Send returning -1.
-  ASSERT_EQ(-1, rv);
-
-  // Try sending another message while blocked. -1 should be returned again and
-  // it shouldn't end up received by the server later.
-  EXPECT_EQ(-1, client_->Send("Never sent"));
-
-  // Unblock the underlying socket. All of the buffered messages should be sent
-  // without any further action.
-  vss_->SetSendingBlocked(false);
-  EXPECT_EQ_WAIT(expected, server_->GetReceivedData(), kTimeout);
-
-  // Send another message. This previously wasn't working
-  std::string final_message = "Fin.";
-  expected += final_message;
-  EXPECT_EQ(static_cast<int>(final_message.size()),
-            client_->Send(final_message));
-  EXPECT_EQ_WAIT(expected, server_->GetReceivedData(), kTimeout);
 }
 
 // Test transfer between client and server, using ECDSA
@@ -457,3 +419,5 @@ TEST_F(SSLAdapterTestDTLS_ECDSA, TestDTLSTransfer) {
   TestHandshake(true);
   TestTransfer("Hello, world!");
 }
+
+#endif  // SSL_USE_OPENSSL

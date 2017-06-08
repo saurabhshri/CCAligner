@@ -44,6 +44,7 @@ class FakeDecoder : public VideoDecoder {
 
  private:
   VideoCodec config_;
+  VideoFrame frame_;
   DecodedImageCallback* callback_;
 };
 

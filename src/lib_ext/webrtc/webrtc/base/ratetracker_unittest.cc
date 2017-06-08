@@ -19,7 +19,7 @@ namespace {
 class RateTrackerForTest : public RateTracker {
  public:
   RateTrackerForTest() : RateTracker(kBucketIntervalMs, 10u), time_(0) {}
-  int64_t Time() const override { return time_; }
+  virtual int64_t Time() const { return time_; }
   void AdvanceTime(int delta) { time_ += delta; }
 
  private:

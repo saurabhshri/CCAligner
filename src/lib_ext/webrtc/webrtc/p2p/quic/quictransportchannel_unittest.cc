@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "webrtc/base/common.h"
 #include "webrtc/base/gunit.h"
 #include "webrtc/base/sslidentity.h"
 #include "webrtc/p2p/base/faketransportcontroller.h"
@@ -111,6 +112,8 @@ class QuicTestPeer : public sigslot::has_slots<> {
 
   // Connects |ice_channel_| to that of the other peer.
   void Connect(QuicTestPeer* other_peer) {
+    ice_channel_->Connect();
+    other_peer->ice_channel_->Connect();
     ice_channel_->SetDestination(other_peer->ice_channel_);
   }
 
@@ -133,8 +136,9 @@ class QuicTestPeer : public sigslot::has_slots<> {
         std::vector<std::string>(), kIceUfrag, kIcePwd, cricket::ICEMODE_FULL,
         remote_connection_role, remote_fingerprint);
 
-    quic_channel_.SetIceParameters(local_desc.GetIceParameters());
-    quic_channel_.SetRemoteIceParameters(remote_desc.GetIceParameters());
+    quic_channel_.SetIceCredentials(local_desc.ice_ufrag, local_desc.ice_pwd);
+    quic_channel_.SetRemoteIceCredentials(remote_desc.ice_ufrag,
+                                          remote_desc.ice_pwd);
   }
 
   // Creates fingerprint from certificate.
@@ -415,6 +419,8 @@ TEST_F(QuicTransportChannelTest, TransferInvalidSrtp) {
 // Test that QuicTransportChannel::WritePacket blocks when the ICE
 // channel is not writable, and otherwise succeeds.
 TEST_F(QuicTransportChannelTest, QuicWritePacket) {
+  peer1_.ice_channel()->Connect();
+  peer2_.ice_channel()->Connect();
   peer1_.ice_channel()->SetDestination(peer2_.ice_channel());
   std::string packet = "FAKEQUICPACKET";
 

@@ -7,7 +7,8 @@
 # be found in the AUTHORS file in the root of the source tree.
 
 import("//build/config/arm.gni")
-import("../webrtc.gni")
+import("../build/webrtc.gni")
+import("//testing/test.gni")
 
 config("common_audio_config") {
   include_dirs = [
@@ -17,7 +18,7 @@ config("common_audio_config") {
   ]
 }
 
-rtc_static_library("common_audio") {
+source_set("common_audio") {
   sources = [
     "audio_converter.cc",
     "audio_converter.h",
@@ -28,6 +29,8 @@ rtc_static_library("common_audio") {
     "blocker.h",
     "channel_buffer.cc",
     "channel_buffer.h",
+    "fft4g.c",
+    "fft4g.h",
     "fir_filter.cc",
     "fir_filter.h",
     "fir_filter_neon.h",
@@ -46,68 +49,7 @@ rtc_static_library("common_audio") {
     "resampler/push_sinc_resampler.h",
     "resampler/resampler.cc",
     "resampler/sinc_resampler.cc",
-    "smoothing_filter.cc",
-    "smoothing_filter.h",
-    "sparse_fir_filter.cc",
-    "sparse_fir_filter.h",
-    "vad/include/vad.h",
-    "vad/vad.cc",
-    "wav_file.cc",
-    "wav_file.h",
-    "wav_header.cc",
-    "wav_header.h",
-    "window_generator.cc",
-    "window_generator.h",
-  ]
-
-  deps = [
-    ":sinc_resampler",
-    "..:webrtc_common",
-    "../base:gtest_prod",
-    "../base:rtc_base_approved",
-    "../system_wrappers",
-  ]
-  public_deps = [
-    ":common_audio_c",
-  ]
-
-  defines = []
-  if (rtc_use_openmax_dl) {
-    sources += [
-      "real_fourier_openmax.cc",
-      "real_fourier_openmax.h",
-    ]
-    defines += [ "RTC_USE_OPENMAX_DL" ]
-    if (rtc_build_openmax_dl) {
-      deps += [ "//third_party/openmax_dl/dl" ]
-    }
-  }
-
-  if (rtc_build_with_neon) {
-    deps += [ ":common_audio_neon" ]
-  }
-
-  if (is_win) {
-    cflags = [ "/wd4334" ]  # Ignore warning on shift operator promotion.
-  }
-
-  public_configs = [ ":common_audio_config" ]
-
-  if (!build_with_chromium && is_clang) {
-    # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-    suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
-  }
-
-  if (current_cpu == "x86" || current_cpu == "x64") {
-    deps += [ ":common_audio_sse2" ]
-  }
-}
-
-rtc_source_set("common_audio_c") {
-  visibility = [ ":*" ]  # Only targets in this file can depend on this.
-  sources = [
-    "fft4g.c",
-    "fft4g.h",
+    "resampler/sinc_resampler.h",
     "ring_buffer.c",
     "ring_buffer.h",
     "signal_processing/auto_corr_to_refl_coef.c",
@@ -116,6 +58,7 @@ rtc_source_set("common_audio_c") {
     "signal_processing/copy_set_operations.c",
     "signal_processing/cross_correlation.c",
     "signal_processing/division_operations.c",
+    "signal_processing/dot_product_with_scale.c",
     "signal_processing/downsample_fast.c",
     "signal_processing/energy.c",
     "signal_processing/filter_ar.c",
@@ -144,7 +87,11 @@ rtc_source_set("common_audio_c") {
     "signal_processing/splitting_filter.c",
     "signal_processing/sqrt_of_one_minus_x_squared.c",
     "signal_processing/vector_scaling_operations.c",
+    "sparse_fir_filter.cc",
+    "sparse_fir_filter.h",
+    "vad/include/vad.h",
     "vad/include/webrtc_vad.h",
+    "vad/vad.cc",
     "vad/vad_core.c",
     "vad/vad_core.h",
     "vad/vad_filterbank.c",
@@ -154,7 +101,29 @@ rtc_source_set("common_audio_c") {
     "vad/vad_sp.c",
     "vad/vad_sp.h",
     "vad/webrtc_vad.c",
+    "wav_file.cc",
+    "wav_file.h",
+    "wav_header.cc",
+    "wav_header.h",
+    "window_generator.cc",
+    "window_generator.h",
   ]
+
+  deps = [
+    "../system_wrappers",
+  ]
+
+  defines = []
+  if (rtc_use_openmax_dl) {
+    sources += [
+      "real_fourier_openmax.cc",
+      "real_fourier_openmax.h",
+    ]
+    defines += [ "RTC_USE_OPENMAX_DL" ]
+    if (rtc_build_openmax_dl) {
+      deps += [ "//third_party/openmax_dl/dl" ]
+    }
+  }
 
   if (current_cpu == "arm") {
     sources += [
@@ -167,6 +136,10 @@ rtc_source_set("common_audio_c") {
     } else {
       sources += [ "signal_processing/filter_ar_fast_q12.c" ]
     }
+  }
+
+  if (rtc_build_with_neon) {
+    deps += [ ":common_audio_neon" ]
   }
 
   if (current_cpu == "mipsel") {
@@ -200,51 +173,26 @@ rtc_source_set("common_audio_c") {
     cflags = [ "/wd4334" ]  # Ignore warning on shift operator promotion.
   }
 
-  public_configs = [ ":common_audio_config" ]
-  deps = [
-    ":common_audio_cc",
-    "..:webrtc_common",
-    "../base:compile_assert_c",
-    "../base:rtc_base_approved",
-    "../system_wrappers:system_wrappers",
-  ]
-}
+  configs += [ "..:common_config" ]
 
-rtc_source_set("common_audio_cc") {
-  visibility = [ ":*" ]  # Only targets in this file can depend on this.
-  sources = [
-    "signal_processing/dot_product_with_scale.cc",
-    "signal_processing/dot_product_with_scale.h",
+  public_configs = [
+    "..:common_inherited_config",
+    ":common_audio_config",
   ]
 
-  public_configs = [ ":common_audio_config" ]
-  deps = [
-    "..:webrtc_common",
-    "../base:rtc_base_approved",
-    "../system_wrappers:system_wrappers",
-  ]
-}
+  if (is_clang) {
+    # Suppress warnings from Chrome's Clang plugins.
+    # See http://code.google.com/p/webrtc/issues/detail?id=163 for details.
+    configs -= [ "//build/config/clang:find_bad_constructs" ]
+  }
 
-rtc_source_set("sinc_resampler") {
-  sources = [
-    "resampler/sinc_resampler.h",
-  ]
-  deps = [
-    "..:webrtc_common",
-    "../base:gtest_prod",
-    "../base:rtc_base_approved",
-    "../system_wrappers",
-  ]
+  if (current_cpu == "x86" || current_cpu == "x64") {
+    deps += [ ":common_audio_sse2" ]
+  }
 }
 
 if (current_cpu == "x86" || current_cpu == "x64") {
-  rtc_static_library("common_audio_sse2") {
-    # TODO(kjellander): Remove (bugs.webrtc.org/6828)
-    # Enabling GN check triggers dependency cycle:
-    #   //webrtc/common_audio:common_audio ->
-    #   //webrtc/common_audio:common_audio_sse2 ->
-    #   //webrtc/common_audio:common_audio
-    check_includes = false
+  source_set("common_audio_sse2") {
     sources = [
       "fir_filter_sse.cc",
       "resampler/sinc_resampler_sse.cc",
@@ -254,63 +202,21 @@ if (current_cpu == "x86" || current_cpu == "x64") {
       cflags = [ "-msse2" ]
     }
 
-    if (!build_with_chromium && is_clang) {
-      # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-      suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
+    configs += [ "..:common_inherited_config" ]
+
+    if (is_clang) {
+      # Suppress warnings from Chrome's Clang plugins.
+      # See http://code.google.com/p/webrtc/issues/detail?id=163 for details.
+      configs -= [ "//build/config/clang:find_bad_constructs" ]
     }
-    deps = [
-      ":sinc_resampler",
-    ]
   }
 }
 
 if (rtc_build_with_neon) {
-  rtc_static_library("common_audio_neon") {
-    # TODO(kjellander): Remove (bugs.webrtc.org/6828)
-    # Enabling GN check triggers dependency cycle:
-    #   //webrtc/common_audio:common_audio ->
-    #   //webrtc/common_audio:common_audio_neon ->
-    #   //webrtc/common_audio:common_audio
-    check_includes = false
+  source_set("common_audio_neon") {
     sources = [
       "fir_filter_neon.cc",
       "resampler/sinc_resampler_neon.cc",
-    ]
-
-    if (current_cpu != "arm64") {
-      # Enable compilation for the NEON instruction set. This is needed
-      # since //build/config/arm.gni only enables NEON for iOS, not Android.
-      # This provides the same functionality as webrtc/build/arm_neon.gypi.
-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
-      cflags = [ "-mfpu=neon" ]
-    }
-
-    # Disable LTO on NEON targets due to compiler bug.
-    # TODO(fdegans): Enable this. See crbug.com/408997.
-    if (rtc_use_lto) {
-      cflags -= [
-        "-flto",
-        "-ffat-lto-objects",
-      ]
-    }
-
-    if (!build_with_chromium && is_clang) {
-      # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-      suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
-    }
-
-    deps = [
-      ":sinc_resampler",
-    ]
-
-    public_deps = [
-      ":common_audio_neon_c",
-    ]
-  }
-
-  rtc_source_set("common_audio_neon_c") {
-    visibility = [ ":*" ]  # Only targets in this file can depend on this.
-    sources = [
       "signal_processing/cross_correlation_neon.c",
       "signal_processing/downsample_fast_neon.c",
       "signal_processing/min_max_operations_neon.c",
@@ -320,7 +226,7 @@ if (rtc_build_with_neon) {
       # Enable compilation for the NEON instruction set. This is needed
       # since //build/config/arm.gni only enables NEON for iOS, not Android.
       # This provides the same functionality as webrtc/build/arm_neon.gypi.
-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
+      configs -= [ "//build/config/compiler:compiler_arm_fpu" ]
       cflags = [ "-mfpu=neon" ]
     }
 
@@ -333,19 +239,19 @@ if (rtc_build_with_neon) {
       ]
     }
 
-    if (!build_with_chromium && is_clang) {
-      # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-      suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
+    configs += [ "..:common_config" ]
+    public_configs = [ "..:common_inherited_config" ]
+
+    if (is_clang) {
+      # Suppress warnings from Chrome's Clang plugins.
+      # See http://code.google.com/p/webrtc/issues/detail?id=163 for details.
+      configs -= [ "//build/config/clang:find_bad_constructs" ]
     }
-    deps = [
-      ":common_audio_c",
-      "../base:rtc_base_approved",
-    ]
   }
 }
 
 if (rtc_include_tests) {
-  rtc_test("common_audio_unittests") {
+  test("common_audio_unittests") {
     testonly = true
 
     sources = [
@@ -353,7 +259,6 @@ if (rtc_include_tests) {
       "audio_ring_buffer_unittest.cc",
       "audio_util_unittest.cc",
       "blocker_unittest.cc",
-      "channel_buffer_unittest.cc",
       "fir_filter_unittest.cc",
       "lapped_transform_unittest.cc",
       "real_fourier_unittest.cc",
@@ -365,7 +270,6 @@ if (rtc_include_tests) {
       "ring_buffer_unittest.cc",
       "signal_processing/real_fft_unittest.cc",
       "signal_processing/signal_processing_unittest.cc",
-      "smoothing_filter_unittest.cc",
       "sparse_fir_filter_unittest.cc",
       "vad/vad_core_unittest.cc",
       "vad/vad_filterbank_unittest.cc",
@@ -379,35 +283,32 @@ if (rtc_include_tests) {
     ]
 
     # Does not compile on iOS for arm: webrtc:5544.
-    if (!is_ios || target_cpu != "arm") {
+    if (!is_ios || target_cpu != "arm" || target_cpu != "arm64") {
       sources += [ "resampler/sinc_resampler_unittest.cc" ]
     }
+
+    configs += [ "..:common_config" ]
+    public_configs = [ "..:common_inherited_config" ]
 
     if (rtc_use_openmax_dl) {
       defines = [ "RTC_USE_OPENMAX_DL" ]
     }
 
-    if (!build_with_chromium && is_clang) {
-      # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-      suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
+    if (is_clang) {
+      # Suppress warnings from the Chromium Clang plugin.
+      # See http://code.google.com/p/webrtc/issues/detail?id=163 for details.
+      configs -= [ "//build/config/clang:find_bad_constructs" ]
     }
 
     deps = [
       ":common_audio",
-      ":sinc_resampler",
-      "..:webrtc_common",
-      "../base:rtc_base_approved",
-      "../base:rtc_base_tests_utils",
-      "../system_wrappers",
-      "../test:test_main",
+      "../test:test_support_main",
       "//testing/gmock",
       "//testing/gtest",
     ]
 
     if (is_android) {
       deps += [ "//testing/android/native_test:native_test_support" ]
-
-      shard_timeout = 900
     }
   }
 }

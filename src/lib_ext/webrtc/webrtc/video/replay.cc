@@ -15,24 +15,24 @@
 #include <sstream>
 
 #include "gflags/gflags.h"
-#include "webrtc/api/video_codecs/video_decoder.h"
+#include "testing/gtest/include/gtest/gtest.h"
+
 #include "webrtc/base/checks.h"
-#include "webrtc/call/call.h"
+#include "webrtc/call.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
-#include "webrtc/logging/rtc_event_log/rtc_event_log.h"
 #include "webrtc/modules/rtp_rtcp/include/rtp_header_parser.h"
 #include "webrtc/system_wrappers/include/clock.h"
 #include "webrtc/system_wrappers/include/sleep.h"
 #include "webrtc/test/encoder_settings.h"
-#include "webrtc/test/fake_decoder.h"
-#include "webrtc/test/gtest.h"
 #include "webrtc/test/null_transport.h"
+#include "webrtc/test/fake_decoder.h"
 #include "webrtc/test/rtp_file_reader.h"
 #include "webrtc/test/run_loop.h"
 #include "webrtc/test/run_test.h"
 #include "webrtc/test/video_capturer.h"
 #include "webrtc/test/video_renderer.h"
 #include "webrtc/typedefs.h"
+#include "webrtc/video_decoder.h"
 
 namespace webrtc {
 namespace flags {
@@ -212,15 +212,14 @@ void RtpReplay() {
   FileRenderPassthrough file_passthrough(flags::OutBase(),
                                          playback_video.get());
 
-  webrtc::RtcEventLogNullImpl event_log;
-  std::unique_ptr<Call> call(Call::Create(Call::Config(&event_log)));
+  std::unique_ptr<Call> call(Call::Create(Call::Config()));
 
   test::NullTransport transport;
   VideoReceiveStream::Config receive_config(&transport);
   receive_config.rtp.remote_ssrc = flags::Ssrc();
   receive_config.rtp.local_ssrc = kReceiverLocalSsrc;
-  receive_config.rtp.ulpfec.ulpfec_payload_type = flags::FecPayloadType();
-  receive_config.rtp.ulpfec.red_payload_type = flags::RedPayloadType();
+  receive_config.rtp.fec.ulpfec_payload_type = flags::FecPayloadType();
+  receive_config.rtp.fec.red_payload_type = flags::RedPayloadType();
   receive_config.rtp.nack.rtp_history_ms = 1000;
   if (flags::TransmissionOffsetId() != -1) {
     receive_config.rtp.extensions.push_back(RtpExtension(
@@ -283,8 +282,8 @@ void RtpReplay() {
     if (!rtp_reader->NextPacket(&packet))
       break;
     ++num_packets;
-    switch (call->Receiver()->DeliverPacket(
-        webrtc::MediaType::VIDEO, packet.data, packet.length, PacketTime())) {
+    switch (call->Receiver()->DeliverPacket(webrtc::MediaType::ANY, packet.data,
+                                            packet.length, PacketTime())) {
       case PacketReceiver::DELIVERY_OK:
         break;
       case PacketReceiver::DELIVERY_UNKNOWN_SSRC: {
@@ -296,16 +295,9 @@ void RtpReplay() {
         ++unknown_packets[header.ssrc];
         break;
       }
-      case PacketReceiver::DELIVERY_PACKET_ERROR: {
+      case PacketReceiver::DELIVERY_PACKET_ERROR:
         fprintf(stderr, "Packet error, corrupt packets or incorrect setup?\n");
-        RTPHeader header;
-        std::unique_ptr<RtpHeaderParser> parser(RtpHeaderParser::Create());
-        parser->Parse(packet.data, packet.length, &header);
-        fprintf(stderr, "Packet len=%ld pt=%u seq=%u ts=%u ssrc=0x%8x\n",
-            packet.length, header.payloadType, header.sequenceNumber,
-            header.timestamp, header.ssrc);
         break;
-      }
     }
     if (last_time_ms != 0 && last_time_ms != packet.time_ms) {
       SleepMs(packet.time_ms - last_time_ms);

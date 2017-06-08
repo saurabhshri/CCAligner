@@ -11,12 +11,12 @@
 #ifndef WEBRTC_BASE_VIRTUALSOCKETSERVER_H_
 #define WEBRTC_BASE_VIRTUALSOCKETSERVER_H_
 
+#include <assert.h>
+
 #include <deque>
 #include <map>
 
-#include "webrtc/base/checks.h"
 #include "webrtc/base/constructormagic.h"
-#include "webrtc/base/event.h"
 #include "webrtc/base/messagequeue.h"
 #include "webrtc/base/socketserver.h"
 
@@ -32,8 +32,12 @@ class SocketAddressPair;
 // they are bound to addresses from incompatible families.
 class VirtualSocketServer : public SocketServer, public sigslot::has_slots<> {
  public:
-  VirtualSocketServer();
+  // TODO: Add "owned" parameter.
+  // If "owned" is set, the supplied socketserver will be deleted later.
+  explicit VirtualSocketServer(SocketServer* ss);
   ~VirtualSocketServer() override;
+
+  SocketServer* socketserver() { return server_; }
 
   // The default route indicates which local address to use when a socket is
   // bound to the 'any' address, e.g. 0.0.0.0.
@@ -82,20 +86,9 @@ class VirtualSocketServer : public SocketServer, public sigslot::has_slots<> {
   // is separate from calculations to drop based on queue size.
   double drop_probability() { return drop_prob_; }
   void set_drop_probability(double drop_prob) {
-    RTC_DCHECK_GE(drop_prob, 0.0);
-    RTC_DCHECK_LE(drop_prob, 1.0);
+    assert((0 <= drop_prob) && (drop_prob <= 1));
     drop_prob_ = drop_prob;
   }
-
-  // If |blocked| is true, subsequent attempts to send will result in -1 being
-  // returned, with the socket error set to EWOULDBLOCK.
-  //
-  // If this method is later called with |blocked| set to false, any sockets
-  // that previously failed to send with EWOULDBLOCK will emit SignalWriteEvent.
-  //
-  // This can be used to simulate the send buffer on a network interface being
-  // full, and test functionality related to EWOULDBLOCK/SignalWriteEvent.
-  void SetSendingBlocked(bool blocked);
 
   // SocketFactory:
   Socket* CreateSocket(int type) override;
@@ -108,10 +101,6 @@ class VirtualSocketServer : public SocketServer, public sigslot::has_slots<> {
   void SetMessageQueue(MessageQueue* queue) override;
   bool Wait(int cms, bool process_io) override;
   void WakeUp() override;
-
-  void SetDelayOnAddress(const rtc::SocketAddress& address, int delay_ms) {
-    delay_by_ip_[address.ipaddr()] = delay_ms;
-  }
 
   typedef std::pair<double, double> Point;
   typedef std::vector<Point> Function;
@@ -195,10 +184,8 @@ class VirtualSocketServer : public SocketServer, public sigslot::has_slots<> {
   // Computes the number of milliseconds required to send a packet of this size.
   uint32_t SendDelay(uint32_t size);
 
-  // If the delay has been set for the address of the socket, returns the set
-  // delay. Otherwise, returns a random transit delay chosen from the
-  // appropriate distribution.
-  uint32_t GetTransitDelay(Socket* socket);
+  // Returns a random transit delay chosen from the appropriate distribution.
+  uint32_t GetRandomTransitDelay();
 
   // Basic operations on functions.  Those that return a function also take
   // ownership of the function given (and hence, may modify or delete it).
@@ -210,10 +197,10 @@ class VirtualSocketServer : public SocketServer, public sigslot::has_slots<> {
                             uint32_t samples);
   static double Evaluate(Function* f, double x);
 
-  // Null out our message queue if it goes away. Necessary in the case where
+  // NULL out our message queue if it goes away. Necessary in the case where
   // our lifetime is greater than that of the thread we are using, since we
   // try to send Close messages for all connected sockets when we shutdown.
-  void OnMessageQueueDestroyed() { msg_queue_ = nullptr; }
+  void OnMessageQueueDestroyed() { msg_queue_ = NULL; }
 
   // Determine if two sockets should be able to communicate.
   // We don't (currently) specify an address family for sockets; instead,
@@ -236,16 +223,14 @@ class VirtualSocketServer : public SocketServer, public sigslot::has_slots<> {
  private:
   friend class VirtualSocket;
 
-  // Sending was previously blocked, but now isn't.
-  sigslot::signal0<> SignalReadyToSend;
-
   typedef std::map<SocketAddress, VirtualSocket*> AddressMap;
   typedef std::map<SocketAddressPair, VirtualSocket*> ConnectionMap;
 
-  // Used to implement Wait/WakeUp.
-  Event wakeup_;
+  SocketServer* server_;
+  bool server_owned_;
   MessageQueue* msg_queue_;
   bool stop_on_idle_;
+  int64_t network_delay_;
   in_addr next_ipv4_;
   in6_addr next_ipv6_;
   uint16_t next_port_;
@@ -262,22 +247,16 @@ class VirtualSocketServer : public SocketServer, public sigslot::has_slots<> {
   uint32_t delay_mean_;
   uint32_t delay_stddev_;
   uint32_t delay_samples_;
-
-  std::map<rtc::IPAddress, int> delay_by_ip_;
-  std::unique_ptr<Function> delay_dist_;
-
+  Function* delay_dist_;
   CriticalSection delay_crit_;
 
   double drop_prob_;
-  bool sending_blocked_ = false;
   RTC_DISALLOW_COPY_AND_ASSIGN(VirtualSocketServer);
 };
 
 // Implements the socket interface using the virtual network.  Packets are
 // passed as messages using the message queue of the socket server.
-class VirtualSocket : public AsyncSocket,
-                      public MessageHandler,
-                      public sigslot::has_slots<> {
+class VirtualSocket : public AsyncSocket, public MessageHandler {
  public:
   VirtualSocket(VirtualSocketServer* server, int family, int type, bool async);
   ~VirtualSocket() override;
@@ -308,6 +287,7 @@ class VirtualSocket : public AsyncSocket,
   ConnState GetState() const override;
   int GetOption(Option opt, int* value) override;
   int SetOption(Option opt, int value) override;
+  int EstimateMTU(uint16_t* mtu) override;
   void OnMessage(Message* pmsg) override;
 
   bool was_any() { return was_any_; }
@@ -336,8 +316,6 @@ class VirtualSocket : public AsyncSocket,
   // Used by server sockets to set the local address without binding.
   void SetLocalAddress(const SocketAddress& addr);
 
-  void OnSocketServerReadyToSend();
-
   VirtualSocketServer* server_;
   int type_;
   bool async_;
@@ -352,9 +330,7 @@ class VirtualSocket : public AsyncSocket,
 
   // Data which tcp has buffered for sending
   SendBuffer send_buffer_;
-  // Set to false if the last attempt to send resulted in EWOULDBLOCK.
-  // Set back to true when the socket can send again.
-  bool ready_to_send_ = true;
+  bool write_enabled_;
 
   // Critical section to protect the recv_buffer and queue_
   CriticalSection crit_;
@@ -362,9 +338,6 @@ class VirtualSocket : public AsyncSocket,
   // Network model that enforces bandwidth and capacity constraints
   NetworkQueue network_;
   size_t network_size_;
-  // The scheduled delivery time of the last packet sent on this socket.
-  // It is used to ensure ordered delivery of packets sent on this socket.
-  int64_t last_delivery_time_ = 0;
 
   // Data which has been received from the network
   RecvBuffer recv_buffer_;

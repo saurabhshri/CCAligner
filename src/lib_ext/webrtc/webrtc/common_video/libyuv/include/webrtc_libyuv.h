@@ -16,22 +16,40 @@
 #define WEBRTC_COMMON_VIDEO_LIBYUV_INCLUDE_WEBRTC_LIBYUV_H_
 
 #include <stdio.h>
-#include <vector>
 
-#include "webrtc/api/video/video_frame.h"
-#include "webrtc/common_types.h"  // VideoTypes.
+#include "webrtc/common_types.h"  // RawVideoTypes.
+#include "webrtc/common_video/rotation.h"
 #include "webrtc/typedefs.h"
+#include "webrtc/video_frame.h"
 
 namespace webrtc {
 
-class I420Buffer;
+// Supported video types.
+enum VideoType {
+  kUnknown,
+  kI420,
+  kIYUV,
+  kRGB24,
+  kABGR,
+  kARGB,
+  kARGB4444,
+  kRGB565,
+  kARGB1555,
+  kYUY2,
+  kYV12,
+  kUYVY,
+  kMJPG,
+  kNV21,
+  kNV12,
+  kBGRA,
+};
 
 // This is the max PSNR value our algorithms can return.
 const double kPerfectPSNR = 48.0f;
 
-// TODO(nisse): Some downstream apps call CalcBufferSize with
-// ::webrtc::kI420 as the first argument. Delete after they are updated.
-const VideoType kI420 = VideoType::kI420;
+// Conversion between the RawVideoType and the LibYuv videoType.
+// TODO(wu): Consolidate types into one type throughout WebRtc.
+VideoType RawVideoTypeToCommonVideoVideoType(RawVideoType type);
 
 // Calculate the required buffer size.
 // Input:
@@ -50,9 +68,8 @@ size_t CalcBufferSize(VideoType type, int width, int height);
 //                    already open for writing.
 // Return value: 0 if OK, < 0 otherwise.
 int PrintVideoFrame(const VideoFrame& frame, FILE* file);
-int PrintVideoFrame(const I420BufferInterface& frame, FILE* file);
 
-// Extract buffer from VideoFrame or I420BufferInterface (consecutive
+// Extract buffer from VideoFrame or VideoFrameBuffer (consecutive
 // planes, no stride)
 // Input:
 //   - frame       : Reference to video frame.
@@ -60,7 +77,7 @@ int PrintVideoFrame(const I420BufferInterface& frame, FILE* file);
 //                   insufficient, an error will be returned.
 //   - buffer      : Pointer to buffer
 // Return value: length of buffer if OK, < 0 otherwise.
-int ExtractBuffer(const rtc::scoped_refptr<I420BufferInterface>& input_frame,
+int ExtractBuffer(const rtc::scoped_refptr<VideoFrameBuffer>& input_frame,
                   size_t size,
                   uint8_t* buffer);
 int ExtractBuffer(const VideoFrame& input_frame, size_t size, uint8_t* buffer);
@@ -74,14 +91,9 @@ int ExtractBuffer(const VideoFrame& input_frame, size_t size, uint8_t* buffer);
 //   - sample_size      : Required only for the parsing of MJPG (set to 0 else).
 //   - rotate           : Rotation mode of output image.
 // Output:
-//   - dst_buffer       : Reference to a destination frame buffer.
+//   - dst_frame        : Reference to a destination frame.
 // Return value: 0 if OK, < 0 otherwise.
 
-// TODO(nisse): Delete this wrapper, and let users call libyuv directly. Most
-// calls pass |src_video_type| == kI420, and should use libyuv::I420Copy. Also
-// remember to delete the I420Buffer forward declaration above. The only
-// exception at the time of this writing is VideoCaptureImpl::IncomingFrame,
-// which still needs libyuv::ConvertToI420.
 int ConvertToI420(VideoType src_video_type,
                   const uint8_t* src_frame,
                   int crop_x,
@@ -90,7 +102,7 @@ int ConvertToI420(VideoType src_video_type,
                   int src_height,
                   size_t sample_size,
                   VideoRotation rotation,
-                  I420Buffer* dst_buffer);
+                  VideoFrame* dst_frame);
 
 // Convert From I420
 // Input:
@@ -108,40 +120,8 @@ int ConvertFromI420(const VideoFrame& src_frame,
 // Compute PSNR for an I420 frame (all planes).
 // Returns the PSNR in decibel, to a maximum of kInfinitePSNR.
 double I420PSNR(const VideoFrame* ref_frame, const VideoFrame* test_frame);
-double I420PSNR(const I420BufferInterface& ref_buffer,
-                const I420BufferInterface& test_buffer);
-
 // Compute SSIM for an I420 frame (all planes).
 double I420SSIM(const VideoFrame* ref_frame, const VideoFrame* test_frame);
-double I420SSIM(const I420BufferInterface& ref_buffer,
-                const I420BufferInterface& test_buffer);
-
-// Helper function for scaling NV12 to NV12.
-void NV12Scale(std::vector<uint8_t>* tmp_buffer,
-               const uint8_t* src_y, int src_stride_y,
-               const uint8_t* src_uv, int src_stride_uv,
-               int src_width, int src_height,
-               uint8_t* dst_y, int dst_stride_y,
-               uint8_t* dst_uv, int dst_stride_uv,
-               int dst_width, int dst_height);
-
-// Helper class for directly converting and scaling NV12 to I420. The Y-plane
-// will be scaled directly to the I420 destination, which makes this faster
-// than separate NV12->I420 + I420->I420 scaling.
-class NV12ToI420Scaler {
- public:
-  NV12ToI420Scaler();
-  ~NV12ToI420Scaler();
-  void NV12ToI420Scale(const uint8_t* src_y, int src_stride_y,
-                       const uint8_t* src_uv, int src_stride_uv,
-                       int src_width, int src_height,
-                       uint8_t* dst_y, int dst_stride_y,
-                       uint8_t* dst_u, int dst_stride_u,
-                       uint8_t* dst_v, int dst_stride_v,
-                       int dst_width, int dst_height);
- private:
-  std::vector<uint8_t> tmp_uv_planes_;
-};
 
 }  // namespace webrtc
 

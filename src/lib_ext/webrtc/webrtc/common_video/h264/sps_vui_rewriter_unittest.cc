@@ -10,14 +10,17 @@
 
 #include <vector>
 
+#include "testing/gtest/include/gtest/gtest.h"
+
 #include "webrtc/base/bitbuffer.h"
 #include "webrtc/base/buffer.h"
 #include "webrtc/base/fileutils.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/pathutils.h"
-#include "webrtc/common_video/h264/h264_common.h"
+#include "webrtc/base/stream.h"
+
 #include "webrtc/common_video/h264/sps_vui_rewriter.h"
-#include "webrtc/test/gtest.h"
+#include "webrtc/common_video/h264/h264_common.h"
 
 namespace webrtc {
 
@@ -161,11 +164,12 @@ void TestSps(SpsMode mode, SpsVuiRewriter::ParseResult expected_parse_result) {
   index.payload_start_offset += H264::kNaluTypeSize;
   index.payload_size -= H264::kNaluTypeSize;
 
+  std::unique_ptr<rtc::Buffer> rbsp_decoded =
+      H264::ParseRbsp(&buffer[index.payload_start_offset], index.payload_size);
   rtc::Optional<SpsParser::SpsState> sps;
   rtc::Buffer out_buffer;
-  SpsVuiRewriter::ParseResult result =
-      SpsVuiRewriter::ParseAndRewriteSps(&buffer[index.payload_start_offset],
-                                         index.payload_size, &sps, &out_buffer);
+  SpsVuiRewriter::ParseResult result = SpsVuiRewriter::ParseAndRewriteSps(
+      rbsp_decoded->data(), rbsp_decoded->size(), &sps, &out_buffer);
   EXPECT_EQ(expected_parse_result, result);
 }
 

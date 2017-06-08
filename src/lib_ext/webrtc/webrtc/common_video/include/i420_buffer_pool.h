@@ -12,10 +12,9 @@
 #define WEBRTC_COMMON_VIDEO_INCLUDE_I420_BUFFER_POOL_H_
 
 #include <list>
-#include <limits>
 
-#include "webrtc/api/video/i420_buffer.h"
-#include "webrtc/base/race_checker.h"
+#include "webrtc/base/thread_checker.h"
+#include "webrtc/common_video/include/video_frame_buffer.h"
 
 namespace webrtc {
 
@@ -24,19 +23,13 @@ namespace webrtc {
 // When the I420Buffer is destructed, the memory is returned to the pool for use
 // by subsequent calls to CreateBuffer. If the resolution passed to CreateBuffer
 // changes, old buffers will be purged from the pool.
-// Note that CreateBuffer will crash if more than kMaxNumberOfFramesBeforeCrash
-// are created. This is to prevent memory leaks where frames are not returned.
 class I420BufferPool {
  public:
-  I420BufferPool()
-      : I420BufferPool(false) {}
-  explicit I420BufferPool(bool zero_initialize)
-      : I420BufferPool(zero_initialize, std::numeric_limits<size_t>::max()) {}
-  I420BufferPool(bool zero_initialze, size_t max_number_of_buffers);
+  I420BufferPool() : I420BufferPool(false) {}
+  explicit I420BufferPool(bool zero_initialize);
 
-  // Returns a buffer from the pool. If no suitable buffer exist in the pool
-  // and there are less than |max_number_of_buffers| pending, a buffer is
-  // created. Returns null otherwise.
+  // Returns a buffer from the pool, or creates a new buffer if no suitable
+  // buffer exists in the pool.
   rtc::scoped_refptr<I420Buffer> CreateBuffer(int width, int height);
   // Clears buffers_ and detaches the thread checker so that it can be reused
   // later from another thread.
@@ -47,16 +40,14 @@ class I420BufferPool {
   // needed by the pool to check exclusive access.
   using PooledI420Buffer = rtc::RefCountedObject<I420Buffer>;
 
-  rtc::RaceChecker race_checker_;
+  rtc::ThreadChecker thread_checker_;
   std::list<rtc::scoped_refptr<PooledI420Buffer>> buffers_;
   // If true, newly allocated buffers are zero-initialized. Note that recycled
   // buffers are not zero'd before reuse. This is required of buffers used by
   // FFmpeg according to http://crbug.com/390941, which only requires it for the
   // initial allocation (as shown by FFmpeg's own buffer allocation code). It
   // has to do with "Use-of-uninitialized-value" on "Linux_msan_chrome".
-  const bool zero_initialize_;
-  // Max number of buffers this pool can have pending.
-  const size_t max_number_of_buffers_;
+  bool zero_initialize_;
 };
 
 }  // namespace webrtc

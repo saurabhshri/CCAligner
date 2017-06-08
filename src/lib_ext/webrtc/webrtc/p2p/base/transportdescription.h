@@ -28,8 +28,6 @@ namespace cricket {
 // SEC_ENABLED:  Crypto in outgoing offer and answer (if supplied in offer).
 // SEC_REQUIRED: Crypto in outgoing offer and answer. Fail any offer with absent
 //               or unsupported crypto.
-// TODO(deadbeef): Remove this or rename it to something more appropriate, like
-// SdesPolicy.
 enum SecurePolicy {
   SEC_DISABLED,
   SEC_ENABLED,
@@ -62,33 +60,10 @@ enum ConnectionRole {
   CONNECTIONROLE_HOLDCONN,
 };
 
-struct IceParameters {
-  // TODO(honghaiz): Include ICE mode in this structure to match the ORTC
-  // struct:
-  // http://ortc.org/wp-content/uploads/2016/03/ortc.html#idl-def-RTCIceParameters
-  std::string ufrag;
-  std::string pwd;
-  bool renomination = false;
-  IceParameters() = default;
-  IceParameters(const std::string& ice_ufrag,
-                const std::string& ice_pwd,
-                bool ice_renomination)
-      : ufrag(ice_ufrag), pwd(ice_pwd), renomination(ice_renomination) {}
-
-  bool operator==(const IceParameters& other) {
-    return ufrag == other.ufrag && pwd == other.pwd &&
-           renomination == other.renomination;
-  }
-  bool operator!=(const IceParameters& other) { return !(*this == other); }
-};
-
 extern const char CONNECTIONROLE_ACTIVE_STR[];
 extern const char CONNECTIONROLE_PASSIVE_STR[];
 extern const char CONNECTIONROLE_ACTPASS_STR[];
 extern const char CONNECTIONROLE_HOLDCONN_STR[];
-
-constexpr auto ICE_OPTION_TRICKLE = "trickle";
-constexpr auto ICE_OPTION_RENOMINATION = "renomination";
 
 bool StringToConnectionRole(const std::string& role_str, ConnectionRole* role);
 bool ConnectionRoleToString(const ConnectionRole& role, std::string* role_str);
@@ -141,7 +116,6 @@ struct TransportDescription {
     return *this;
   }
 
-  // TODO(deadbeef): Rename to HasIceOption, etc.
   bool HasOption(const std::string& option) const {
     return (std::find(transport_options.begin(), transport_options.end(),
                       option) != transport_options.end());
@@ -149,12 +123,7 @@ struct TransportDescription {
   void AddOption(const std::string& option) {
     transport_options.push_back(option);
   }
-  bool secure() const { return identity_fingerprint != nullptr; }
-
-  IceParameters GetIceParameters() {
-    return IceParameters(ice_ufrag, ice_pwd,
-                         HasOption(ICE_OPTION_RENOMINATION));
-  }
+  bool secure() const { return identity_fingerprint != NULL; }
 
   static rtc::SSLFingerprint* CopyFingerprint(
       const rtc::SSLFingerprint* from) {
@@ -164,9 +133,6 @@ struct TransportDescription {
     return new rtc::SSLFingerprint(*from);
   }
 
-  // These are actually ICE options (appearing in the ice-options attribute in
-  // SDP).
-  // TODO(deadbeef): Rename to ice_options.
   std::vector<std::string> transport_options;
   std::string ice_ufrag;
   std::string ice_pwd;

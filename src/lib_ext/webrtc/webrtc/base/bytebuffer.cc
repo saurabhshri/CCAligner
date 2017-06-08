@@ -10,6 +10,7 @@
 
 #include "webrtc/base/bytebuffer.h"
 
+#include <assert.h>
 #include <string.h>
 
 #include <algorithm>
@@ -23,12 +24,12 @@ static const int DEFAULT_SIZE = 4096;
 
 ByteBufferWriter::ByteBufferWriter()
     : ByteBuffer(ORDER_NETWORK) {
-  Construct(nullptr, DEFAULT_SIZE);
+  Construct(NULL, DEFAULT_SIZE);
 }
 
 ByteBufferWriter::ByteBufferWriter(ByteOrder byte_order)
     : ByteBuffer(byte_order) {
-  Construct(nullptr, DEFAULT_SIZE);
+  Construct(NULL, DEFAULT_SIZE);
 }
 
 ByteBufferWriter::ByteBufferWriter(const char* bytes, size_t len)
@@ -43,6 +44,7 @@ ByteBufferWriter::ByteBufferWriter(const char* bytes, size_t len,
 }
 
 void ByteBufferWriter::Construct(const char* bytes, size_t len) {
+  start_ = 0;
   size_ = len;
   bytes_ = new char[size_];
 
@@ -118,21 +120,25 @@ char* ByteBufferWriter::ReserveWriteBuffer(size_t len) {
 }
 
 void ByteBufferWriter::Resize(size_t size) {
-  size_t len = std::min(end_, size);
-  if (size > size_) {
+  size_t len = std::min(end_ - start_, size);
+  if (size <= size_) {
+    // Don't reallocate, just move data backwards
+    memmove(bytes_, bytes_ + start_, len);
+  } else {
     // Reallocate a larger buffer.
     size_ = std::max(size, 3 * size_ / 2);
     char* new_bytes = new char[size_];
-    memcpy(new_bytes, bytes_, len);
+    memcpy(new_bytes, bytes_ + start_, len);
     delete [] bytes_;
     bytes_ = new_bytes;
   }
+  start_ = 0;
   end_ = len;
 }
 
 void ByteBufferWriter::Clear() {
   memset(bytes_, 0, size_);
-  end_ = 0;
+  start_ = end_ = 0;
 }
 
 

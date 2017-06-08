@@ -17,7 +17,7 @@
 #include <memory>
 #include <string>
 
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/constructormagic.h"
 #include "webrtc/base/sslidentity.h"
 
@@ -30,7 +30,7 @@ namespace rtc {
 class OpenSSLKeyPair {
  public:
   explicit OpenSSLKeyPair(EVP_PKEY* pkey) : pkey_(pkey) {
-    RTC_DCHECK(pkey_ != nullptr);
+    ASSERT(pkey_ != NULL);
   }
 
   static OpenSSLKeyPair* Generate(const KeyParams& key_params);

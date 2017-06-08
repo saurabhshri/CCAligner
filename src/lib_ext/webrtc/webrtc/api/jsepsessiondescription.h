@@ -8,8 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-// TODO(deadbeef): Move this out of api/; it's an implementation detail and
-// shouldn't be used externally.
+// Implements the SessionDescriptionInterface.
 
 #ifndef WEBRTC_API_JSEPSESSIONDESCRIPTION_H_
 #define WEBRTC_API_JSEPSESSIONDESCRIPTION_H_
@@ -29,18 +28,15 @@ class SessionDescription;
 
 namespace webrtc {
 
-// Implementation of SessionDescriptionInterface.
 class JsepSessionDescription : public SessionDescriptionInterface {
  public:
   explicit JsepSessionDescription(const std::string& type);
   virtual ~JsepSessionDescription();
 
-  // |error| may be null.
+  // |error| can be NULL if don't care about the failure reason.
   bool Initialize(const std::string& sdp, SdpParseError* error);
 
   // Takes ownership of |description|.
-  // TODO(deadbeef): Make this use an std::unique_ptr<>, so ownership logic is
-  // more clear.
   bool Initialize(cricket::SessionDescription* description,
       const std::string& session_id,
       const std::string& session_version);
@@ -60,7 +56,7 @@ class JsepSessionDescription : public SessionDescriptionInterface {
   virtual std::string type() const {
     return type_;
   }
-  // Allows changing the type. Used for testing.
+  // Allow changing the type. Used for testing.
   void set_type(const std::string& type) { type_ = type; }
   virtual bool AddCandidate(const IceCandidateInterface* candidate);
   virtual size_t RemoveCandidates(
@@ -70,8 +66,13 @@ class JsepSessionDescription : public SessionDescriptionInterface {
       size_t mediasection_index) const;
   virtual bool ToString(std::string* out) const;
 
+  // Default video encoder settings. The resolution is the max resolution.
+  // TODO(perkj): Implement proper negotiation of video resolution.
   static const int kDefaultVideoCodecId;
+  static const int kDefaultVideoCodecFramerate;
   static const char kDefaultVideoCodecName[];
+  static const int kMaxVideoCodecWidth;
+  static const int kMaxVideoCodecHeight;
 
  private:
   std::unique_ptr<cricket::SessionDescription> description_;

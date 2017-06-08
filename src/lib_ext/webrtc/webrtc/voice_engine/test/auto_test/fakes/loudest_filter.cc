@@ -12,7 +12,6 @@
 
 #include "webrtc/base/checks.h"
 
-namespace webrtc {
 namespace voetest {
 
 void LoudestFilter::RemoveTimeoutStreams(int64_t time_ms) {
@@ -68,7 +67,7 @@ bool LoudestFilter::ForwardThisPacket(const webrtc::RTPHeader& rtp_header) {
   }
 
   unsigned int quietest_ssrc = FindQuietestStream();
-  RTC_CHECK_NE(0, quietest_ssrc);
+  RTC_CHECK_NE(0u, quietest_ssrc);
   // A smaller value if audio level corresponds to a louder sound.
   if (audio_level < stream_levels_[quietest_ssrc].audio_level) {
     stream_levels_.erase(quietest_ssrc);
@@ -79,4 +78,4 @@ bool LoudestFilter::ForwardThisPacket(const webrtc::RTPHeader& rtp_header) {
 }
 
 }  // namespace voetest
-}  // namespace webrtc
+

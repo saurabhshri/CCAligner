@@ -12,10 +12,10 @@
 
 #include "webrtc/base/gunit.h"
 #include "webrtc/base/thread.h"
-#include "webrtc/base/virtualsocketserver.h"
 #include "webrtc/p2p/base/fakeportallocator.h"
 #include "webrtc/p2p/base/portallocator.h"
 
+static const char kSessionId[] = "session id";
 static const char kContentName[] = "test content";
 // Based on ICE_UFRAG_LENGTH
 static const char kIceUfrag[] = "UF00";
@@ -26,26 +26,20 @@ static const char kTurnPassword[] = "test";
 
 class PortAllocatorTest : public testing::Test, public sigslot::has_slots<> {
  public:
-  PortAllocatorTest()
-      : vss_(new rtc::VirtualSocketServer()), main_(vss_.get()) {
+  PortAllocatorTest() {
     allocator_.reset(
         new cricket::FakePortAllocator(rtc::Thread::Current(), nullptr));
   }
 
  protected:
   void SetConfigurationWithPoolSize(int candidate_pool_size) {
-    EXPECT_TRUE(allocator_->SetConfiguration(
-        cricket::ServerAddresses(), std::vector<cricket::RelayServerConfig>(),
-        candidate_pool_size, false));
-  }
-
-  void SetConfigurationWithPoolSizeExpectFailure(int candidate_pool_size) {
-    EXPECT_FALSE(allocator_->SetConfiguration(
-        cricket::ServerAddresses(), std::vector<cricket::RelayServerConfig>(),
-        candidate_pool_size, false));
+    allocator_->SetConfiguration(cricket::ServerAddresses(),
+                                 std::vector<cricket::RelayServerConfig>(),
+                                 candidate_pool_size);
   }
 
   std::unique_ptr<cricket::FakePortAllocatorSession> CreateSession(
+      const std::string& sid,
       const std::string& content_name,
       int component,
       const std::string& ice_ufrag,
@@ -53,7 +47,8 @@ class PortAllocatorTest : public testing::Test, public sigslot::has_slots<> {
     return std::unique_ptr<cricket::FakePortAllocatorSession>(
         static_cast<cricket::FakePortAllocatorSession*>(
             allocator_
-                ->CreateSession(content_name, component, ice_ufrag, ice_pwd)
+                ->CreateSession(sid, content_name, component, ice_ufrag,
+                                ice_pwd)
                 .release()));
   }
 
@@ -78,8 +73,6 @@ class PortAllocatorTest : public testing::Test, public sigslot::has_slots<> {
     return count;
   }
 
-  std::unique_ptr<rtc::VirtualSocketServer> vss_;
-  rtc::AutoSocketServerThread main_;
   std::unique_ptr<cricket::FakePortAllocator> allocator_;
   rtc::SocketAddress stun_server_1{"11.11.11.11", 3478};
   rtc::SocketAddress stun_server_2{"22.22.22.22", 3478};
@@ -102,7 +95,7 @@ TEST_F(PortAllocatorTest, TestDefaults) {
 // candidate filter are applied as expected.
 TEST_F(PortAllocatorTest, CreateSession) {
   allocator_->set_candidate_filter(cricket::CF_RELAY);
-  auto session = CreateSession(kContentName, 1, kIceUfrag, kIcePwd);
+  auto session = CreateSession(kSessionId, kContentName, 1, kIceUfrag, kIcePwd);
   ASSERT_NE(nullptr, session);
   EXPECT_EQ(cricket::CF_RELAY, session->candidate_filter());
   EXPECT_EQ(kContentName, session->content_name());
@@ -114,16 +107,14 @@ TEST_F(PortAllocatorTest, CreateSession) {
 TEST_F(PortAllocatorTest, SetConfigurationUpdatesIceServers) {
   cricket::ServerAddresses stun_servers_1 = {stun_server_1};
   std::vector<cricket::RelayServerConfig> turn_servers_1 = {turn_server_1};
-  EXPECT_TRUE(
-      allocator_->SetConfiguration(stun_servers_1, turn_servers_1, 0, false));
+  allocator_->SetConfiguration(stun_servers_1, turn_servers_1, 0);
   EXPECT_EQ(stun_servers_1, allocator_->stun_servers());
   EXPECT_EQ(turn_servers_1, allocator_->turn_servers());
 
   // Update with a different set of servers.
   cricket::ServerAddresses stun_servers_2 = {stun_server_2};
   std::vector<cricket::RelayServerConfig> turn_servers_2 = {turn_server_2};
-  EXPECT_TRUE(
-      allocator_->SetConfiguration(stun_servers_2, turn_servers_2, 0, false));
+  allocator_->SetConfiguration(stun_servers_2, turn_servers_2, 0);
   EXPECT_EQ(stun_servers_2, allocator_->stun_servers());
   EXPECT_EQ(turn_servers_2, allocator_->turn_servers());
 }
@@ -140,8 +131,9 @@ TEST_F(PortAllocatorTest, SetConfigurationUpdatesCandidatePoolSize) {
 }
 
 // A negative pool size should just be treated as zero.
-TEST_F(PortAllocatorTest, SetConfigurationWithNegativePoolSizeFails) {
-  SetConfigurationWithPoolSizeExpectFailure(-1);
+TEST_F(PortAllocatorTest, SetConfigurationWithNegativePoolSizeDoesntCrash) {
+  SetConfigurationWithPoolSize(-1);
+  // No asserts; we're just testing that this doesn't crash.
 }
 
 // Test that if the candidate pool size is nonzero, pooled sessions are
@@ -173,20 +165,31 @@ TEST_F(PortAllocatorTest, SetConfigurationDestroysPooledSessions) {
   EXPECT_EQ(1, GetAllPooledSessionsReturnCount());
 }
 
-// According to JSEP, existing pooled sessions should be destroyed and new
+// Test that if the candidate pool size is reduced and increased, but reducing
+// didn't actually destroy any sessions (because they were already given away),
+// increasing the size to its initial value doesn't create a new session.
+TEST_F(PortAllocatorTest, SetConfigurationDoesntCreateExtraSessions) {
+  SetConfigurationWithPoolSize(1);
+  TakePooledSession();
+  SetConfigurationWithPoolSize(0);
+  SetConfigurationWithPoolSize(1);
+  EXPECT_EQ(0, GetAllPooledSessionsReturnCount());
+}
+
+// According to JSEP, exising pooled sessions should be destroyed and new
 // ones created when the ICE servers change.
 TEST_F(PortAllocatorTest,
        SetConfigurationRecreatesPooledSessionsWhenIceServersChange) {
   cricket::ServerAddresses stun_servers_1 = {stun_server_1};
   std::vector<cricket::RelayServerConfig> turn_servers_1 = {turn_server_1};
-  allocator_->SetConfiguration(stun_servers_1, turn_servers_1, 1, false);
+  allocator_->SetConfiguration(stun_servers_1, turn_servers_1, 1);
   EXPECT_EQ(stun_servers_1, allocator_->stun_servers());
   EXPECT_EQ(turn_servers_1, allocator_->turn_servers());
 
   // Update with a different set of servers (and also change pool size).
   cricket::ServerAddresses stun_servers_2 = {stun_server_2};
   std::vector<cricket::RelayServerConfig> turn_servers_2 = {turn_server_2};
-  allocator_->SetConfiguration(stun_servers_2, turn_servers_2, 2, false);
+  allocator_->SetConfiguration(stun_servers_2, turn_servers_2, 2);
   EXPECT_EQ(stun_servers_2, allocator_->stun_servers());
   EXPECT_EQ(turn_servers_2, allocator_->turn_servers());
   auto session_1 = TakePooledSession();
@@ -197,31 +200,6 @@ TEST_F(PortAllocatorTest,
   EXPECT_EQ(turn_servers_2, session_1->turn_servers());
   EXPECT_EQ(stun_servers_2, session_2->stun_servers());
   EXPECT_EQ(turn_servers_2, session_2->turn_servers());
-  EXPECT_EQ(0, GetAllPooledSessionsReturnCount());
-}
-
-// According to JSEP, after SetLocalDescription, setting different ICE servers
-// will not cause the pool to be refilled. This is implemented by the
-// PeerConnection calling FreezeCandidatePool when a local description is set.
-TEST_F(PortAllocatorTest,
-       SetConfigurationDoesNotRecreatePooledSessionsAfterFreezeCandidatePool) {
-  cricket::ServerAddresses stun_servers_1 = {stun_server_1};
-  std::vector<cricket::RelayServerConfig> turn_servers_1 = {turn_server_1};
-  allocator_->SetConfiguration(stun_servers_1, turn_servers_1, 1, false);
-  EXPECT_EQ(stun_servers_1, allocator_->stun_servers());
-  EXPECT_EQ(turn_servers_1, allocator_->turn_servers());
-
-  // Update with a different set of servers, but first freeze the pool.
-  allocator_->FreezeCandidatePool();
-  cricket::ServerAddresses stun_servers_2 = {stun_server_2};
-  std::vector<cricket::RelayServerConfig> turn_servers_2 = {turn_server_2};
-  allocator_->SetConfiguration(stun_servers_2, turn_servers_2, 2, false);
-  EXPECT_EQ(stun_servers_2, allocator_->stun_servers());
-  EXPECT_EQ(turn_servers_2, allocator_->turn_servers());
-  auto session = TakePooledSession();
-  ASSERT_NE(nullptr, session.get());
-  EXPECT_EQ(stun_servers_1, session->stun_servers());
-  EXPECT_EQ(turn_servers_1, session->turn_servers());
   EXPECT_EQ(0, GetAllPooledSessionsReturnCount());
 }
 
@@ -266,12 +244,4 @@ TEST_F(PortAllocatorTest, TakePooledSessionUpdatesCandidateFilter) {
   EXPECT_EQ(cricket::CF_ALL, peeked_session->candidate_filter());
   auto session = TakePooledSession();
   EXPECT_EQ(cricket::CF_RELAY, session->candidate_filter());
-}
-
-// Verify that after DiscardCandidatePool, TakePooledSession doesn't return
-// anything.
-TEST_F(PortAllocatorTest, DiscardCandidatePool) {
-  SetConfigurationWithPoolSize(1);
-  allocator_->DiscardCandidatePool();
-  EXPECT_EQ(0, GetAllPooledSessionsReturnCount());
 }

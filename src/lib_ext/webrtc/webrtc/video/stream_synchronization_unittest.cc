@@ -12,7 +12,7 @@
 
 #include <algorithm>
 
-#include "webrtc/test/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/video/stream_synchronization.h"
 
 namespace webrtc {
@@ -34,15 +34,21 @@ class Time {
       : kNtpJan1970(2208988800UL),
         time_now_ms_(offset) {}
 
-  NtpTime GetNowNtp() const {
-    uint32_t ntp_secs = time_now_ms_ / 1000 + kNtpJan1970;
-    int64_t remainder_ms = time_now_ms_ % 1000;
-    uint32_t ntp_frac = static_cast<uint32_t>(
-        static_cast<double>(remainder_ms) * kNtpFracPerMs + 0.5);
-    return NtpTime(ntp_secs, ntp_frac);
+  RtcpMeasurement GenerateRtcp(int frequency, uint32_t offset) const {
+    RtcpMeasurement rtcp;
+    NowNtp(&rtcp.ntp_secs, &rtcp.ntp_frac);
+    rtcp.rtp_timestamp = NowRtp(frequency, offset);
+    return rtcp;
   }
 
-  uint32_t GetNowRtp(int frequency, uint32_t offset) const {
+  void NowNtp(uint32_t* ntp_secs, uint32_t* ntp_frac) const {
+    *ntp_secs = time_now_ms_ / 1000 + kNtpJan1970;
+    int64_t remainder_ms = time_now_ms_ % 1000;
+    *ntp_frac = static_cast<uint32_t>(
+        static_cast<double>(remainder_ms) * kNtpFracPerMs + 0.5);
+  }
+
+  uint32_t NowRtp(int frequency, uint32_t offset) const {
     return frequency * time_now_ms_ / 1000 + offset;
   }
 
@@ -92,43 +98,32 @@ class StreamSynchronizationTest : public ::testing::Test {
     int audio_offset = 0;
     int video_frequency = static_cast<int>(kDefaultVideoFrequency *
                                            video_clock_drift_ + 0.5);
-    bool new_sr;
     int video_offset = 0;
     StreamSynchronization::Measurements audio;
     StreamSynchronization::Measurements video;
     // Generate NTP/RTP timestamp pair for both streams corresponding to RTCP.
-    NtpTime ntp_time = send_time_->GetNowNtp();
-    uint32_t rtp_timestamp =
-        send_time_->GetNowRtp(audio_frequency, audio_offset);
-    EXPECT_TRUE(audio.rtp_to_ntp.UpdateMeasurements(
-        ntp_time.seconds(), ntp_time.fractions(), rtp_timestamp, &new_sr));
+    audio.rtcp.push_front(send_time_->GenerateRtcp(audio_frequency,
+                                                   audio_offset));
     send_time_->IncreaseTimeMs(100);
     receive_time_->IncreaseTimeMs(100);
-    ntp_time = send_time_->GetNowNtp();
-    rtp_timestamp = send_time_->GetNowRtp(video_frequency, video_offset);
-    EXPECT_TRUE(video.rtp_to_ntp.UpdateMeasurements(
-        ntp_time.seconds(), ntp_time.fractions(), rtp_timestamp, &new_sr));
+    video.rtcp.push_front(send_time_->GenerateRtcp(video_frequency,
+                                                   video_offset));
     send_time_->IncreaseTimeMs(900);
     receive_time_->IncreaseTimeMs(900);
-    ntp_time = send_time_->GetNowNtp();
-    rtp_timestamp = send_time_->GetNowRtp(audio_frequency, audio_offset);
-    EXPECT_TRUE(audio.rtp_to_ntp.UpdateMeasurements(
-        ntp_time.seconds(), ntp_time.fractions(), rtp_timestamp, &new_sr));
+    audio.rtcp.push_front(send_time_->GenerateRtcp(audio_frequency,
+                                                   audio_offset));
     send_time_->IncreaseTimeMs(100);
     receive_time_->IncreaseTimeMs(100);
-    ntp_time = send_time_->GetNowNtp();
-    rtp_timestamp = send_time_->GetNowRtp(video_frequency, video_offset);
-    EXPECT_TRUE(video.rtp_to_ntp.UpdateMeasurements(
-        ntp_time.seconds(), ntp_time.fractions(), rtp_timestamp, &new_sr));
-
+    video.rtcp.push_front(send_time_->GenerateRtcp(video_frequency,
+                                                   video_offset));
     send_time_->IncreaseTimeMs(900);
     receive_time_->IncreaseTimeMs(900);
 
     // Capture an audio and a video frame at the same time.
-    audio.latest_timestamp =
-        send_time_->GetNowRtp(audio_frequency, audio_offset);
-    video.latest_timestamp =
-        send_time_->GetNowRtp(video_frequency, video_offset);
+    audio.latest_timestamp = send_time_->NowRtp(audio_frequency,
+                                                audio_offset);
+    video.latest_timestamp = send_time_->NowRtp(video_frequency,
+                                                video_offset);
 
     if (audio_delay_ms > video_delay_ms) {
       // Audio later than video.

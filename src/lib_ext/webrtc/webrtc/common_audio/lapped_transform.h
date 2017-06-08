@@ -53,7 +53,7 @@ class LappedTransform {
                   size_t block_length,
                   size_t shift_amount,
                   Callback* callback);
-  ~LappedTransform();
+  ~LappedTransform() {}
 
   // Main audio processing helper method. Internally slices |in_chunk| into
   // blocks, transforms them to frequency domain, calls the callback for each
@@ -86,12 +86,6 @@ class LappedTransform {
   // constructor.
   size_t num_out_channels() const { return num_out_channels_; }
 
-  // Returns the initial delay.
-  //
-  // This is the delay introduced by the |blocker_| to be able to get and return
-  // chunks of |chunk_length|, but process blocks of |block_length|.
-  size_t initial_delay() const { return blocker_.initial_delay(); }
-
  private:
   // Internal middleware callback, given to the blocker. Transforms each block
   // and hands it over to the processing method given at construction time.
@@ -99,11 +93,11 @@ class LappedTransform {
    public:
     explicit BlockThunk(LappedTransform* parent) : parent_(parent) {}
 
-    void ProcessBlock(const float* const* input,
-                      size_t num_frames,
-                      size_t num_input_channels,
-                      size_t num_output_channels,
-                      float* const* output) override;
+    virtual void ProcessBlock(const float* const* input,
+                              size_t num_frames,
+                              size_t num_input_channels,
+                              size_t num_output_channels,
+                              float* const* output);
 
    private:
     LappedTransform* const parent_;

@@ -11,9 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <features.h>
-#ifndef __GLIBC_PREREQ
-#define __GLIBC_PREREQ(a, b) 0
-#endif
 #if __GLIBC_PREREQ(2, 16)
 #include <sys/auxv.h>
 #else

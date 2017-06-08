@@ -10,16 +10,14 @@
 
 #include <queue>
 
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/base/format_macros.h"
 #include "webrtc/base/timeutils.h"
 #include "webrtc/system_wrappers/include/sleep.h"
-#include "webrtc/test/gtest.h"
 #include "webrtc/test/testsupport/fileutils.h"
 #include "webrtc/voice_engine/test/auto_test/fakes/conference_transport.h"
 
-namespace webrtc {
 namespace {
-
 const int kRttMs = 25;
 
 bool IsNear(int ref, int comp, int error) {
@@ -176,4 +174,3 @@ TEST(VoeConferenceTest, ReceivedPackets) {
 }
 
 }  // namespace voetest
-}  // namespace webrtc

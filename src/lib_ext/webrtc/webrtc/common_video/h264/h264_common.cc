@@ -21,10 +21,8 @@ std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer,
   // given a 3-byte sequence we're looking at, if the 3rd byte isn't 1 or 0,
   // skip ahead to the next 3-byte sequence. 0s and 1s are relatively rare, so
   // this will skip the majority of reads/checks.
+  RTC_CHECK_GE(buffer_size, kNaluShortStartSequenceSize);
   std::vector<NaluIndex> sequences;
-  if (buffer_size < kNaluShortStartSequenceSize)
-    return sequences;
-
   const size_t end = buffer_size - kNaluShortStartSequenceSize;
   for (size_t i = 0; i < end;) {
     if (buffer[i + 2] > 1) {
@@ -60,27 +58,26 @@ NaluType ParseNaluType(uint8_t data) {
   return static_cast<NaluType>(data & kNaluTypeMask);
 }
 
-std::vector<uint8_t> ParseRbsp(const uint8_t* data, size_t length) {
-  std::vector<uint8_t> out;
-  out.reserve(length);
-
+std::unique_ptr<rtc::Buffer> ParseRbsp(const uint8_t* data, size_t length) {
+  std::unique_ptr<rtc::Buffer> rbsp_buffer(new rtc::Buffer(0, length));
+  const char* sps_bytes = reinterpret_cast<const char*>(data);
   for (size_t i = 0; i < length;) {
     // Be careful about over/underflow here. byte_length_ - 3 can underflow, and
     // i + 3 can overflow, but byte_length_ - i can't, because i < byte_length_
     // above, and that expression will produce the number of bytes left in
     // the stream including the byte at i.
-    if (length - i >= 3 && !data[i] && !data[i + 1] && data[i + 2] == 3) {
-      // Two rbsp bytes.
-      out.push_back(data[i++]);
-      out.push_back(data[i++]);
-      // Skip the emulation byte.
-      i++;
+    if (length - i >= 3 && data[i] == 0 && data[i + 1] == 0 &&
+        data[i + 2] == 3) {
+      // Two rbsp bytes + the emulation byte.
+      rbsp_buffer->AppendData(sps_bytes + i, 2);
+      i += 3;
     } else {
       // Single rbsp byte.
-      out.push_back(data[i++]);
+      rbsp_buffer->AppendData(sps_bytes[i]);
+      ++i;
     }
   }
-  return out;
+  return rbsp_buffer;
 }
 
 void WriteRbsp(const uint8_t* bytes, size_t length, rtc::Buffer* destination) {

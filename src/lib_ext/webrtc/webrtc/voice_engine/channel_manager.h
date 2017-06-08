@@ -16,14 +16,14 @@
 
 #include "webrtc/base/constructormagic.h"
 #include "webrtc/base/criticalsection.h"
-#include "webrtc/base/random.h"
 #include "webrtc/base/scoped_ref_ptr.h"
+#include "webrtc/call/rtc_event_log.h"
 #include "webrtc/system_wrappers/include/atomic32.h"
 #include "webrtc/typedefs.h"
-#include "webrtc/voice_engine/include/voe_base.h"
 
 namespace webrtc {
 
+class Config;
 class AudioDecoderFactory;
 
 namespace voe {
@@ -73,7 +73,7 @@ class ChannelOwner {
 
 class ChannelManager {
  public:
-  ChannelManager(uint32_t instance_id);
+  ChannelManager(uint32_t instance_id, const Config& config);
 
   // Upon construction of an Iterator it will grab a copy of the channel list of
   // the ChannelManager. The iteration will then occur over this state, not the
@@ -96,8 +96,18 @@ class ChannelManager {
     RTC_DISALLOW_COPY_AND_ASSIGN(Iterator);
   };
 
-  // CreateChannel will always return a valid ChannelOwner instance.
-  ChannelOwner CreateChannel(const VoEBase::ChannelConfig& config);
+  // CreateChannel will always return a valid ChannelOwner instance. The channel
+  // is created either based on internal configuration, i.e. |config_|, by
+  // calling CreateChannel(), or using and external configuration
+  // |external_config| if the overloaded method
+  // CreateChannel(const Config& external_config) is called.
+  ChannelOwner CreateChannel();
+  ChannelOwner CreateChannel(const Config& external_config);
+  ChannelOwner CreateChannel(
+      const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory);
+  ChannelOwner CreateChannel(
+      const Config& external_config,
+      const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory);
 
   // ChannelOwner.channel() will be NULL if channel_id is invalid or no longer
   // exists. This should be checked with ChannelOwner::IsValid().
@@ -109,7 +119,15 @@ class ChannelManager {
 
   size_t NumOfChannels() const;
 
+  // Returns a pointer to the event log object stored within the ChannelManager.
+  RtcEventLog* GetEventLog() const;
+
  private:
+  // Create a channel given a configuration, |config|.
+  ChannelOwner CreateChannelInternal(
+      const Config& config,
+      const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory);
+
   uint32_t instance_id_;
 
   Atomic32 last_channel_id_;
@@ -117,8 +135,8 @@ class ChannelManager {
   rtc::CriticalSection lock_;
   std::vector<ChannelOwner> channels_;
 
-  // For generation of random ssrc:s.
-  webrtc::Random random_;
+  const Config& config_;
+  std::unique_ptr<RtcEventLog> event_log_;
 
   RTC_DISALLOW_COPY_AND_ASSIGN(ChannelManager);
 };

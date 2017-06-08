@@ -13,43 +13,25 @@ package org.webrtc;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.EnumSet;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
-/**
- * Java wrapper for WebRTC logging. Logging defaults to java.util.logging.Logger, but will switch to
- * native logging (rtc::LogMessage) if one of the following static functions are called from the
- * app:
- * - Logging.enableLogThreads
- * - Logging.enableLogTimeStamps
- * - Logging.enableTracing
- * - Logging.enableLogToDebugOutput
- * Using native logging requires the presence of the jingle_peerconnection_so library.
- */
+/** Java wrapper for WebRTC logging. */
 public class Logging {
-  private static final Logger fallbackLogger = createFallbackLogger();
+  private static final Logger fallbackLogger = Logger.getLogger("org.webrtc.Logging");
   private static volatile boolean tracingEnabled;
-  private static volatile boolean loggingEnabled;
-  private static enum NativeLibStatus { UNINITIALIZED, LOADED, FAILED }
-  private static volatile NativeLibStatus nativeLibStatus = NativeLibStatus.UNINITIALIZED;
+  private static volatile boolean nativeLibLoaded;
 
-  private static Logger createFallbackLogger() {
-    final Logger fallbackLogger = Logger.getLogger("org.webrtc.Logging");
-    fallbackLogger.setLevel(Level.ALL);
-    return fallbackLogger;
-  }
+  static {
+    try {
+      System.loadLibrary("jingle_peerconnection_so");
+      nativeLibLoaded = true;
+    } catch (UnsatisfiedLinkError t) {
+      // If native logging is unavailable, log to system log.
+      fallbackLogger.setLevel(Level.ALL);
 
-  private static boolean loadNativeLibrary() {
-    if (nativeLibStatus == NativeLibStatus.UNINITIALIZED) {
-      try {
-        System.loadLibrary("jingle_peerconnection_so");
-        nativeLibStatus = NativeLibStatus.LOADED;
-      } catch (UnsatisfiedLinkError t) {
-        nativeLibStatus = NativeLibStatus.FAILED;
-        fallbackLogger.log(Level.WARNING, "Failed to load jingle_peerconnection_so: ", t);
-      }
+      fallbackLogger.log(Level.WARNING, "Failed to load jingle_peerconnection_so: ", t);
     }
-    return nativeLibStatus == NativeLibStatus.LOADED;
   }
 
   // Keep in sync with webrtc/common_types.h:TraceLevel.
@@ -74,13 +56,15 @@ public class Logging {
     TraceLevel(int level) {
       this.level = level;
     }
-  }
+  };
 
   // Keep in sync with webrtc/base/logging.h:LoggingSeverity.
-  public enum Severity { LS_SENSITIVE, LS_VERBOSE, LS_INFO, LS_WARNING, LS_ERROR, LS_NONE }
+  public enum Severity {
+    LS_SENSITIVE, LS_VERBOSE, LS_INFO, LS_WARNING, LS_ERROR,
+  };
 
   public static void enableLogThreads() {
-    if (!loadNativeLibrary()) {
+    if (!nativeLibLoaded) {
       fallbackLogger.log(Level.WARNING, "Cannot enable log thread because native lib not loaded.");
       return;
     }
@@ -88,19 +72,19 @@ public class Logging {
   }
 
   public static void enableLogTimeStamps() {
-    if (!loadNativeLibrary()) {
-      fallbackLogger.log(
-          Level.WARNING, "Cannot enable log timestamps because native lib not loaded.");
+    if (!nativeLibLoaded) {
+      fallbackLogger.log(Level.WARNING,
+                         "Cannot enable log timestamps because native lib not loaded.");
       return;
     }
     nativeEnableLogTimeStamps();
   }
 
-  // Enable tracing to |path| of messages of |levels|.
+  // Enable tracing to |path| of messages of |levels| and |severity|.
   // On Android, use "logcat:" for |path| to send output there.
-  // Note: this function controls the output of the WEBRTC_TRACE() macros.
-  public static synchronized void enableTracing(String path, EnumSet<TraceLevel> levels) {
-    if (!loadNativeLibrary()) {
+  public static synchronized void enableTracing(
+      String path, EnumSet<TraceLevel> levels, Severity severity) {
+    if (!nativeLibLoaded) {
       fallbackLogger.log(Level.WARNING, "Cannot enable tracing because native lib not loaded.");
       return;
     }
@@ -112,24 +96,12 @@ public class Logging {
     for (TraceLevel level : levels) {
       nativeLevel |= level.level;
     }
-    nativeEnableTracing(path, nativeLevel);
+    nativeEnableTracing(path, nativeLevel, severity.ordinal());
     tracingEnabled = true;
   }
 
-  // Enable diagnostic logging for messages of |severity| to the platform debug
-  // output. On Android, the output will be directed to Logcat.
-  // Note: this function starts collecting the output of the LOG() macros.
-  public static synchronized void enableLogToDebugOutput(Severity severity) {
-    if (!loadNativeLibrary()) {
-      fallbackLogger.log(Level.WARNING, "Cannot enable logging because native lib not loaded.");
-      return;
-    }
-    nativeEnableLogToDebugOutput(severity.ordinal());
-    loggingEnabled = true;
-  }
-
   public static void log(Severity severity, String tag, String message) {
-    if (loggingEnabled) {
+    if (tracingEnabled) {
       nativeLog(severity.ordinal(), tag, message);
       return;
     }
@@ -192,8 +164,8 @@ public class Logging {
     return sw.toString();
   }
 
-  private static native void nativeEnableTracing(String path, int nativeLevels);
-  private static native void nativeEnableLogToDebugOutput(int nativeSeverity);
+  private static native void nativeEnableTracing(
+      String path, int nativeLevels, int nativeSeverity);
   private static native void nativeEnableLogThreads();
   private static native void nativeEnableLogTimeStamps();
   private static native void nativeLog(int severity, String tag, String message);

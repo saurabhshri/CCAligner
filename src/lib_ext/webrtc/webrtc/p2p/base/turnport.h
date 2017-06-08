@@ -38,9 +38,7 @@ class TurnPort : public Port {
     STATE_CONNECTING,    // Initial state, cannot send any packets.
     STATE_CONNECTED,     // Socket connected, ready to send stun requests.
     STATE_READY,         // Received allocate success, can send any packets.
-    STATE_RECEIVEONLY,   // Had REFRESH_REQUEST error, cannot send any packets.
-    STATE_DISCONNECTED,  // TCP connection died, cannot send/receive any
-                         // packets.
+    STATE_DISCONNECTED,  // TCP connection died, cannot send any packets.
   };
   static TurnPort* Create(rtc::Thread* thread,
                           rtc::PacketSocketFactory* factory,
@@ -84,14 +82,6 @@ class TurnPort : public Port {
     return state_ == STATE_READY || state_ == STATE_CONNECTED;
   }
   const RelayCredentials& credentials() const { return credentials_; }
-
-  virtual ProtocolType GetProtocol() const { return server_address_.proto; }
-
-  virtual TlsCertPolicy GetTlsCertPolicy() const { return tls_cert_policy_; }
-
-  virtual void SetTlsCertPolicy(TlsCertPolicy tls_cert_policy) {
-    tls_cert_policy_ = tls_cert_policy;
-  }
 
   virtual void PrepareAddress();
   virtual Connection* CreateConnection(
@@ -212,8 +202,7 @@ class TurnPort : public Port {
     }
   }
 
-  void OnRefreshError();
-  void HandleRefreshError();
+  void OnTurnRefreshError();
   bool SetAlternateServer(const rtc::SocketAddress& address);
   void ResolveTurnAddress(const rtc::SocketAddress& address);
   void OnResolveResult(rtc::AsyncResolverInterface* resolver);
@@ -256,15 +245,11 @@ class TurnPort : public Port {
   void ScheduleEntryDestruction(TurnEntry* entry);
   void CancelEntryDestruction(TurnEntry* entry);
 
-  // Marks the connection with remote address |address| failed and
-  // pruned (a.k.a. write-timed-out). Returns true if a connection is found.
-  bool FailAndPruneConnection(const rtc::SocketAddress& address);
-
-  // Reconstruct the URL of the server which the candidate is gathered from.
-  std::string ReconstructedServerUrl();
+  // Destroys the connection with remote address |address|. Returns true if
+  // a connection is found and destroyed.
+  bool DestroyConnection(const rtc::SocketAddress& address);
 
   ProtocolAddress server_address_;
-  TlsCertPolicy tls_cert_policy_ = TlsCertPolicy::TLS_CERT_POLICY_SECURE;
   RelayCredentials credentials_;
   AttemptedServerSet attempted_server_addresses_;
 

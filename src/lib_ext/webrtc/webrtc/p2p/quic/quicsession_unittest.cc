@@ -23,6 +23,7 @@
 #include "net/quic/crypto/quic_crypto_server_config.h"
 #include "net/quic/quic_crypto_client_stream.h"
 #include "net/quic/quic_crypto_server_stream.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/gunit.h"
 #include "webrtc/p2p/base/faketransportcontroller.h"
 #include "webrtc/p2p/quic/quicconnectionhelper.h"
@@ -294,6 +295,8 @@ void QuicSessionTest::CreateClientAndServerSessions() {
   channel2->SetAsync(true);
 
   // Configure peers to send packets to each other.
+  channel1->Connect();
+  channel2->Connect();
   channel1->SetDestination(channel2.get());
 
   client_peer_ = CreateSession(std::move(channel1), Perspective::IS_CLIENT);

@@ -12,7 +12,8 @@
 #define WEBRTC_COMMON_AUDIO_VAD_MOCK_MOCK_VAD_H_
 
 #include "webrtc/common_audio/vad/include/vad.h"
-#include "webrtc/test/gmock.h"
+
+#include "testing/gmock/include/gmock/gmock.h"
 
 namespace webrtc {
 

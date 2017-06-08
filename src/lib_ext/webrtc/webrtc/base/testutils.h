@@ -28,7 +28,7 @@
 #include <vector>
 #include "webrtc/base/arraysize.h"
 #include "webrtc/base/asyncsocket.h"
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/gunit.h"
 #include "webrtc/base/nethelpers.h"
 #include "webrtc/base/pathutils.h"
@@ -37,7 +37,6 @@
 #include "webrtc/base/stringutils.h"
 #include "webrtc/base/thread.h"
 
-namespace webrtc {
 namespace testing {
 
 using namespace rtc;
@@ -178,7 +177,7 @@ public:
     va_start(args, format);
     char buffer[1024];
     size_t len = vsprintfn(buffer, sizeof(buffer), format, args);
-    RTC_CHECK(len < sizeof(buffer) - 1);
+    ASSERT(len < sizeof(buffer) - 1);
     va_end(args);
     QueueData(buffer, len);
   }
@@ -277,12 +276,14 @@ private:
 
 class SocketTestClient : public sigslot::has_slots<> {
 public:
- SocketTestClient() { Init(nullptr, AF_INET); }
- SocketTestClient(AsyncSocket* socket) {
-   Init(socket, socket->GetLocalAddress().family());
+  SocketTestClient() {
+    Init(NULL, AF_INET);
+  }
+  SocketTestClient(AsyncSocket* socket) {
+    Init(socket, socket->GetLocalAddress().family());
   }
   SocketTestClient(const SocketAddress& address) {
-    Init(nullptr, address.family());
+    Init(NULL, address.family());
     socket_->Connect(address);
   }
 
@@ -296,7 +297,7 @@ public:
     va_start(args, format);
     char buffer[1024];
     size_t len = vsprintfn(buffer, sizeof(buffer), format, args);
-    RTC_CHECK(len < sizeof(buffer) - 1);
+    ASSERT(len < sizeof(buffer) - 1);
     va_end(args);
     QueueData(buffer, len);
   }
@@ -407,7 +408,8 @@ class SocketTestServer : public sigslot::has_slots<> {
 
  private:
   void OnReadEvent(AsyncSocket* socket) {
-    AsyncSocket* accepted = static_cast<AsyncSocket*>(socket_->Accept(nullptr));
+    AsyncSocket* accepted =
+      static_cast<AsyncSocket*>(socket_->Accept(NULL));
     if (!accepted)
       return;
     clients_.push_back(new SocketTestClient(accepted));
@@ -421,21 +423,21 @@ class SocketTestServer : public sigslot::has_slots<> {
 // Unittest predicates which are similar to STREQ, but for raw memory
 ///////////////////////////////////////////////////////////////////////////////
 
-inline ::testing::AssertionResult CmpHelperMemEq(
-    const char* expected_expression,
-    const char* expected_length_expression,
-    const char* actual_expression,
-    const char* actual_length_expression,
-    const void* expected,
-    size_t expected_length,
-    const void* actual,
-    size_t actual_length) {
+inline AssertionResult CmpHelperMemEq(const char* expected_expression,
+                                      const char* expected_length_expression,
+                                      const char* actual_expression,
+                                      const char* actual_length_expression,
+                                      const void* expected,
+                                      size_t expected_length,
+                                      const void* actual,
+                                      size_t actual_length)
+{
   if ((expected_length == actual_length)
       && (0 == memcmp(expected, actual, expected_length))) {
-    return ::testing::AssertionSuccess();
+    return AssertionSuccess();
   }
 
-  ::testing::Message msg;
+  Message msg;
   msg << "Value of: " << actual_expression
       << " [" << actual_length_expression << "]";
   if (true) {  //!actual_value.Equals(actual_expression)) {
@@ -528,9 +530,9 @@ inline ::testing::AssertionResult CmpHelperMemEq(
 
 #if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID)
 struct XDisplay {
-  XDisplay() : display_(XOpenDisplay(nullptr)) {}
+  XDisplay() : display_(XOpenDisplay(NULL)) { }
   ~XDisplay() { if (display_) XCloseDisplay(display_); }
-  bool IsValid() const { return display_ != nullptr; }
+  bool IsValid() const { return display_ != NULL; }
   operator Display*() { return display_; }
  private:
   Display* display_;
@@ -559,8 +561,6 @@ inline bool IsScreencastingAvailable() {
 #endif
   return true;
 }
-
 }  // namespace testing
-}  // namespace webrtc
 
 #endif  // WEBRTC_BASE_TESTUTILS_H__

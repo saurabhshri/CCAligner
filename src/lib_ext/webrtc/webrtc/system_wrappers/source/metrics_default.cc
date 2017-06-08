@@ -9,8 +9,6 @@
 
 #include "webrtc/system_wrappers/include/metrics_default.h"
 
-#include <algorithm>
-
 #include "webrtc/base/criticalsection.h"
 #include "webrtc/base/thread_annotations.h"
 #include "webrtc/system_wrappers/include/metrics.h"
@@ -36,8 +34,10 @@ class RtcHistogram {
   }
 
   void Add(int sample) {
-    sample = std::min(sample, max_);
-    sample = std::max(sample, min_ - 1);  // Underflow bucket.
+    if (sample < min_)
+      sample = min_ - 1;  // Underflow bucket.
+    if (sample > max_)
+      sample = max_;
 
     rtc::CritScope cs(&crit_);
     if (info_.samples.size() == kMaxSampleMapSize &&
@@ -55,9 +55,8 @@ class RtcHistogram {
 
     SampleInfo* copy =
         new SampleInfo(info_.name, info_.min, info_.max, info_.bucket_count);
-
-    std::swap(info_.samples, copy->samples);
-
+    copy->samples = info_.samples;
+    info_.samples.clear();
     return std::unique_ptr<SampleInfo>(copy);
   }
 
@@ -213,19 +212,6 @@ Histogram* HistogramFactoryGetCounts(const std::string& name,
                                      int min,
                                      int max,
                                      int bucket_count) {
-  // TODO(asapersson): Alternative implementation will be needed if this
-  // histogram type should be truly exponential.
-  return HistogramFactoryGetCountsLinear(name, min, max, bucket_count);
-}
-
-// Histogram with linearly spaced buckets.
-// Creates (or finds) histogram.
-// The returned histogram pointer is cached (and used for adding samples in
-// subsequent calls).
-Histogram* HistogramFactoryGetCountsLinear(const std::string& name,
-                                           int min,
-                                           int max,
-                                           int bucket_count) {
   RtcHistogramMap* map = GetMap();
   if (!map)
     return nullptr;
@@ -246,14 +232,15 @@ Histogram* HistogramFactoryGetEnumeration(const std::string& name,
   return map->GetEnumerationHistogram(name, boundary);
 }
 
-const std::string& GetHistogramName(Histogram* histogram_pointer) {
-  RtcHistogram* ptr = reinterpret_cast<RtcHistogram*>(histogram_pointer);
-  return ptr->name();
-}
-
 // Fast path. Adds |sample| to cached |histogram_pointer|.
-void HistogramAdd(Histogram* histogram_pointer, int sample) {
+void HistogramAdd(Histogram* histogram_pointer,
+                  const std::string& name,
+                  int sample) {
+  if (!histogram_pointer)
+    return;
+
   RtcHistogram* ptr = reinterpret_cast<RtcHistogram*>(histogram_pointer);
+  RTC_DCHECK_EQ(name, ptr->name()) << "The name should not vary.";
   ptr->Add(sample);
 }
 

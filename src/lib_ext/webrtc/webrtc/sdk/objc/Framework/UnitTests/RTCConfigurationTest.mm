@@ -21,7 +21,6 @@
 
 @interface RTCConfigurationTest : NSObject
 - (void)testConversionToNativeConfiguration;
-- (void)testNativeConversionToConfiguration;
 @end
 
 @implementation RTCConfigurationTest
@@ -41,12 +40,10 @@
   const int timeout = 1;
   const int interval = 2;
   config.audioJitterBufferMaxPackets = maxPackets;
-  config.audioJitterBufferFastAccelerate = YES;
   config.iceConnectionReceivingTimeout = timeout;
   config.iceBackupCandidatePairPingInterval = interval;
   config.continualGatheringPolicy =
       RTCContinualGatheringPolicyGatherContinually;
-  config.shouldPruneTurnPorts = YES;
 
   std::unique_ptr<webrtc::PeerConnectionInterface::RTCConfiguration>
       nativeConfig([config createNativeConfiguration]);
@@ -67,60 +64,10 @@
   EXPECT_EQ(webrtc::PeerConnectionInterface::kCandidateNetworkPolicyLowCost,
             nativeConfig->candidate_network_policy);
   EXPECT_EQ(maxPackets, nativeConfig->audio_jitter_buffer_max_packets);
-  EXPECT_EQ(true, nativeConfig->audio_jitter_buffer_fast_accelerate);
   EXPECT_EQ(timeout, nativeConfig->ice_connection_receiving_timeout);
   EXPECT_EQ(interval, nativeConfig->ice_backup_candidate_pair_ping_interval);
   EXPECT_EQ(webrtc::PeerConnectionInterface::GATHER_CONTINUALLY,
             nativeConfig->continual_gathering_policy);
-  EXPECT_EQ(true, nativeConfig->prune_turn_ports);
-}
-
-- (void)testNativeConversionToConfiguration {
-  NSArray *urlStrings = @[ @"stun:stun1.example.net" ];
-  RTCIceServer *server = [[RTCIceServer alloc] initWithURLStrings:urlStrings];
-
-  RTCConfiguration *config = [[RTCConfiguration alloc] init];
-  config.iceServers = @[ server ];
-  config.iceTransportPolicy = RTCIceTransportPolicyRelay;
-  config.bundlePolicy = RTCBundlePolicyMaxBundle;
-  config.rtcpMuxPolicy = RTCRtcpMuxPolicyNegotiate;
-  config.tcpCandidatePolicy = RTCTcpCandidatePolicyDisabled;
-  config.candidateNetworkPolicy = RTCCandidateNetworkPolicyLowCost;
-  const int maxPackets = 60;
-  const int timeout = 1;
-  const int interval = 2;
-  config.audioJitterBufferMaxPackets = maxPackets;
-  config.audioJitterBufferFastAccelerate = YES;
-  config.iceConnectionReceivingTimeout = timeout;
-  config.iceBackupCandidatePairPingInterval = interval;
-  config.continualGatheringPolicy =
-      RTCContinualGatheringPolicyGatherContinually;
-  config.shouldPruneTurnPorts = YES;
-
-  webrtc::PeerConnectionInterface::RTCConfiguration *nativeConfig =
-      [config createNativeConfiguration];
-  RTCConfiguration *newConfig = [[RTCConfiguration alloc]
-      initWithNativeConfiguration:*nativeConfig];
-  EXPECT_EQ([config.iceServers count], newConfig.iceServers.count);
-  RTCIceServer *newServer = newConfig.iceServers[0];
-  RTCIceServer *origServer = config.iceServers[0];
-  EXPECT_EQ(origServer.urlStrings.count, server.urlStrings.count);
-  std::string origUrl = origServer.urlStrings.firstObject.UTF8String;
-  std::string url = newServer.urlStrings.firstObject.UTF8String;
-  EXPECT_EQ(origUrl, url);
-
-  EXPECT_EQ(config.iceTransportPolicy, newConfig.iceTransportPolicy);
-  EXPECT_EQ(config.bundlePolicy, newConfig.bundlePolicy);
-  EXPECT_EQ(config.rtcpMuxPolicy, newConfig.rtcpMuxPolicy);
-  EXPECT_EQ(config.tcpCandidatePolicy, newConfig.tcpCandidatePolicy);
-  EXPECT_EQ(config.candidateNetworkPolicy, newConfig.candidateNetworkPolicy);
-  EXPECT_EQ(config.audioJitterBufferMaxPackets, newConfig.audioJitterBufferMaxPackets);
-  EXPECT_EQ(config.audioJitterBufferFastAccelerate, newConfig.audioJitterBufferFastAccelerate);
-  EXPECT_EQ(config.iceConnectionReceivingTimeout, newConfig.iceConnectionReceivingTimeout);
-  EXPECT_EQ(config.iceBackupCandidatePairPingInterval,
-            newConfig.iceBackupCandidatePairPingInterval);
-  EXPECT_EQ(config.continualGatheringPolicy, newConfig.continualGatheringPolicy);
-  EXPECT_EQ(config.shouldPruneTurnPorts, newConfig.shouldPruneTurnPorts);
 }
 
 @end
@@ -129,7 +76,6 @@ TEST(RTCConfigurationTest, NativeConfigurationConversionTest) {
   @autoreleasepool {
     RTCConfigurationTest *test = [[RTCConfigurationTest alloc] init];
     [test testConversionToNativeConfiguration];
-    [test testNativeConversionToConfiguration];
   }
 }
 

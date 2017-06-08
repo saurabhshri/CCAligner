@@ -11,7 +11,6 @@
 #include "webrtc/base/natsocketfactory.h"
 
 #include "webrtc/base/arraysize.h"
-#include "webrtc/base/checks.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/natserver.h"
 #include "webrtc/base/virtualsocketserver.h"
@@ -30,12 +29,12 @@ size_t PackAddressForNAT(char* buf, size_t buf_size,
   // Writes the port.
   *(reinterpret_cast<uint16_t*>(&buf[2])) = HostToNetwork16(remote_addr.port());
   if (family == AF_INET) {
-    RTC_DCHECK(buf_size >= kNATEncodedIPv4AddressSize);
+    ASSERT(buf_size >= kNATEncodedIPv4AddressSize);
     in_addr v4addr = ip.ipv4_address();
     memcpy(&buf[4], &v4addr, kNATEncodedIPv4AddressSize - 4);
     return kNATEncodedIPv4AddressSize;
   } else if (family == AF_INET6) {
-    RTC_DCHECK(buf_size >= kNATEncodedIPv6AddressSize);
+    ASSERT(buf_size >= kNATEncodedIPv6AddressSize);
     in6_addr v6addr = ip.ipv6_address();
     memcpy(&buf[4], &v6addr, kNATEncodedIPv6AddressSize - 4);
     return kNATEncodedIPv6AddressSize;
@@ -48,8 +47,8 @@ size_t PackAddressForNAT(char* buf, size_t buf_size,
 // data where the original packet starts).
 size_t UnpackAddressFromNAT(const char* buf, size_t buf_size,
                             SocketAddress* remote_addr) {
-  RTC_DCHECK(buf_size >= 8);
-  RTC_DCHECK(buf[0] == 0);
+  ASSERT(buf_size >= 8);
+  ASSERT(buf[0] == 0);
   int family = buf[1];
   uint16_t port =
       NetworkToHost16(*(reinterpret_cast<const uint16_t*>(&buf[2])));
@@ -58,7 +57,7 @@ size_t UnpackAddressFromNAT(const char* buf, size_t buf_size,
     *remote_addr = SocketAddress(IPAddress(*v4addr), port);
     return kNATEncodedIPv4AddressSize;
   } else if (family == AF_INET6) {
-    RTC_DCHECK(buf_size >= 20);
+    ASSERT(buf_size >= 20);
     const in6_addr* v6addr = reinterpret_cast<const in6_addr*>(&buf[4]);
     *remote_addr = SocketAddress(IPAddress(*v6addr), port);
     return kNATEncodedIPv6AddressSize;
@@ -71,13 +70,9 @@ size_t UnpackAddressFromNAT(const char* buf, size_t buf_size,
 class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
  public:
   explicit NATSocket(NATInternalSocketFactory* sf, int family, int type)
-      : sf_(sf),
-        family_(family),
-        type_(type),
-        connected_(false),
-        socket_(nullptr),
-        buf_(nullptr),
-        size_(0) {}
+      : sf_(sf), family_(family), type_(type), connected_(false),
+        socket_(NULL), buf_(NULL), size_(0) {
+  }
 
   ~NATSocket() override {
     delete socket_;
@@ -108,7 +103,7 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
     } else {
       server_addr_.Clear();
       delete socket_;
-      socket_ = nullptr;
+      socket_ = NULL;
     }
 
     return result;
@@ -134,14 +129,14 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
   }
 
   int Send(const void* data, size_t size) override {
-    RTC_DCHECK(connected_);
+    ASSERT(connected_);
     return SendTo(data, size, remote_addr_);
   }
 
   int SendTo(const void* data,
              size_t size,
              const SocketAddress& addr) override {
-    RTC_DCHECK(!connected_ || addr == remote_addr_);
+    ASSERT(!connected_ || addr == remote_addr_);
     if (server_addr_.IsNil() || type_ == SOCK_STREAM) {
       return socket_->SendTo(data, size, addr);
     }
@@ -154,7 +149,7 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
     memcpy(buf.get() + addrlength, data, size);
     int result = socket_->SendTo(buf.get(), encoded_size, server_addr_);
     if (result >= 0) {
-      RTC_DCHECK(result == static_cast<int>(encoded_size));
+      ASSERT(result == static_cast<int>(encoded_size));
       result = result - static_cast<int>(addrlength);
     }
     return result;
@@ -180,12 +175,12 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
     // Read the packet from the socket.
     int result = socket_->RecvFrom(buf_, size_, &remote_addr, timestamp);
     if (result >= 0) {
-      RTC_DCHECK(remote_addr == server_addr_);
+      ASSERT(remote_addr == server_addr_);
 
       // TODO: we need better framing so we know how many bytes we can
       // return before we need to read the next address. For UDP, this will be
       // fine as long as the reader always reads everything in the packet.
-      RTC_DCHECK((size_t)result < size_);
+      ASSERT((size_t)result < size_);
 
       // Decode the wire packet into the actual results.
       SocketAddress real_remote_addr;
@@ -215,7 +210,7 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
         connected_ = false;
         remote_addr_ = SocketAddress();
         delete socket_;
-        socket_ = nullptr;
+        socket_ = NULL;
       }
     }
     return result;
@@ -230,6 +225,7 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
   ConnState GetState() const override {
     return connected_ ? CS_CONNECTED : CS_CLOSED;
   }
+  int EstimateMTU(uint16_t* mtu) override { return socket_->EstimateMTU(mtu); }
   int GetOption(Option opt, int* value) override {
     return socket_->GetOption(opt, value);
   }
@@ -239,7 +235,7 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
 
   void OnConnectEvent(AsyncSocket* socket) {
     // If we're NATed, we need to send a message with the real addr to use.
-    RTC_DCHECK(socket == socket_);
+    ASSERT(socket == socket_);
     if (server_addr_.IsNil()) {
       connected_ = true;
       SignalConnectEvent(this);
@@ -249,7 +245,7 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
   }
   void OnReadEvent(AsyncSocket* socket) {
     // If we're NATed, we need to process the connect reply.
-    RTC_DCHECK(socket == socket_);
+    ASSERT(socket == socket_);
     if (type_ == SOCK_STREAM && !server_addr_.IsNil() && !connected_) {
       HandleConnectReply();
     } else {
@@ -257,11 +253,11 @@ class NATSocket : public AsyncSocket, public sigslot::has_slots<> {
     }
   }
   void OnWriteEvent(AsyncSocket* socket) {
-    RTC_DCHECK(socket == socket_);
+    ASSERT(socket == socket_);
     SignalWriteEvent(this);
   }
   void OnCloseEvent(AsyncSocket* socket, int error) {
-    RTC_DCHECK(socket == socket_);
+    ASSERT(socket == socket_);
     SignalCloseEvent(this, error);
   }
 
@@ -342,7 +338,8 @@ AsyncSocket* NATSocketFactory::CreateInternalSocket(int family, int type,
 
 // NATSocketServer
 NATSocketServer::NATSocketServer(SocketServer* server)
-    : server_(server), msg_queue_(nullptr) {}
+    : server_(server), msg_queue_(NULL) {
+}
 
 NATSocketServer::Translator* NATSocketServer::GetTranslator(
     const SocketAddress& ext_ip) {
@@ -353,7 +350,7 @@ NATSocketServer::Translator* NATSocketServer::AddTranslator(
     const SocketAddress& ext_ip, const SocketAddress& int_ip, NATType type) {
   // Fail if a translator already exists with this extternal address.
   if (nats_.Get(ext_ip))
-    return nullptr;
+    return NULL;
 
   return nats_.Add(ext_ip, new Translator(this, type, int_ip, server_, ext_ip));
 }
@@ -394,7 +391,7 @@ void NATSocketServer::WakeUp() {
 
 AsyncSocket* NATSocketServer::CreateInternalSocket(int family, int type,
     const SocketAddress& local_addr, SocketAddress* nat_addr) {
-  AsyncSocket* socket = nullptr;
+  AsyncSocket* socket = NULL;
   Translator* nat = nats_.FindClient(local_addr);
   if (nat) {
     socket = nat->internal_factory()->CreateAsyncSocket(family, type);
@@ -414,7 +411,7 @@ NATSocketServer::Translator::Translator(
   // Create a new private network, and a NATServer running on the private
   // network that bridges to the external network. Also tell the private
   // network to use the same message queue as us.
-  VirtualSocketServer* internal_server = new VirtualSocketServer();
+  VirtualSocketServer* internal_server = new VirtualSocketServer(server_);
   internal_server->SetMessageQueue(server_->queue());
   internal_factory_.reset(internal_server);
   nat_server_.reset(new NATServer(type, internal_server, int_ip, int_ip,
@@ -432,7 +429,7 @@ NATSocketServer::Translator* NATSocketServer::Translator::AddTranslator(
     const SocketAddress& ext_ip, const SocketAddress& int_ip, NATType type) {
   // Fail if a translator already exists with this extternal address.
   if (nats_.Get(ext_ip))
-    return nullptr;
+    return NULL;
 
   AddClient(ext_ip);
   return nats_.Add(ext_ip,
@@ -479,7 +476,7 @@ NATSocketServer::TranslatorMap::~TranslatorMap() {
 NATSocketServer::Translator* NATSocketServer::TranslatorMap::Get(
     const SocketAddress& ext_ip) {
   TranslatorMap::iterator it = find(ext_ip);
-  return (it != end()) ? it->second : nullptr;
+  return (it != end()) ? it->second : NULL;
 }
 
 NATSocketServer::Translator* NATSocketServer::TranslatorMap::Add(
@@ -499,7 +496,7 @@ void NATSocketServer::TranslatorMap::Remove(
 
 NATSocketServer::Translator* NATSocketServer::TranslatorMap::FindClient(
     const SocketAddress& int_ip) {
-  Translator* nat = nullptr;
+  Translator* nat = NULL;
   for (TranslatorMap::iterator it = begin(); it != end() && !nat; ++it) {
     nat = it->second->FindClient(int_ip);
   }

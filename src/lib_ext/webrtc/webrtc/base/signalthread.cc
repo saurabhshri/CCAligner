@@ -10,7 +10,7 @@
 
 #include "webrtc/base/signalthread.h"
 
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 
 namespace rtc {
 
@@ -18,9 +18,9 @@ namespace rtc {
 // SignalThread
 ///////////////////////////////////////////////////////////////////////////////
 
-SignalThread::SignalThread(bool use_socket_server)
+SignalThread::SignalThread()
     : main_(Thread::Current()),
-      worker_(this, use_socket_server),
+      worker_(this),
       state_(kInit),
       refcount_(1) {
   main_->SignalQueueDestroyed.connect(this,
@@ -29,31 +29,31 @@ SignalThread::SignalThread(bool use_socket_server)
 }
 
 SignalThread::~SignalThread() {
-  RTC_DCHECK(refcount_ == 0);
+  ASSERT(refcount_ == 0);
 }
 
 bool SignalThread::SetName(const std::string& name, const void* obj) {
   EnterExit ee(this);
-  RTC_DCHECK(main_->IsCurrent());
-  RTC_DCHECK(kInit == state_);
+  ASSERT(main_->IsCurrent());
+  ASSERT(kInit == state_);
   return worker_.SetName(name, obj);
 }
 
 void SignalThread::Start() {
   EnterExit ee(this);
-  RTC_DCHECK(main_->IsCurrent());
+  ASSERT(main_->IsCurrent());
   if (kInit == state_ || kComplete == state_) {
     state_ = kRunning;
     OnWorkStart();
     worker_.Start();
   } else {
-    RTC_NOTREACHED();
+    ASSERT(false);
   }
 }
 
 void SignalThread::Destroy(bool wait) {
   EnterExit ee(this);
-  RTC_DCHECK(main_->IsCurrent());
+  ASSERT(main_->IsCurrent());
   if ((kInit == state_) || (kComplete == state_)) {
     refcount_--;
   } else if (kRunning == state_ || kReleasing == state_) {
@@ -70,33 +70,33 @@ void SignalThread::Destroy(bool wait) {
       refcount_--;
     }
   } else {
-    RTC_NOTREACHED();
+    ASSERT(false);
   }
 }
 
 void SignalThread::Release() {
   EnterExit ee(this);
-  RTC_DCHECK(main_->IsCurrent());
+  ASSERT(main_->IsCurrent());
   if (kComplete == state_) {
     refcount_--;
   } else if (kRunning == state_) {
     state_ = kReleasing;
   } else {
     // if (kInit == state_) use Destroy()
-    RTC_NOTREACHED();
+    ASSERT(false);
   }
 }
 
 bool SignalThread::ContinueWork() {
   EnterExit ee(this);
-  RTC_DCHECK(worker_.IsCurrent());
+  ASSERT(worker_.IsCurrent());
   return worker_.ProcessMessages(0);
 }
 
 void SignalThread::OnMessage(Message *msg) {
   EnterExit ee(this);
   if (ST_MSG_WORKER_DONE == msg->message_id) {
-    RTC_DCHECK(main_->IsCurrent());
+    ASSERT(main_->IsCurrent());
     OnWorkDone();
     bool do_delete = false;
     if (kRunning == state_) {
@@ -113,7 +113,7 @@ void SignalThread::OnMessage(Message *msg) {
       // SignalThread this makes an assert in thread.cc fire.
       //
       // Calling Stop() on the worker ensures that the OS thread that underlies
-      // the worker will finish, and will be set to null, enabling us to call
+      // the worker will finish, and will be set to NULL, enabling us to call
       // Start() again.
       worker_.Stop();
       SignalWorkDone(this);
@@ -144,11 +144,7 @@ void SignalThread::Run() {
 
 void SignalThread::OnMainThreadDestroyed() {
   EnterExit ee(this);
-  main_ = nullptr;
-}
-
-bool SignalThread::Worker::IsProcessingMessages() {
-  return false;
+  main_ = NULL;
 }
 
 }  // namespace rtc

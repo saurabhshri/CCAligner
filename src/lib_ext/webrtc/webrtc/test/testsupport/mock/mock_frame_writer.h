@@ -13,7 +13,7 @@
 
 #include "webrtc/test/testsupport/frame_writer.h"
 
-#include "webrtc/test/gmock.h"
+#include "testing/gmock/include/gmock/gmock.h"
 
 namespace webrtc {
 namespace test {

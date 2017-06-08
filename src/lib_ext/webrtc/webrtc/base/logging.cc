@@ -110,7 +110,7 @@ CriticalSection g_log_crit;
 // The list of logging streams currently configured.
 // Note: we explicitly do not clean this up, because of the uncertain ordering
 // of destructors at program exit.  Let the person who sets the stream trigger
-// cleanup by setting to null, or let it leak (safe at program exit).
+// cleanup by setting to NULL, or let it leak (safe at program exit).
 LogMessage::StreamList LogMessage::streams_ GUARDED_BY(g_log_crit);
 
 // Boolean options default to false (0)
@@ -140,7 +140,7 @@ LogMessage::LogMessage(const char* file,
     print_stream_ << "[" << std::dec << id << "] ";
   }
 
-  if (file != nullptr)
+  if (file != NULL)
     print_stream_ << "(" << FilenameFromPath(file)  << ":" << line << "): ";
 
   if (err_ctx != ERRCTX_NONE) {
@@ -150,7 +150,7 @@ LogMessage::LogMessage(const char* file,
       case ERRCTX_ERRNO:
         tmp << " " << strerror(err);
         break;
-#ifdef WEBRTC_WIN
+#if WEBRTC_WIN
       case ERRCTX_HRESULT: {
         char msgbuf[256];
         DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM;
@@ -158,8 +158,9 @@ LogMessage::LogMessage(const char* file,
         if (hmod)
           flags |= FORMAT_MESSAGE_FROM_HMODULE;
         if (DWORD len = FormatMessageA(
-                flags, hmod, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                msgbuf, sizeof(msgbuf) / sizeof(msgbuf[0]), nullptr)) {
+            flags, hmod, err,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            msgbuf, sizeof(msgbuf) / sizeof(msgbuf[0]), NULL)) {
           while ((len > 0) &&
               isspace(static_cast<unsigned char>(msgbuf[len-1]))) {
             msgbuf[--len] = 0;
@@ -187,12 +188,7 @@ LogMessage::LogMessage(const char* file,
                        int line,
                        LoggingSeverity sev,
                        const std::string& tag)
-    : LogMessage(file,
-                 line,
-                 sev,
-                 ERRCTX_NONE,
-                 0 /* err */,
-                 nullptr /* module */) {
+    : LogMessage(file, line, sev, ERRCTX_NONE, 0 /* err */, NULL /* module */) {
   tag_ = tag;
   print_stream_ << tag << ": ";
 }
@@ -221,7 +217,7 @@ int64_t LogMessage::LogStartTime() {
 }
 
 uint32_t LogMessage::WallClockStartTime() {
-  static const uint32_t g_start_wallclock = time(nullptr);
+  static const uint32_t g_start_wallclock = time(NULL);
   return g_start_wallclock;
 }
 
@@ -353,7 +349,7 @@ void LogMessage::OutputToDebug(const std::string& str,
                                               "logToStdErr",
                                               kCFStringEncodingUTF8);
   CFStringRef domain = CFBundleGetIdentifier(CFBundleGetMainBundle());
-  if (key != nullptr && domain != nullptr) {
+  if (key != NULL && domain != NULL) {
     Boolean exists_and_is_valid;
     Boolean should_log =
         CFPreferencesGetAppBooleanValue(key, domain, &exists_and_is_valid);
@@ -361,7 +357,7 @@ void LogMessage::OutputToDebug(const std::string& str,
     // stderr.
     log_to_stderr = exists_and_is_valid && should_log;
   }
-  if (key != nullptr) {
+  if (key != NULL) {
     CFRelease(key);
   }
 #endif
@@ -447,7 +443,7 @@ void LogMultiline(LoggingSeverity level, const char* label, bool input,
 
   const char * direction = (input ? " << " : " >> ");
 
-  // null data means to flush our count of unprintable characters.
+  // NULL data means to flush our count of unprintable characters.
   if (!data) {
     if (state && state->unprintable_count_[input]) {
       LOG_V(level) << label << direction << "## "

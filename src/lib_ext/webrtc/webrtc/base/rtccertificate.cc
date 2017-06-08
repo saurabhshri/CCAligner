@@ -54,8 +54,6 @@ scoped_refptr<RTCCertificate> RTCCertificate::FromPEM(
     const RTCCertificatePEM& pem) {
   std::unique_ptr<SSLIdentity> identity(SSLIdentity::FromPEMStrings(
       pem.private_key(), pem.certificate()));
-  if (!identity)
-    return nullptr;
   return new RefCountedObject<RTCCertificate>(identity.release());
 }
 

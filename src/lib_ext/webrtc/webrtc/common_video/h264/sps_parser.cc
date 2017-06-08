@@ -10,11 +10,9 @@
 
 #include "webrtc/common_video/h264/sps_parser.h"
 
-#include <memory>
-#include <vector>
-
 #include "webrtc/common_video/h264/h264_common.h"
 #include "webrtc/base/bitbuffer.h"
+#include "webrtc/base/bytebuffer.h"
 #include "webrtc/base/logging.h"
 
 typedef rtc::Optional<webrtc::SpsParser::SpsState> OptionalSps;
@@ -33,8 +31,8 @@ namespace webrtc {
 // Unpack RBSP and parse SPS state from the supplied buffer.
 rtc::Optional<SpsParser::SpsState> SpsParser::ParseSps(const uint8_t* data,
                                                        size_t length) {
-  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data, length);
-  rtc::BitBuffer bit_buffer(unpacked_buffer.data(), unpacked_buffer.size());
+  std::unique_ptr<rtc::Buffer> unpacked_buffer = H264::ParseRbsp(data, length);
+  rtc::BitBuffer bit_buffer(unpacked_buffer->data(), unpacked_buffer->size());
   return ParseSpsUpToVui(&bit_buffer);
 }
 
@@ -70,7 +68,7 @@ rtc::Optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
   // level_idc: u(8)
   RETURN_EMPTY_ON_FAIL(buffer->ConsumeBytes(1));
   // seq_parameter_set_id: ue(v)
-  RETURN_EMPTY_ON_FAIL(buffer->ReadExponentialGolomb(&sps.id));
+  RETURN_EMPTY_ON_FAIL(buffer->ReadExponentialGolomb(&golomb_ignored));
   sps.separate_colour_plane_flag = 0;
   // See if profile_idc has chroma format information.
   if (profile_idc == 100 || profile_idc == 110 || profile_idc == 122 ||

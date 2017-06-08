@@ -12,7 +12,6 @@
 
 #include <string.h>
 
-#include "webrtc/base/checks.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 
 namespace webrtc {
@@ -22,7 +21,7 @@ GlRenderer::GlRenderer()
     : is_init_(false), buffer_(NULL), width_(0), height_(0) {}
 
 void GlRenderer::Init() {
-  RTC_DCHECK(!is_init_);
+  assert(!is_init_);
   is_init_ = true;
 
   glGenTextures(1, &texture_);
@@ -53,7 +52,7 @@ void GlRenderer::ResizeViewport(size_t width, size_t height) {
 }
 
 void GlRenderer::ResizeVideo(size_t width, size_t height) {
-  RTC_DCHECK(is_init_);
+  assert(is_init_);
   width_ = width;
   height_ = height;
 
@@ -61,7 +60,7 @@ void GlRenderer::ResizeVideo(size_t width, size_t height) {
 
   delete[] buffer_;
   buffer_ = new uint8_t[buffer_size_];
-  RTC_DCHECK(buffer_);
+  assert(buffer_ != NULL);
   memset(buffer_, 0, buffer_size_);
   glBindTexture(GL_TEXTURE_2D, texture_);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
@@ -71,14 +70,14 @@ void GlRenderer::ResizeVideo(size_t width, size_t height) {
 }
 
 void GlRenderer::OnFrame(const webrtc::VideoFrame& frame) {
-  RTC_DCHECK(is_init_);
+  assert(is_init_);
 
   if (static_cast<size_t>(frame.width()) != width_ ||
       static_cast<size_t>(frame.height()) != height_) {
     ResizeVideo(frame.width(), frame.height());
   }
 
-  webrtc::ConvertFromI420(frame, VideoType::kBGRA, 0, buffer_);
+  webrtc::ConvertFromI420(frame, kBGRA, 0, buffer_);
 
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, texture_);

@@ -35,28 +35,32 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
   private static final int DEFAULT_PORT = 8888;
 
   // Regex pattern used for checking if room id looks like an IP.
-  static final Pattern IP_PATTERN = Pattern.compile("("
-      // IPv4
-      + "((\\d+\\.){3}\\d+)|"
-      // IPv6
-      + "\\[((([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?::"
-      + "(([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?)\\]|"
-      + "\\[(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})\\]|"
-      // IPv6 without []
-      + "((([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?::(([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?)|"
-      + "(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|"
-      // Literals
-      + "localhost"
+  static final Pattern IP_PATTERN = Pattern.compile(
+      "("
+        // IPv4
+        + "((\\d+\\.){3}\\d+)|"
+        // IPv6
+        + "\\[((([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?::"
+              + "(([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?)\\]|"
+        + "\\[(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})\\]|"
+        // IPv6 without []
+        + "((([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?::(([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?)|"
+        + "(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|"
+        // Literals
+        + "localhost"
       + ")"
       // Optional port number
-      + "(:(\\d+))?");
+      + "(:(\\d+))?"
+  );
 
   private final ExecutorService executor;
   private final SignalingEvents events;
   private TCPChannelClient tcpClient;
   private RoomConnectionParameters connectionParameters;
 
-  private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
+  private enum ConnectionState {
+    NEW, CONNECTED, CLOSED, ERROR
+  };
 
   // All alterations of the room state should be done from inside the looper thread.
   private ConnectionState roomState;
@@ -205,7 +209,7 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
       public void run() {
         JSONObject json = new JSONObject();
         jsonPut(json, "type", "remove-candidates");
-        JSONArray jsonArray = new JSONArray();
+        JSONArray jsonArray =  new JSONArray();
         for (final IceCandidate candidate : candidates) {
           jsonArray.put(toJsonCandidate(candidate));
         }
@@ -240,7 +244,7 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
           null, // wwsPostUrl
           null, // offerSdp
           null // iceCandidates
-          );
+      );
       events.onConnectedToRoom(parameters);
     }
   }
@@ -261,11 +265,13 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
         events.onRemoteIceCandidatesRemoved(candidates);
       } else if (type.equals("answer")) {
         SessionDescription sdp = new SessionDescription(
-            SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+            SessionDescription.Type.fromCanonicalForm(type),
+            json.getString("sdp"));
         events.onRemoteDescription(sdp);
       } else if (type.equals("offer")) {
         SessionDescription sdp = new SessionDescription(
-            SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+            SessionDescription.Type.fromCanonicalForm(type),
+            json.getString("sdp"));
 
         SignalingParameters parameters = new SignalingParameters(
             // Ice servers are not needed for direct connections.
@@ -276,7 +282,7 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
             null, // wssPostUrl
             sdp, // offerSdp
             null // iceCandidates
-            );
+        );
         roomState = ConnectionState.CONNECTED;
         events.onConnectedToRoom(parameters);
       } else {
@@ -341,7 +347,8 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
 
   // Converts a JSON candidate to a Java object.
   private static IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
-    return new IceCandidate(
-        json.getString("id"), json.getInt("label"), json.getString("candidate"));
+    return new IceCandidate(json.getString("id"),
+        json.getInt("label"),
+        json.getString("candidate"));
   }
 }

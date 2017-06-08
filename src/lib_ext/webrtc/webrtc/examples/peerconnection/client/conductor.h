@@ -10,10 +10,10 @@
 
 #ifndef WEBRTC_EXAMPLES_PEERCONNECTION_CLIENT_CONDUCTOR_H_
 #define WEBRTC_EXAMPLES_PEERCONNECTION_CLIENT_CONDUCTOR_H_
+#pragma once
 
 #include <deque>
 #include <map>
-#include <memory>
 #include <set>
 #include <string>
 
@@ -58,7 +58,7 @@ class Conductor
   void DeletePeerConnection();
   void EnsureStreamingUI();
   void AddStreams();
-  std::unique_ptr<cricket::VideoCapturer> OpenVideoCaptureDevice();
+  cricket::VideoCapturer* OpenVideoCaptureDevice();
 
   //
   // PeerConnectionObserver implementation.
@@ -84,37 +84,37 @@ class Conductor
   // PeerConnectionClientObserver implementation.
   //
 
-  void OnSignedIn() override;
+  virtual void OnSignedIn();
 
-  void OnDisconnected() override;
+  virtual void OnDisconnected();
 
-  void OnPeerConnected(int id, const std::string& name) override;
+  virtual void OnPeerConnected(int id, const std::string& name);
 
-  void OnPeerDisconnected(int id) override;
+  virtual void OnPeerDisconnected(int id);
 
-  void OnMessageFromPeer(int peer_id, const std::string& message) override;
+  virtual void OnMessageFromPeer(int peer_id, const std::string& message);
 
-  void OnMessageSent(int err) override;
+  virtual void OnMessageSent(int err);
 
-  void OnServerConnectionFailure() override;
+  virtual void OnServerConnectionFailure();
 
   //
   // MainWndCallback implementation.
   //
 
-  void StartLogin(const std::string& server, int port) override;
+  virtual void StartLogin(const std::string& server, int port);
 
-  void DisconnectFromServer() override;
+  virtual void DisconnectFromServer();
 
-  void ConnectToPeer(int peer_id) override;
+  virtual void ConnectToPeer(int peer_id);
 
-  void DisconnectFromCurrentPeer() override;
+  virtual void DisconnectFromCurrentPeer();
 
-  void UIThreadCallback(int msg_id, void* data) override;
+  virtual void UIThreadCallback(int msg_id, void* data);
 
   // CreateSessionDescriptionObserver implementation.
-  void OnSuccess(webrtc::SessionDescriptionInterface* desc) override;
-  void OnFailure(const std::string& error) override;
+  virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
+  virtual void OnFailure(const std::string& error);
 
  protected:
   // Send a message to the remote peer.

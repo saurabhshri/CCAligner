@@ -16,6 +16,7 @@ import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.SystemClock;
 import android.util.Log;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -23,7 +24,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -114,7 +114,7 @@ class CpuMonitor {
     private final int size;
     private double sum;
     private double currentValue;
-    private double[] circBuffer;
+    private double circBuffer[];
     private int circBufferIndex;
 
     public MovingAverage(int size) {
@@ -204,8 +204,7 @@ class CpuMonitor {
     }
 
     executor = Executors.newSingleThreadScheduledExecutor();
-    @SuppressWarnings("unused") // Prevent downstream linter warnings.
-    Future<?> possiblyIgnoredError = executor.scheduleAtFixedRate(new Runnable() {
+    executor.scheduleAtFixedRate(new Runnable() {
       @Override
       public void run() {
         cpuUtilizationTask();
@@ -229,7 +228,7 @@ class CpuMonitor {
       try {
         BufferedReader reader = new BufferedReader(fin);
         Scanner scanner = new Scanner(reader).useDelimiter("[-\n]");
-        scanner.nextInt(); // Skip leading number 0.
+        scanner.nextInt();  // Skip leading number 0.
         cpusPresent = 1 + scanner.nextInt();
         scanner.close();
       } catch (Exception e) {
@@ -248,7 +247,7 @@ class CpuMonitor {
     curPath = new String[cpusPresent];
     curFreqScales = new double[cpusPresent];
     for (int i = 0; i < cpusPresent; i++) {
-      cpuFreqMax[i] = 0; // Frequency "not yet determined".
+      cpuFreqMax[i] = 0;  // Frequency "not yet determined".
       curFreqScales[i] = 0;
       maxPath[i] = "/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq";
       curPath[i] = "/sys/devices/system/cpu/cpu" + i + "/cpufreq/scaling_cur_freq";
@@ -276,8 +275,8 @@ class CpuMonitor {
     int batteryLevel = 0;
     int batteryScale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
     if (batteryScale > 0) {
-      batteryLevel =
-          (int) (100f * intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0) / batteryScale);
+      batteryLevel = (int) (
+          100f * intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0) / batteryScale);
     }
     return batteryLevel;
   }
@@ -318,10 +317,10 @@ class CpuMonitor {
           Log.d(TAG, "Core " + i + ". Max frequency: " + cpufreqMax);
           lastSeenMaxFreq = cpufreqMax;
           cpuFreqMax[i] = cpufreqMax;
-          maxPath[i] = null; // Kill path to free its memory.
+          maxPath[i] = null;  // Kill path to free its memory.
         }
       } else {
-        lastSeenMaxFreq = cpuFreqMax[i]; // A valid, previously read value.
+        lastSeenMaxFreq = cpuFreqMax[i];  // A valid, previously read value.
       }
 
       long cpuFreqCur = readFreqFromFile(curPath[i]);
@@ -403,20 +402,16 @@ class CpuMonitor {
   private synchronized String getStatString() {
     StringBuilder stat = new StringBuilder();
     stat.append("CPU User: ")
-        .append(doubleToPercent(userCpuUsage.getCurrent()))
-        .append("/")
+        .append(doubleToPercent(userCpuUsage.getCurrent())).append("/")
         .append(doubleToPercent(userCpuUsage.getAverage()))
         .append(". System: ")
-        .append(doubleToPercent(systemCpuUsage.getCurrent()))
-        .append("/")
+        .append(doubleToPercent(systemCpuUsage.getCurrent())).append("/")
         .append(doubleToPercent(systemCpuUsage.getAverage()))
         .append(". Freq: ")
-        .append(doubleToPercent(frequencyScale.getCurrent()))
-        .append("/")
+        .append(doubleToPercent(frequencyScale.getCurrent())).append("/")
         .append(doubleToPercent(frequencyScale.getAverage()))
         .append(". Total usage: ")
-        .append(doubleToPercent(totalCpuUsage.getCurrent()))
-        .append("/")
+        .append(doubleToPercent(totalCpuUsage.getCurrent())).append("/")
         .append(doubleToPercent(totalCpuUsage.getAverage()))
         .append(". Cores: ")
         .append(actualCpusPresent);
@@ -480,16 +475,16 @@ class CpuMonitor {
         // cpu  5093818 271838 3512830 165934119 101374 447076 272086 0 0 0
         //       user    nice  system     idle   iowait  irq   softirq
         String line = reader.readLine();
-        String[] lines = line.split("\\s+");
+        String lines[] = line.split("\\s+");
         int length = lines.length;
         if (length >= 5) {
-          userTime = parseLong(lines[1]); // user
-          userTime += parseLong(lines[2]); // nice
+          userTime = parseLong(lines[1]);  // user
+          userTime += parseLong(lines[2]);  // nice
           systemTime = parseLong(lines[3]); // system
           idleTime = parseLong(lines[4]); // idle
         }
         if (length >= 8) {
-          userTime += parseLong(lines[5]); // iowait
+          userTime += parseLong(lines[5]);  // iowait
           systemTime += parseLong(lines[6]); // irq
           systemTime += parseLong(lines[7]); // softirq
         }

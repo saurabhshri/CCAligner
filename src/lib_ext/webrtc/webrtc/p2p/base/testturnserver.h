@@ -52,10 +52,10 @@ class TestTurnServer : public TurnAuthInterface {
                  const rtc::SocketAddress& int_addr,
                  const rtc::SocketAddress& udp_ext_addr,
                  ProtocolType int_protocol = PROTO_UDP)
-      : server_(thread), thread_(thread) {
+      : server_(thread) {
     AddInternalSocket(int_addr, int_protocol);
-    server_.SetExternalSocketFactory(new rtc::BasicPacketSocketFactory(thread),
-                                     udp_ext_addr);
+    server_.SetExternalSocketFactory(new rtc::BasicPacketSocketFactory(),
+        udp_ext_addr);
     server_.set_realm(kTestRealm);
     server_.set_software(kTestSoftware);
     server_.set_auth_hook(this);
@@ -71,21 +71,17 @@ class TestTurnServer : public TurnAuthInterface {
     server_.set_redirect_hook(redirect_hook);
   }
 
-  void set_enable_permission_checks(bool enable) {
-    server_.set_enable_permission_checks(enable);
-  }
-
   void AddInternalSocket(const rtc::SocketAddress& int_addr,
                          ProtocolType proto) {
+    rtc::Thread* thread = rtc::Thread::Current();
     if (proto == cricket::PROTO_UDP) {
-      server_.AddInternalSocket(
-          rtc::AsyncUDPSocket::Create(thread_->socketserver(), int_addr),
-          proto);
+      server_.AddInternalSocket(rtc::AsyncUDPSocket::Create(
+          thread->socketserver(), int_addr), proto);
     } else if (proto == cricket::PROTO_TCP) {
       // For TCP we need to create a server socket which can listen for incoming
       // new connections.
       rtc::AsyncSocket* socket =
-          thread_->socketserver()->CreateAsyncSocket(SOCK_STREAM);
+          thread->socketserver()->CreateAsyncSocket(SOCK_STREAM);
       socket->Bind(int_addr);
       socket->Listen(5);
       server_.AddInternalServerSocket(socket, proto);
@@ -99,7 +95,7 @@ class TestTurnServer : public TurnAuthInterface {
     for (TurnServer::AllocationMap::const_iterator it = map.begin();
         it != map.end(); ++it) {
       if (src == it->first.src()) {
-        return it->second.get();
+        return it->second;
       }
     }
     return NULL;
@@ -114,7 +110,6 @@ class TestTurnServer : public TurnAuthInterface {
   }
 
   TurnServer server_;
-  rtc::Thread* thread_;
 };
 
 }  // namespace cricket

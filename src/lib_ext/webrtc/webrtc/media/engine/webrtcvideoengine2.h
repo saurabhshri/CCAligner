@@ -17,21 +17,20 @@
 #include <string>
 #include <vector>
 
-#include "webrtc/api/call/transport.h"
-#include "webrtc/api/video/video_frame.h"
 #include "webrtc/base/asyncinvoker.h"
 #include "webrtc/base/criticalsection.h"
 #include "webrtc/base/networkroute.h"
-#include "webrtc/base/optional.h"
 #include "webrtc/base/thread_annotations.h"
 #include "webrtc/base/thread_checker.h"
-#include "webrtc/call/call.h"
-#include "webrtc/call/flexfec_receive_stream.h"
-#include "webrtc/media/base/mediaengine.h"
 #include "webrtc/media/base/videosinkinterface.h"
 #include "webrtc/media/base/videosourceinterface.h"
+#include "webrtc/call.h"
+#include "webrtc/media/base/mediaengine.h"
+#include "webrtc/media/engine/webrtcvideochannelfactory.h"
 #include "webrtc/media/engine/webrtcvideodecoderfactory.h"
 #include "webrtc/media/engine/webrtcvideoencoderfactory.h"
+#include "webrtc/transport.h"
+#include "webrtc/video_frame.h"
 #include "webrtc/video_receive_stream.h"
 #include "webrtc/video_send_stream.h"
 
@@ -48,6 +47,7 @@ class Thread;
 namespace cricket {
 
 class VideoCapturer;
+class VideoFrame;
 class VideoProcessor;
 class VideoRenderer;
 class VoiceMediaChannel;
@@ -55,13 +55,16 @@ class WebRtcDecoderObserver;
 class WebRtcEncoderObserver;
 class WebRtcLocalStreamInfo;
 class WebRtcRenderAdapter;
-class WebRtcVideoChannel2;
 class WebRtcVideoChannelRecvInfo;
 class WebRtcVideoChannelSendInfo;
 class WebRtcVoiceEngine;
 class WebRtcVoiceMediaChannel;
 
+struct CapturedFrame;
 struct Device;
+
+// Exposed here for unittests.
+std::vector<VideoCodec> DefaultVideoCodecList();
 
 class UnsignalledSsrcHandler {
  public:
@@ -81,14 +84,14 @@ class DefaultUnsignalledSsrcHandler : public UnsignalledSsrcHandler {
   Action OnUnsignalledSsrc(WebRtcVideoChannel2* channel,
                            uint32_t ssrc) override;
 
-  rtc::VideoSinkInterface<webrtc::VideoFrame>* GetDefaultSink() const;
-  void SetDefaultSink(WebRtcVideoChannel2* channel,
-                      rtc::VideoSinkInterface<webrtc::VideoFrame>* sink);
-
+  rtc::VideoSinkInterface<VideoFrame>* GetDefaultSink() const;
+  void SetDefaultSink(VideoMediaChannel* channel,
+                      rtc::VideoSinkInterface<VideoFrame>* sink);
   virtual ~DefaultUnsignalledSsrcHandler() = default;
 
  private:
-  rtc::VideoSinkInterface<webrtc::VideoFrame>* default_sink_;
+  uint32_t default_recv_ssrc_;
+  rtc::VideoSinkInterface<VideoFrame>* default_sink_;
 };
 
 // WebRtcVideoEngine2 is used for the new native WebRTC Video API (webrtc:1667).
@@ -104,7 +107,7 @@ class WebRtcVideoEngine2 {
                                      const MediaConfig& config,
                                      const VideoOptions& options);
 
-  std::vector<VideoCodec> codecs() const;
+  const std::vector<VideoCodec>& codecs() const;
   RtpCapabilities GetCapabilities() const;
 
   // Set a WebRtcVideoDecoderFactory for external decoding. Video engine does
@@ -118,6 +121,10 @@ class WebRtcVideoEngine2 {
       WebRtcVideoEncoderFactory* encoder_factory);
 
  private:
+  std::vector<VideoCodec> GetSupportedCodecs() const;
+
+  std::vector<VideoCodec> video_codecs_;
+
   bool initialized_;
 
   WebRtcVideoDecoderFactory* external_decoder_factory_;
@@ -130,6 +137,7 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
   WebRtcVideoChannel2(webrtc::Call* call,
                       const MediaConfig& config,
                       const VideoOptions& options,
+                      const std::vector<VideoCodec>& recv_codecs,
                       WebRtcVideoEncoderFactory* external_encoder_factory,
                       WebRtcVideoDecoderFactory* external_decoder_factory);
   ~WebRtcVideoChannel2() override;
@@ -152,15 +160,14 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
       uint32_t ssrc,
       bool enable,
       const VideoOptions* options,
-      rtc::VideoSourceInterface<webrtc::VideoFrame>* source) override;
+      rtc::VideoSourceInterface<cricket::VideoFrame>* source) override;
   bool AddSendStream(const StreamParams& sp) override;
   bool RemoveSendStream(uint32_t ssrc) override;
   bool AddRecvStream(const StreamParams& sp) override;
   bool AddRecvStream(const StreamParams& sp, bool default_stream);
   bool RemoveRecvStream(uint32_t ssrc) override;
   bool SetSink(uint32_t ssrc,
-               rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) override;
-  void FillBitrateInfo(BandwidthEstimationInfo* bwe_info) override;
+               rtc::VideoSinkInterface<VideoFrame>* sink) override;
   bool GetStats(VideoMediaInfo* info) override;
 
   void OnPacketReceived(rtc::CopyOnWriteBuffer* packet,
@@ -170,13 +177,10 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
   void OnReadyToSend(bool ready) override;
   void OnNetworkRouteChanged(const std::string& transport_name,
                              const rtc::NetworkRoute& network_route) override;
-  void OnTransportOverheadChanged(int transport_overhead_per_packet) override;
   void SetInterface(NetworkInterface* iface) override;
 
   // Implemented for VideoMediaChannelTest.
   bool sending() const { return sending_; }
-
-  rtc::Optional<uint32_t> GetDefaultReceiveStreamSsrc();
 
   // AdaptReason is used for expressing why a WebRtcVideoSendStream request
   // a lower input frame size than the currently configured camera input frame
@@ -192,19 +196,11 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
   struct VideoCodecSettings {
     VideoCodecSettings();
 
-    // Checks if all members of |*this| are equal to the corresponding members
-    // of |other|.
     bool operator==(const VideoCodecSettings& other) const;
     bool operator!=(const VideoCodecSettings& other) const;
 
-    // Checks if all members of |a|, except |flexfec_payload_type|, are equal
-    // to the corresponding members of |b|.
-    static bool EqualsDisregardingFlexfec(const VideoCodecSettings& a,
-                                          const VideoCodecSettings& b);
-
     VideoCodec codec;
-    webrtc::UlpfecConfig ulpfec;
-    int flexfec_payload_type;
+    webrtc::FecConfig fec;
     int rtx_payload_type;
   };
 
@@ -221,10 +217,6 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
     // These optionals are unset if not changed.
     rtc::Optional<std::vector<VideoCodecSettings>> codec_settings;
     rtc::Optional<std::vector<webrtc::RtpExtension>> rtp_header_extensions;
-    // Keep track of the FlexFEC payload type separately from |codec_settings|.
-    // This allows us to recreate the FlexfecReceiveStream separately from the
-    // VideoReceiveStream when the FlexFEC payload type is changed.
-    rtc::Optional<int> flexfec_payload_type;
   };
 
   bool GetChangedSendParameters(const VideoSendParameters& params,
@@ -234,10 +226,9 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
 
   void SetMaxSendBandwidth(int bps);
 
-  void ConfigureReceiverRtp(
-      webrtc::VideoReceiveStream::Config* config,
-      webrtc::FlexfecReceiveStream::Config* flexfec_config,
-      const StreamParams& sp) const;
+  void ConfigureReceiverRtp(webrtc::VideoReceiveStream::Config* config,
+                            const StreamParams& sp) const;
+  bool CodecIsExternallySupported(const std::string& name) const;
   bool ValidateSendSsrcAvailability(const StreamParams& sp) const
       EXCLUSIVE_LOCKS_REQUIRED(stream_crit_);
   bool ValidateReceiveSsrcAvailability(const StreamParams& sp) const
@@ -248,14 +239,16 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
   static std::string CodecSettingsVectorToString(
       const std::vector<VideoCodecSettings>& codecs);
 
-  // Wrapper for the sender part.
+  // Wrapper for the sender part, this is where the source is connected and
+  // frames are then converted from cricket frames to webrtc frames.
   class WebRtcVideoSendStream
-      : public rtc::VideoSourceInterface<webrtc::VideoFrame> {
+      : public rtc::VideoSinkInterface<cricket::VideoFrame>,
+        public webrtc::LoadObserver {
    public:
     WebRtcVideoSendStream(
         webrtc::Call* call,
         const StreamParams& sp,
-        webrtc::VideoSendStream::Config config,
+        const webrtc::VideoSendStream::Config& config,
         const VideoOptions& options,
         WebRtcVideoEncoderFactory* external_encoder_factory,
         bool enable_cpu_overuse_detection,
@@ -269,23 +262,20 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
     bool SetRtpParameters(const webrtc::RtpParameters& parameters);
     webrtc::RtpParameters GetRtpParameters() const;
 
-    // Implements rtc::VideoSourceInterface<webrtc::VideoFrame>.
-    // WebRtcVideoSendStream acts as a source to the webrtc::VideoSendStream
-    // in |stream_|. This is done to proxy VideoSinkWants from the encoder to
-    // the worker thread.
-    void AddOrUpdateSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink,
-                         const rtc::VideoSinkWants& wants) override;
-    void RemoveSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) override;
-
+    void OnFrame(const cricket::VideoFrame& frame) override;
     bool SetVideoSend(bool mute,
                       const VideoOptions* options,
-                      rtc::VideoSourceInterface<webrtc::VideoFrame>* source);
+                      rtc::VideoSourceInterface<cricket::VideoFrame>* source);
+    void DisconnectSource();
 
     void SetSend(bool send);
 
+    // Implements webrtc::LoadObserver.
+    void OnLoadUpdate(Load load) override;
+
     const std::vector<uint32_t>& GetSsrcs() const;
-    VideoSenderInfo GetVideoSenderInfo(bool log_stats);
-    void FillBitrateInfo(BandwidthEstimationInfo* bwe_info);
+    VideoSenderInfo GetVideoSenderInfo();
+    void FillBandwidthEstimationInfo(BandwidthEstimationInfo* bwe_info);
 
    private:
     // Parameters needed to reconstruct the underlying stream.
@@ -294,7 +284,7 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
     // similar parameters depending on which options changed etc.
     struct VideoSendStreamParameters {
       VideoSendStreamParameters(
-          webrtc::VideoSendStream::Config config,
+          const webrtc::VideoSendStream::Config& config,
           const VideoOptions& options,
           int max_bitrate_bps,
           const rtc::Optional<VideoCodecSettings>& codec_settings);
@@ -311,71 +301,118 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
 
     struct AllocatedEncoder {
       AllocatedEncoder(webrtc::VideoEncoder* encoder,
-                       const cricket::VideoCodec& codec,
+                       webrtc::VideoCodecType type,
                        bool external);
       webrtc::VideoEncoder* encoder;
       webrtc::VideoEncoder* external_encoder;
-      cricket::VideoCodec codec;
+      webrtc::VideoCodecType type;
       bool external;
     };
 
-    rtc::scoped_refptr<webrtc::VideoEncoderConfig::EncoderSpecificSettings>
-    ConfigureVideoEncoderSettings(const VideoCodec& codec);
-    // If force_encoder_allocation is true, a new AllocatedEncoder is always
-    // created. If false, the allocated encoder may be reused, if the type
-    // matches.
-    AllocatedEncoder CreateVideoEncoder(const VideoCodec& codec,
-                                        bool force_encoder_allocation);
-    void DestroyVideoEncoder(AllocatedEncoder* encoder);
-    void SetCodec(const VideoCodecSettings& codec,
-                  bool force_encoder_allocation);
-    void RecreateWebRtcStream();
+    struct VideoFrameInfo {
+      // Initial encoder configuration (QCIF, 176x144) frame (to ensure that
+      // hardware encoders can be initialized). This gives us low memory usage
+      // but also makes it so configuration errors are discovered at the time we
+      // apply the settings rather than when we get the first frame (waiting for
+      // the first frame to know that you gave a bad codec parameter could make
+      // debugging hard).
+      // TODO(pbos): Consider setting up encoders lazily.
+      VideoFrameInfo()
+          : width(176),
+            height(144),
+            rotation(webrtc::kVideoRotation_0),
+            is_texture(false) {}
+      int width;
+      int height;
+      webrtc::VideoRotation rotation;
+      bool is_texture;
+    };
+
+    union VideoEncoderSettings {
+      webrtc::VideoCodecH264 h264;
+      webrtc::VideoCodecVP8 vp8;
+      webrtc::VideoCodecVP9 vp9;
+    };
+
+    static std::vector<webrtc::VideoStream> CreateVideoStreams(
+        const VideoCodec& codec,
+        const VideoOptions& options,
+        int max_bitrate_bps,
+        size_t num_streams);
+    static std::vector<webrtc::VideoStream> CreateSimulcastVideoStreams(
+        const VideoCodec& codec,
+        const VideoOptions& options,
+        int max_bitrate_bps,
+        size_t num_streams);
+
+    void* ConfigureVideoEncoderSettings(const VideoCodec& codec)
+        EXCLUSIVE_LOCKS_REQUIRED(lock_);
+
+    AllocatedEncoder CreateVideoEncoder(const VideoCodec& codec)
+        EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    void DestroyVideoEncoder(AllocatedEncoder* encoder)
+        EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    void SetCodec(const VideoCodecSettings& codec)
+        EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    void RecreateWebRtcStream() EXCLUSIVE_LOCKS_REQUIRED(lock_);
     webrtc::VideoEncoderConfig CreateVideoEncoderConfig(
-        const VideoCodec& codec) const;
-    void ReconfigureEncoder();
+        const VideoCodec& codec) const EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    void ReconfigureEncoder() EXCLUSIVE_LOCKS_REQUIRED(lock_);
     bool ValidateRtpParameters(const webrtc::RtpParameters& parameters);
 
     // Calls Start or Stop according to whether or not |sending_| is true,
     // and whether or not the encoding in |rtp_parameters_| is active.
-    void UpdateSendState();
-
-    webrtc::VideoSendStream::DegradationPreference GetDegradationPreference()
-        const EXCLUSIVE_LOCKS_REQUIRED(&thread_checker_);
+    void UpdateSendState() EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
     rtc::ThreadChecker thread_checker_;
     rtc::AsyncInvoker invoker_;
     rtc::Thread* worker_thread_;
-    const std::vector<uint32_t> ssrcs_ ACCESS_ON(&thread_checker_);
-    const std::vector<SsrcGroup> ssrc_groups_ ACCESS_ON(&thread_checker_);
+    const std::vector<uint32_t> ssrcs_;
+    const std::vector<SsrcGroup> ssrc_groups_;
     webrtc::Call* const call_;
-    const bool enable_cpu_overuse_detection_;
-    rtc::VideoSourceInterface<webrtc::VideoFrame>* source_
-        ACCESS_ON(&thread_checker_);
+    rtc::VideoSinkWants sink_wants_;
+    // Counter used for deciding if the video resolution is currently
+    // restricted by CPU usage. It is reset if |source_| is changed.
+    int cpu_restricted_counter_;
+    // Total number of times resolution as been requested to be changed due to
+    // CPU adaptation.
+    int number_of_cpu_adapt_changes_;
+    rtc::VideoSourceInterface<cricket::VideoFrame>* source_;
     WebRtcVideoEncoderFactory* const external_encoder_factory_
-        ACCESS_ON(&thread_checker_);
-    const std::unique_ptr<WebRtcVideoEncoderFactory> internal_encoder_factory_
-        ACCESS_ON(&thread_checker_);
+        GUARDED_BY(lock_);
 
-    webrtc::VideoSendStream* stream_ ACCESS_ON(&thread_checker_);
-    rtc::VideoSinkInterface<webrtc::VideoFrame>* encoder_sink_
-        ACCESS_ON(&thread_checker_);
+    rtc::CriticalSection lock_;
+    webrtc::VideoSendStream* stream_ GUARDED_BY(lock_);
     // Contains settings that are the same for all streams in the MediaChannel,
     // such as codecs, header extensions, and the global bitrate limit for the
     // entire channel.
-    VideoSendStreamParameters parameters_ ACCESS_ON(&thread_checker_);
+    VideoSendStreamParameters parameters_ GUARDED_BY(lock_);
     // Contains settings that are unique for each stream, such as max_bitrate.
     // Does *not* contain codecs, however.
     // TODO(skvlad): Move ssrcs_ and ssrc_groups_ into rtp_parameters_.
     // TODO(skvlad): Combine parameters_ and rtp_parameters_ once we have only
     // one stream per MediaChannel.
-    webrtc::RtpParameters rtp_parameters_ ACCESS_ON(&thread_checker_);
-    AllocatedEncoder allocated_encoder_ ACCESS_ON(&thread_checker_);
+    webrtc::RtpParameters rtp_parameters_ GUARDED_BY(lock_);
+    bool pending_encoder_reconfiguration_ GUARDED_BY(lock_);
+    VideoEncoderSettings encoder_settings_ GUARDED_BY(lock_);
+    AllocatedEncoder allocated_encoder_ GUARDED_BY(lock_);
+    VideoFrameInfo last_frame_info_ GUARDED_BY(lock_);
 
-    bool sending_ ACCESS_ON(&thread_checker_);
+    bool sending_ GUARDED_BY(lock_);
+
+    // The timestamp of the first frame received
+    // Used to generate the timestamps of subsequent frames
+    rtc::Optional<int64_t> first_frame_timestamp_ms_ GUARDED_BY(lock_);
+
+    // The timestamp of the last frame received
+    // Used to generate timestamp for the black frame when source is removed
+    int64_t last_frame_timestamp_ms_ GUARDED_BY(lock_);
   };
 
   // Wrapper for the receiver part, contains configs etc. that are needed to
-  // reconstruct the underlying VideoReceiveStream.
+  // reconstruct the underlying VideoReceiveStream. Also serves as a wrapper
+  // between rtc::VideoSinkInterface<webrtc::VideoFrame> and
+  // rtc::VideoSinkInterface<cricket::VideoFrame>.
   class WebRtcVideoReceiveStream
       : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
    public:
@@ -386,11 +423,10 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
         WebRtcVideoDecoderFactory* external_decoder_factory,
         bool default_stream,
         const std::vector<VideoCodecSettings>& recv_codecs,
-        const webrtc::FlexfecReceiveStream::Config& flexfec_config);
+        bool red_disabled_by_remote_side);
     ~WebRtcVideoReceiveStream();
 
     const std::vector<uint32_t>& GetSsrcs() const;
-    rtc::Optional<uint32_t> GetFirstPrimarySsrc() const;
 
     void SetLocalSsrc(uint32_t local_ssrc);
     // TODO(deadbeef): Move these feedback parameters into the recv parameters.
@@ -403,9 +439,17 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
     void OnFrame(const webrtc::VideoFrame& frame) override;
     bool IsDefaultStream() const;
 
-    void SetSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink);
+    void SetSink(rtc::VideoSinkInterface<cricket::VideoFrame>* sink);
 
-    VideoReceiverInfo GetVideoReceiverInfo(bool log_stats);
+    VideoReceiverInfo GetVideoReceiverInfo();
+
+    // Used to disable RED/FEC when the remote description doesn't contain those
+    // codecs. This is needed to be able to work around an RTX bug which is only
+    // happening if the remote side doesn't send RED, but the local side is
+    // configured to receive RED.
+    // TODO(holmer): Remove this after a couple of Chrome versions, M53-54
+    // time frame.
+    void SetFecDisabledRemotely(bool disable);
 
    private:
     struct AllocatedDecoder {
@@ -419,12 +463,10 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
       bool external;
     };
 
-    void RecreateWebRtcVideoStream();
-    void MaybeRecreateWebRtcFlexfecStream();
+    void RecreateWebRtcStream();
 
     void ConfigureCodecs(const std::vector<VideoCodecSettings>& recv_codecs,
                          std::vector<AllocatedDecoder>* old_codecs);
-    void ConfigureFlexfecCodec(int flexfec_payload_type);
     AllocatedDecoder CreateOrReuseVideoDecoder(
         std::vector<AllocatedDecoder>* old_decoder,
         const VideoCodec& codec);
@@ -433,22 +475,21 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
     std::string GetCodecNameFromPayloadType(int payload_type);
 
     webrtc::Call* const call_;
-    StreamParams stream_params_;
+    const std::vector<uint32_t> ssrcs_;
+    const std::vector<SsrcGroup> ssrc_groups_;
 
-    // Both |stream_| and |flexfec_stream_| are managed by |this|. They are
-    // destroyed by calling call_->DestroyVideoReceiveStream and
-    // call_->DestroyFlexfecReceiveStream, respectively.
     webrtc::VideoReceiveStream* stream_;
     const bool default_stream_;
     webrtc::VideoReceiveStream::Config config_;
-    webrtc::FlexfecReceiveStream::Config flexfec_config_;
-    webrtc::FlexfecReceiveStream* flexfec_stream_;
+    bool red_disabled_by_remote_side_;
 
     WebRtcVideoDecoderFactory* const external_decoder_factory_;
     std::vector<AllocatedDecoder> allocated_decoders_;
 
     rtc::CriticalSection sink_lock_;
-    rtc::VideoSinkInterface<webrtc::VideoFrame>* sink_ GUARDED_BY(sink_lock_);
+    rtc::VideoSinkInterface<cricket::VideoFrame>* sink_ GUARDED_BY(sink_lock_);
+    int last_width_ GUARDED_BY(sink_lock_);
+    int last_height_ GUARDED_BY(sink_lock_);
     // Expands remote RTP timestamps to int64_t to be able to estimate how long
     // the stream has been running.
     rtc::TimestampWrapAroundHandler timestamp_wraparound_handler_
@@ -468,21 +509,15 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
 
   static std::vector<VideoCodecSettings> MapCodecs(
       const std::vector<VideoCodec>& codecs);
-  // Select what video codec will be used for sending, i.e. what codec is used
-  // for local encoding, based on supported remote codecs. The first remote
-  // codec that is supported locally will be selected.
-  rtc::Optional<VideoCodecSettings> SelectSendVideoCodec(
-      const std::vector<VideoCodecSettings>& remote_mapped_codecs) const;
+  std::vector<VideoCodecSettings> FilterSupportedCodecs(
+      const std::vector<VideoCodecSettings>& mapped_codecs) const;
+  static bool ReceiveCodecsHaveChanged(std::vector<VideoCodecSettings> before,
+                                       std::vector<VideoCodecSettings> after);
 
-  static bool NonFlexfecReceiveCodecsHaveChanged(
-      std::vector<VideoCodecSettings> before,
-      std::vector<VideoCodecSettings> after);
-
-  void FillSenderStats(VideoMediaInfo* info, bool log_stats);
-  void FillReceiverStats(VideoMediaInfo* info, bool log_stats);
+  void FillSenderStats(VideoMediaInfo* info);
+  void FillReceiverStats(VideoMediaInfo* info);
   void FillBandwidthEstimationStats(const webrtc::Call::Stats& stats,
                                     VideoMediaInfo* info);
-  void FillSendAndReceiveCodecStats(VideoMediaInfo* video_media_info);
 
   rtc::ThreadChecker thread_checker_;
 
@@ -511,16 +546,13 @@ class WebRtcVideoChannel2 : public VideoMediaChannel, public webrtc::Transport {
   WebRtcVideoDecoderFactory* const external_decoder_factory_;
   std::vector<VideoCodecSettings> recv_codecs_;
   std::vector<webrtc::RtpExtension> recv_rtp_extensions_;
-  // See reason for keeping track of the FlexFEC payload type separately in
-  // comment in WebRtcVideoChannel2::ChangedRecvParameters.
-  int recv_flexfec_payload_type_;
   webrtc::Call::Config::BitrateConfig bitrate_config_;
   // TODO(deadbeef): Don't duplicate information between
   // send_params/recv_params, rtp_extensions, options, etc.
   VideoSendParameters send_params_;
   VideoOptions default_send_options_;
   VideoRecvParameters recv_params_;
-  int64_t last_stats_log_ms_;
+  bool red_disabled_by_remote_side_;
 };
 
 }  // namespace cricket

@@ -16,9 +16,15 @@
 #include "webrtc/base/bind.h"
 #include "webrtc/base/checks.h"
 #include "webrtc/base/thread.h"
+#include "webrtc/p2p/base/dtlstransport.h"
+#include "webrtc/p2p/base/p2ptransport.h"
 #include "webrtc/p2p/base/port.h"
 
-namespace {
+#ifdef HAVE_QUIC
+#include "webrtc/p2p/quic/quictransport.h"
+#endif  // HAVE_QUIC
+
+namespace cricket {
 
 enum {
   MSG_ICECONNECTIONSTATE,
@@ -29,60 +35,25 @@ enum {
 
 struct CandidatesData : public rtc::MessageData {
   CandidatesData(const std::string& transport_name,
-                 const cricket::Candidates& candidates)
+                 const Candidates& candidates)
       : transport_name(transport_name), candidates(candidates) {}
 
   std::string transport_name;
-  cricket::Candidates candidates;
+  Candidates candidates;
 };
 
-}  // namespace {
-
-namespace cricket {
-
-// This class groups the DTLS and ICE channels, and helps keep track of
-// how many external objects (BaseChannels) reference each channel.
-class TransportController::ChannelPair {
- public:
-  // TODO(deadbeef): Change the types of |dtls| and |ice| to
-  // DtlsTransport and P2PTransportChannelWrapper, once TransportChannelImpl is
-  // removed.
-  ChannelPair(DtlsTransportInternal* dtls, IceTransportInternal* ice)
-      : ice_(ice), dtls_(dtls) {}
-
-  // Currently, all ICE-related calls still go through this DTLS channel. But
-  // that will change once we get rid of TransportChannelImpl, and the DTLS
-  // channel interface no longer includes ICE-specific methods.
-  const DtlsTransportInternal* dtls() const { return dtls_.get(); }
-  DtlsTransportInternal* dtls() { return dtls_.get(); }
-  const IceTransportInternal* ice() const { return ice_.get(); }
-  IceTransportInternal* ice() { return ice_.get(); }
-
- private:
-  std::unique_ptr<IceTransportInternal> ice_;
-  std::unique_ptr<DtlsTransportInternal> dtls_;
-
-  RTC_DISALLOW_COPY_AND_ASSIGN(ChannelPair);
-};
-
-TransportController::TransportController(
-    rtc::Thread* signaling_thread,
-    rtc::Thread* network_thread,
-    PortAllocator* port_allocator,
-    bool redetermine_role_on_ice_restart,
-    const rtc::CryptoOptions& crypto_options)
+TransportController::TransportController(rtc::Thread* signaling_thread,
+                                         rtc::Thread* network_thread,
+                                         PortAllocator* port_allocator)
     : signaling_thread_(signaling_thread),
       network_thread_(network_thread),
-      port_allocator_(port_allocator),
-      redetermine_role_on_ice_restart_(redetermine_role_on_ice_restart),
-      crypto_options_(crypto_options) {}
+      port_allocator_(port_allocator) {}
 
 TransportController::~TransportController() {
-  // Channel destructors may try to send packets, so this needs to happen on
-  // the network thread.
   network_thread_->Invoke<void>(
       RTC_FROM_HERE,
-      rtc::Bind(&TransportController::DestroyAllChannels_n, this));
+      rtc::Bind(&TransportController::DestroyAllTransports_n, this));
+  signaling_thread_->Clear(this);
 }
 
 bool TransportController::SetSslMaxProtocolVersion(
@@ -104,23 +75,8 @@ void TransportController::SetIceRole(IceRole ice_role) {
       rtc::Bind(&TransportController::SetIceRole_n, this, ice_role));
 }
 
-void TransportController::SetNeedsIceRestartFlag() {
-  for (auto& kv : transports_) {
-    kv.second->SetNeedsIceRestartFlag();
-  }
-}
-
-bool TransportController::NeedsIceRestart(
-    const std::string& transport_name) const {
-  const JsepTransport* transport = GetJsepTransport(transport_name);
-  if (!transport) {
-    return false;
-  }
-  return transport->NeedsIceRestart();
-}
-
 bool TransportController::GetSslRole(const std::string& transport_name,
-                                     rtc::SSLRole* role) const {
+                                     rtc::SSLRole* role) {
   return network_thread_->Invoke<bool>(
       RTC_FROM_HERE, rtc::Bind(&TransportController::GetSslRole_n, this,
                                transport_name, role));
@@ -135,10 +91,7 @@ bool TransportController::SetLocalCertificate(
 
 bool TransportController::GetLocalCertificate(
     const std::string& transport_name,
-    rtc::scoped_refptr<rtc::RTCCertificate>* certificate) const {
-  if (network_thread_->IsCurrent()) {
-    return GetLocalCertificate_n(transport_name, certificate);
-  }
+    rtc::scoped_refptr<rtc::RTCCertificate>* certificate) {
   return network_thread_->Invoke<bool>(
       RTC_FROM_HERE, rtc::Bind(&TransportController::GetLocalCertificate_n,
                                this, transport_name, certificate));
@@ -146,10 +99,7 @@ bool TransportController::GetLocalCertificate(
 
 std::unique_ptr<rtc::SSLCertificate>
 TransportController::GetRemoteSSLCertificate(
-    const std::string& transport_name) const {
-  if (network_thread_->IsCurrent()) {
-    return GetRemoteSSLCertificate_n(transport_name);
-  }
+    const std::string& transport_name) {
   return network_thread_->Invoke<std::unique_ptr<rtc::SSLCertificate>>(
       RTC_FROM_HERE, rtc::Bind(&TransportController::GetRemoteSSLCertificate_n,
                                this, transport_name));
@@ -199,7 +149,7 @@ bool TransportController::RemoveRemoteCandidates(const Candidates& candidates,
 }
 
 bool TransportController::ReadyForRemoteCandidates(
-    const std::string& transport_name) const {
+    const std::string& transport_name) {
   return network_thread_->Invoke<bool>(
       RTC_FROM_HERE, rtc::Bind(&TransportController::ReadyForRemoteCandidates_n,
                                this, transport_name));
@@ -207,159 +157,101 @@ bool TransportController::ReadyForRemoteCandidates(
 
 bool TransportController::GetStats(const std::string& transport_name,
                                    TransportStats* stats) {
-  if (network_thread_->IsCurrent()) {
-    return GetStats_n(transport_name, stats);
-  }
   return network_thread_->Invoke<bool>(
       RTC_FROM_HERE,
       rtc::Bind(&TransportController::GetStats_n, this, transport_name, stats));
 }
 
-void TransportController::SetMetricsObserver(
-    webrtc::MetricsObserverInterface* metrics_observer) {
-  return network_thread_->Invoke<void>(
-      RTC_FROM_HERE, rtc::Bind(&TransportController::SetMetricsObserver_n, this,
-                               metrics_observer));
-}
-
-DtlsTransportInternal* TransportController::CreateDtlsTransport(
-    const std::string& transport_name,
-    int component) {
-  return network_thread_->Invoke<DtlsTransportInternal*>(
-      RTC_FROM_HERE, rtc::Bind(&TransportController::CreateDtlsTransport_n,
-                               this, transport_name, component));
-}
-
-DtlsTransportInternal* TransportController::CreateDtlsTransport_n(
+TransportChannel* TransportController::CreateTransportChannel_n(
     const std::string& transport_name,
     int component) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  RefCountedChannel* existing_channel = GetChannel_n(transport_name, component);
-  if (existing_channel) {
+  auto it = FindChannel_n(transport_name, component);
+  if (it != channels_.end()) {
     // Channel already exists; increment reference count and return.
-    existing_channel->AddRef();
-    return existing_channel->dtls();
+    it->AddRef();
+    return it->get();
   }
 
   // Need to create a new channel.
-  JsepTransport* transport = GetOrCreateJsepTransport(transport_name);
-
-  // Create DTLS channel wrapping ICE channel, and configure it.
-  IceTransportInternal* ice =
-      CreateIceTransportChannel_n(transport_name, component);
-  // TODO(deadbeef): To support QUIC, would need to create a
-  // QuicTransportChannel here. What is "dtls" in this file would then become
-  // "dtls or quic".
-  DtlsTransportInternal* dtls =
-      CreateDtlsTransportChannel_n(transport_name, component, ice);
-  dtls->ice_transport()->SetMetricsObserver(metrics_observer_);
-  dtls->ice_transport()->SetIceRole(ice_role_);
-  dtls->ice_transport()->SetIceTiebreaker(ice_tiebreaker_);
-  dtls->ice_transport()->SetIceConfig(ice_config_);
-
-  // Connect to signals offered by the channels. Currently, the DTLS channel
-  // forwards signals from the ICE channel, so we only need to connect to the
-  // DTLS channel. In the future this won't be the case.
-  dtls->SignalWritableState.connect(
+  Transport* transport = GetOrCreateTransport_n(transport_name);
+  TransportChannelImpl* channel = transport->CreateChannel(component);
+  channel->SignalWritableState.connect(
       this, &TransportController::OnChannelWritableState_n);
-  dtls->SignalReceivingState.connect(
+  channel->SignalReceivingState.connect(
       this, &TransportController::OnChannelReceivingState_n);
-  dtls->SignalDtlsHandshakeError.connect(
-      this, &TransportController::OnDtlsHandshakeError);
-  dtls->ice_transport()->SignalGatheringState.connect(
+  channel->SignalGatheringState.connect(
       this, &TransportController::OnChannelGatheringState_n);
-  dtls->ice_transport()->SignalCandidateGathered.connect(
+  channel->SignalCandidateGathered.connect(
       this, &TransportController::OnChannelCandidateGathered_n);
-  dtls->ice_transport()->SignalCandidatesRemoved.connect(
+  channel->SignalCandidatesRemoved.connect(
       this, &TransportController::OnChannelCandidatesRemoved_n);
-  dtls->ice_transport()->SignalRoleConflict.connect(
+  channel->SignalRoleConflict.connect(
       this, &TransportController::OnChannelRoleConflict_n);
-  dtls->ice_transport()->SignalStateChanged.connect(
+  channel->SignalStateChanged.connect(
       this, &TransportController::OnChannelStateChanged_n);
-  RefCountedChannel* new_pair = new RefCountedChannel(dtls, ice);
-  new_pair->AddRef();
-  channels_.insert(channels_.end(), new_pair);
-  bool channel_added = transport->AddChannel(dtls, component);
-  RTC_DCHECK(channel_added);
+  channels_.insert(channels_.end(), RefCountedChannel(channel))->AddRef();
   // Adding a channel could cause aggregate state to change.
   UpdateAggregateStates_n();
-  return dtls;
+  return channel;
 }
 
-void TransportController::DestroyDtlsTransport(
-    const std::string& transport_name,
-    int component) {
-  network_thread_->Invoke<void>(
-      RTC_FROM_HERE, rtc::Bind(&TransportController::DestroyDtlsTransport_n,
-                               this, transport_name, component));
-}
-
-void TransportController::DestroyDtlsTransport_n(
+void TransportController::DestroyTransportChannel_n(
     const std::string& transport_name,
     int component) {
   RTC_DCHECK(network_thread_->IsCurrent());
-  auto it = GetChannelIterator_n(transport_name, component);
+
+  auto it = FindChannel_n(transport_name, component);
   if (it == channels_.end()) {
     LOG(LS_WARNING) << "Attempting to delete " << transport_name
                     << " TransportChannel " << component
                     << ", which doesn't exist.";
     return;
   }
-  if ((*it)->Release() > 0) {
+
+  it->DecRef();
+  if (it->ref() > 0) {
     return;
   }
-  channels_.erase(it);
 
-  JsepTransport* t = GetJsepTransport(transport_name);
-  bool channel_removed = t->RemoveChannel(component);
-  RTC_DCHECK(channel_removed);
+  channels_.erase(it);
+  Transport* transport = GetTransport_n(transport_name);
+  transport->DestroyChannel(component);
   // Just as we create a Transport when its first channel is created,
   // we delete it when its last channel is deleted.
-  if (!t->HasChannels()) {
-    transports_.erase(transport_name);
+  if (!transport->HasChannels()) {
+    DestroyTransport_n(transport_name);
   }
   // Removing a channel could cause aggregate state to change.
   UpdateAggregateStates_n();
 }
 
-std::vector<std::string> TransportController::transport_names_for_testing() {
-  std::vector<std::string> ret;
-  for (const auto& kv : transports_) {
-    ret.push_back(kv.first);
+const rtc::scoped_refptr<rtc::RTCCertificate>&
+TransportController::certificate_for_testing() {
+  return certificate_;
+}
+
+Transport* TransportController::CreateTransport_n(
+    const std::string& transport_name) {
+  RTC_DCHECK(network_thread_->IsCurrent());
+
+#ifdef HAVE_QUIC
+  if (quic_) {
+    return new QuicTransport(transport_name, port_allocator(), certificate_);
   }
-  return ret;
+#endif  // HAVE_QUIC
+  Transport* transport = new DtlsTransport<P2PTransport>(
+      transport_name, port_allocator(), certificate_);
+  return transport;
 }
 
-std::vector<DtlsTransportInternal*>
-TransportController::channels_for_testing() {
-  std::vector<DtlsTransportInternal*> ret;
-  for (RefCountedChannel* channel : channels_) {
-    ret.push_back(channel->dtls());
-  }
-  return ret;
-}
+Transport* TransportController::GetTransport_n(
+    const std::string& transport_name) {
+  RTC_DCHECK(network_thread_->IsCurrent());
 
-DtlsTransportInternal* TransportController::get_channel_for_testing(
-    const std::string& transport_name,
-    int component) {
-  RefCountedChannel* ch = GetChannel_n(transport_name, component);
-  return ch ? ch->dtls() : nullptr;
-}
-
-IceTransportInternal* TransportController::CreateIceTransportChannel_n(
-    const std::string& transport_name,
-    int component) {
-  return new P2PTransportChannel(transport_name, component, port_allocator_);
-}
-
-DtlsTransportInternal* TransportController::CreateDtlsTransportChannel_n(
-    const std::string&,
-    int,
-    IceTransportInternal* ice) {
-  DtlsTransport* dtls = new DtlsTransport(ice, crypto_options_);
-  dtls->SetSslMaxProtocolVersion(ssl_max_version_);
-  return dtls;
+  auto iter = transports_.find(transport_name);
+  return (iter != transports_.end()) ? iter->second : nullptr;
 }
 
 void TransportController::OnMessage(rtc::Message* pmsg) {
@@ -394,87 +286,63 @@ void TransportController::OnMessage(rtc::Message* pmsg) {
       break;
     }
     default:
-      RTC_NOTREACHED();
+      ASSERT(false);
   }
 }
 
-std::vector<TransportController::RefCountedChannel*>::iterator
-TransportController::GetChannelIterator_n(const std::string& transport_name,
-                                          int component) {
-  RTC_DCHECK(network_thread_->IsCurrent());
-  return std::find_if(channels_.begin(), channels_.end(),
-                      [transport_name, component](RefCountedChannel* channel) {
-                        return channel->dtls()->transport_name() ==
-                                   transport_name &&
-                               channel->dtls()->component() == component;
-                      });
-}
-
-std::vector<TransportController::RefCountedChannel*>::const_iterator
-TransportController::GetChannelIterator_n(const std::string& transport_name,
-                                          int component) const {
-  RTC_DCHECK(network_thread_->IsCurrent());
+std::vector<TransportController::RefCountedChannel>::iterator
+TransportController::FindChannel_n(const std::string& transport_name,
+                                   int component) {
   return std::find_if(
       channels_.begin(), channels_.end(),
-      [transport_name, component](const RefCountedChannel* channel) {
-        return channel->dtls()->transport_name() == transport_name &&
-               channel->dtls()->component() == component;
+      [transport_name, component](const RefCountedChannel& channel) {
+        return channel->transport_name() == transport_name &&
+               channel->component() == component;
       });
 }
 
-const JsepTransport* TransportController::GetJsepTransport(
-    const std::string& transport_name) const {
-  auto it = transports_.find(transport_name);
-  return (it == transports_.end()) ? nullptr : it->second.get();
-}
-
-JsepTransport* TransportController::GetJsepTransport(
-    const std::string& transport_name) {
-  auto it = transports_.find(transport_name);
-  return (it == transports_.end()) ? nullptr : it->second.get();
-}
-
-const TransportController::RefCountedChannel* TransportController::GetChannel_n(
-    const std::string& transport_name,
-    int component) const {
-  RTC_DCHECK(network_thread_->IsCurrent());
-  auto it = GetChannelIterator_n(transport_name, component);
-  return (it == channels_.end()) ? nullptr : *it;
-}
-
-TransportController::RefCountedChannel* TransportController::GetChannel_n(
-    const std::string& transport_name,
-    int component) {
-  RTC_DCHECK(network_thread_->IsCurrent());
-  auto it = GetChannelIterator_n(transport_name, component);
-  return (it == channels_.end()) ? nullptr : *it;
-}
-
-JsepTransport* TransportController::GetOrCreateJsepTransport(
+Transport* TransportController::GetOrCreateTransport_n(
     const std::string& transport_name) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  JsepTransport* transport = GetJsepTransport(transport_name);
+  Transport* transport = GetTransport_n(transport_name);
   if (transport) {
     return transport;
   }
 
-  transport = new JsepTransport(transport_name, certificate_);
-  transports_[transport_name] = std::unique_ptr<JsepTransport>(transport);
+  transport = CreateTransport_n(transport_name);
+  // The stuff below happens outside of CreateTransport_w so that unit tests
+  // can override CreateTransport_w to return a different type of transport.
+  transport->SetSslMaxProtocolVersion(ssl_max_version_);
+  transport->SetIceConfig(ice_config_);
+  transport->SetIceRole(ice_role_);
+  transport->SetIceTiebreaker(ice_tiebreaker_);
+  if (certificate_) {
+    transport->SetLocalCertificate(certificate_);
+  }
+  transports_[transport_name] = transport;
+
   return transport;
 }
 
-void TransportController::DestroyAllChannels_n() {
+void TransportController::DestroyTransport_n(
+    const std::string& transport_name) {
   RTC_DCHECK(network_thread_->IsCurrent());
-  transports_.clear();
-  for (RefCountedChannel* channel : channels_) {
-    // Even though these objects are normally ref-counted, if
-    // TransportController is deleted while they still have references, just
-    // remove all references.
-    while (channel->Release() > 0) {
-    }
+
+  auto iter = transports_.find(transport_name);
+  if (iter != transports_.end()) {
+    delete iter->second;
+    transports_.erase(transport_name);
   }
-  channels_.clear();
+}
+
+void TransportController::DestroyAllTransports_n() {
+  RTC_DCHECK(network_thread_->IsCurrent());
+
+  for (const auto& kv : transports_) {
+    delete kv.second;
+  }
+  transports_.clear();
 }
 
 bool TransportController::SetSslMaxProtocolVersion_n(
@@ -492,53 +360,45 @@ bool TransportController::SetSslMaxProtocolVersion_n(
 
 void TransportController::SetIceConfig_n(const IceConfig& config) {
   RTC_DCHECK(network_thread_->IsCurrent());
-
   ice_config_ = config;
-  for (auto& channel : channels_) {
-    channel->dtls()->ice_transport()->SetIceConfig(ice_config_);
+  for (const auto& kv : transports_) {
+    kv.second->SetIceConfig(ice_config_);
   }
 }
 
 void TransportController::SetIceRole_n(IceRole ice_role) {
   RTC_DCHECK(network_thread_->IsCurrent());
-
   ice_role_ = ice_role;
-  for (auto& channel : channels_) {
-    channel->dtls()->ice_transport()->SetIceRole(ice_role_);
+  for (const auto& kv : transports_) {
+    kv.second->SetIceRole(ice_role_);
   }
 }
 
 bool TransportController::GetSslRole_n(const std::string& transport_name,
-                                       rtc::SSLRole* role) const {
+                                       rtc::SSLRole* role) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  const JsepTransport* t = GetJsepTransport(transport_name);
+  Transport* t = GetTransport_n(transport_name);
   if (!t) {
     return false;
   }
-  rtc::Optional<rtc::SSLRole> current_role = t->GetSslRole();
-  if (!current_role) {
-    return false;
-  }
-  *role = *current_role;
-  return true;
+
+  return t->GetSslRole(role);
 }
 
 bool TransportController::SetLocalCertificate_n(
     const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  // Can't change a certificate, or set a null certificate.
-  if (certificate_ || !certificate) {
+  if (certificate_) {
+    return false;
+  }
+  if (!certificate) {
     return false;
   }
   certificate_ = certificate;
 
-  // Set certificate for JsepTransport, which verifies it matches the
-  // fingerprint in SDP, and only applies it to the DTLS transport if a
-  // fingerprint attribute is present in SDP. This is used for fallback from
-  // DTLS to SDES.
-  for (auto& kv : transports_) {
+  for (const auto& kv : transports_) {
     kv.second->SetLocalCertificate(certificate_);
   }
   return true;
@@ -546,29 +406,28 @@ bool TransportController::SetLocalCertificate_n(
 
 bool TransportController::GetLocalCertificate_n(
     const std::string& transport_name,
-    rtc::scoped_refptr<rtc::RTCCertificate>* certificate) const {
+    rtc::scoped_refptr<rtc::RTCCertificate>* certificate) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  const JsepTransport* t = GetJsepTransport(transport_name);
+  Transport* t = GetTransport_n(transport_name);
   if (!t) {
     return false;
   }
+
   return t->GetLocalCertificate(certificate);
 }
 
 std::unique_ptr<rtc::SSLCertificate>
 TransportController::GetRemoteSSLCertificate_n(
-    const std::string& transport_name) const {
+    const std::string& transport_name) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  // Get the certificate from the RTP channel's DTLS handshake. Should be
-  // identical to the RTCP channel's, since they were given the same remote
-  // fingerprint.
-  const RefCountedChannel* ch = GetChannel_n(transport_name, 1);
-  if (!ch) {
+  Transport* t = GetTransport_n(transport_name);
+  if (!t) {
     return nullptr;
   }
-  return ch->dtls()->GetRemoteSSLCertificate();
+
+  return t->GetRemoteSSLCertificate();
 }
 
 bool TransportController::SetLocalTransportDescription_n(
@@ -578,7 +437,7 @@ bool TransportController::SetLocalTransportDescription_n(
     std::string* err) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  JsepTransport* transport = GetJsepTransport(transport_name);
+  Transport* transport = GetTransport_n(transport_name);
   if (!transport) {
     // If we didn't find a transport, that's not an error;
     // it could have been deleted as a result of bundling.
@@ -587,27 +446,6 @@ bool TransportController::SetLocalTransportDescription_n(
     return true;
   }
 
-  // Older versions of Chrome expect the ICE role to be re-determined when an
-  // ICE restart occurs, and also don't perform conflict resolution correctly,
-  // so for now we can't safely stop doing this, unless the application opts in
-  // by setting |redetermine_role_on_ice_restart_| to false.
-  // See: https://bugs.chromium.org/p/chromium/issues/detail?id=628676
-  // TODO(deadbeef): Remove this when these old versions of Chrome reach a low
-  // enough population.
-  if (redetermine_role_on_ice_restart_ && transport->local_description() &&
-      IceCredentialsChanged(transport->local_description()->ice_ufrag,
-                            transport->local_description()->ice_pwd,
-                            tdesc.ice_ufrag, tdesc.ice_pwd) &&
-      // Don't change the ICE role if the remote endpoint is ICE lite; we
-      // should always be controlling in that case.
-      (!transport->remote_description() ||
-       transport->remote_description()->ice_mode != ICEMODE_LITE)) {
-    IceRole new_ice_role =
-        (action == CA_OFFER) ? ICEROLE_CONTROLLING : ICEROLE_CONTROLLED;
-    SetIceRole(new_ice_role);
-  }
-
-  LOG(LS_INFO) << "Set local transport description on " << transport_name;
   return transport->SetLocalTransportDescription(tdesc, action, err);
 }
 
@@ -618,15 +456,7 @@ bool TransportController::SetRemoteTransportDescription_n(
     std::string* err) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  // If our role is ICEROLE_CONTROLLED and the remote endpoint supports only
-  // ice_lite, this local endpoint should take the CONTROLLING role.
-  // TODO(deadbeef): This is a session-level attribute, so it really shouldn't
-  // be in a TransportDescription in the first place...
-  if (ice_role_ == ICEROLE_CONTROLLED && tdesc.ice_mode == ICEMODE_LITE) {
-    SetIceRole_n(ICEROLE_CONTROLLING);
-  }
-
-  JsepTransport* transport = GetJsepTransport(transport_name);
+  Transport* transport = GetTransport_n(transport_name);
   if (!transport) {
     // If we didn't find a transport, that's not an error;
     // it could have been deleted as a result of bundling.
@@ -635,13 +465,12 @@ bool TransportController::SetRemoteTransportDescription_n(
     return true;
   }
 
-  LOG(LS_INFO) << "Set remote transport description on " << transport_name;
   return transport->SetRemoteTransportDescription(tdesc, action, err);
 }
 
 void TransportController::MaybeStartGathering_n() {
-  for (auto& channel : channels_) {
-    channel->dtls()->ice_transport()->MaybeStartGathering();
+  for (const auto& kv : transports_) {
+    kv.second->MaybeStartGathering();
   }
 }
 
@@ -651,40 +480,19 @@ bool TransportController::AddRemoteCandidates_n(
     std::string* err) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  // Verify each candidate before passing down to the transport layer.
-  if (!VerifyCandidates(candidates, err)) {
-    return false;
-  }
-
-  JsepTransport* transport = GetJsepTransport(transport_name);
+  Transport* transport = GetTransport_n(transport_name);
   if (!transport) {
     // If we didn't find a transport, that's not an error;
     // it could have been deleted as a result of bundling.
     return true;
   }
 
-  for (const Candidate& candidate : candidates) {
-    RefCountedChannel* channel =
-        GetChannel_n(transport_name, candidate.component());
-    if (!channel) {
-      *err = "Candidate has an unknown component: " + candidate.ToString() +
-             " for content: " + transport_name;
-      return false;
-    }
-    channel->dtls()->ice_transport()->AddRemoteCandidate(candidate);
-  }
-  return true;
+  return transport->AddRemoteCandidates(candidates, err);
 }
 
 bool TransportController::RemoveRemoteCandidates_n(const Candidates& candidates,
                                                    std::string* err) {
   RTC_DCHECK(network_thread_->IsCurrent());
-
-  // Verify each candidate before passing down to the transport layer.
-  if (!VerifyCandidates(candidates, err)) {
-    return false;
-  }
-
   std::map<std::string, Candidates> candidates_by_transport_name;
   for (const Candidate& cand : candidates) {
     RTC_DCHECK(!cand.transport_name().empty());
@@ -692,31 +500,23 @@ bool TransportController::RemoveRemoteCandidates_n(const Candidates& candidates,
   }
 
   bool result = true;
-  for (const auto& kv : candidates_by_transport_name) {
-    const std::string& transport_name = kv.first;
-    const Candidates& candidates = kv.second;
-    JsepTransport* transport = GetJsepTransport(transport_name);
+  for (auto kv : candidates_by_transport_name) {
+    Transport* transport = GetTransport_n(kv.first);
     if (!transport) {
       // If we didn't find a transport, that's not an error;
       // it could have been deleted as a result of bundling.
       continue;
     }
-    for (const Candidate& candidate : candidates) {
-      RefCountedChannel* channel =
-          GetChannel_n(transport_name, candidate.component());
-      if (channel) {
-        channel->dtls()->ice_transport()->RemoveRemoteCandidate(candidate);
-      }
-    }
+    result &= transport->RemoveRemoteCandidates(kv.second, err);
   }
   return result;
 }
 
 bool TransportController::ReadyForRemoteCandidates_n(
-    const std::string& transport_name) const {
+    const std::string& transport_name) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  const JsepTransport* transport = GetJsepTransport(transport_name);
+  Transport* transport = GetTransport_n(transport_name);
   if (!transport) {
     return false;
   }
@@ -727,50 +527,40 @@ bool TransportController::GetStats_n(const std::string& transport_name,
                                      TransportStats* stats) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
-  JsepTransport* transport = GetJsepTransport(transport_name);
+  Transport* transport = GetTransport_n(transport_name);
   if (!transport) {
     return false;
   }
   return transport->GetStats(stats);
 }
 
-void TransportController::SetMetricsObserver_n(
-    webrtc::MetricsObserverInterface* metrics_observer) {
+void TransportController::OnChannelWritableState_n(TransportChannel* channel) {
   RTC_DCHECK(network_thread_->IsCurrent());
-  metrics_observer_ = metrics_observer;
-  for (auto& channel : channels_) {
-    channel->dtls()->ice_transport()->SetMetricsObserver(metrics_observer);
-  }
-}
-
-void TransportController::OnChannelWritableState_n(
-    rtc::PacketTransportInternal* transport) {
-  RTC_DCHECK(network_thread_->IsCurrent());
-  LOG(LS_INFO) << " TransportChannel " << transport->debug_name()
-               << " writability changed to " << transport->writable() << ".";
+  LOG(LS_INFO) << channel->transport_name() << " TransportChannel "
+               << channel->component() << " writability changed to "
+               << channel->writable() << ".";
   UpdateAggregateStates_n();
 }
 
-void TransportController::OnChannelReceivingState_n(
-    rtc::PacketTransportInternal* transport) {
+void TransportController::OnChannelReceivingState_n(TransportChannel* channel) {
   RTC_DCHECK(network_thread_->IsCurrent());
   UpdateAggregateStates_n();
 }
 
 void TransportController::OnChannelGatheringState_n(
-    IceTransportInternal* channel) {
+    TransportChannelImpl* channel) {
   RTC_DCHECK(network_thread_->IsCurrent());
   UpdateAggregateStates_n();
 }
 
 void TransportController::OnChannelCandidateGathered_n(
-    IceTransportInternal* channel,
+    TransportChannelImpl* channel,
     const Candidate& candidate) {
   RTC_DCHECK(network_thread_->IsCurrent());
 
   // We should never signal peer-reflexive candidates.
   if (candidate.type() == PRFLX_PORT_TYPE) {
-    RTC_NOTREACHED();
+    RTC_DCHECK(false);
     return;
   }
   std::vector<Candidate> candidates;
@@ -781,7 +571,7 @@ void TransportController::OnChannelCandidateGathered_n(
 }
 
 void TransportController::OnChannelCandidatesRemoved_n(
-    IceTransportInternal* channel,
+    TransportChannelImpl* channel,
     const Candidates& candidates) {
   invoker_.AsyncInvoke<void>(
       RTC_FROM_HERE, signaling_thread_,
@@ -796,7 +586,7 @@ void TransportController::OnChannelCandidatesRemoved(
 }
 
 void TransportController::OnChannelRoleConflict_n(
-    IceTransportInternal* channel) {
+    TransportChannelImpl* channel) {
   RTC_DCHECK(network_thread_->IsCurrent());
   // Note: since the role conflict is handled entirely on the network thread,
   // we don't need to worry about role conflicts occurring on two ports at once.
@@ -812,7 +602,7 @@ void TransportController::OnChannelRoleConflict_n(
 }
 
 void TransportController::OnChannelStateChanged_n(
-    IceTransportInternal* channel) {
+    TransportChannelImpl* channel) {
   RTC_DCHECK(network_thread_->IsCurrent());
   LOG(LS_INFO) << channel->transport_name() << " TransportChannel "
                << channel->component()
@@ -832,25 +622,21 @@ void TransportController::UpdateAggregateStates_n() {
   bool any_gathering = false;
   bool all_done_gathering = !channels_.empty();
   for (const auto& channel : channels_) {
-    any_receiving = any_receiving || channel->dtls()->receiving();
+    any_receiving = any_receiving || channel->receiving();
     any_failed = any_failed ||
-                 channel->dtls()->ice_transport()->GetState() ==
-                     IceTransportState::STATE_FAILED;
-    all_connected = all_connected && channel->dtls()->writable();
+                 channel->GetState() == TransportChannelState::STATE_FAILED;
+    all_connected = all_connected && channel->writable();
     all_completed =
-        all_completed && channel->dtls()->writable() &&
-        channel->dtls()->ice_transport()->GetState() ==
-            IceTransportState::STATE_COMPLETED &&
-        channel->dtls()->ice_transport()->GetIceRole() == ICEROLE_CONTROLLING &&
-        channel->dtls()->ice_transport()->gathering_state() ==
-            kIceGatheringComplete;
+        all_completed && channel->writable() &&
+        channel->GetState() == TransportChannelState::STATE_COMPLETED &&
+        channel->GetIceRole() == ICEROLE_CONTROLLING &&
+        channel->gathering_state() == kIceGatheringComplete;
     any_gathering =
-        any_gathering ||
-        channel->dtls()->ice_transport()->gathering_state() != kIceGatheringNew;
+        any_gathering || channel->gathering_state() != kIceGatheringNew;
     all_done_gathering = all_done_gathering &&
-                         channel->dtls()->ice_transport()->gathering_state() ==
-                             kIceGatheringComplete;
+                         channel->gathering_state() == kIceGatheringComplete;
   }
+
   if (any_failed) {
     new_connection_state = kIceConnectionFailed;
   } else if (all_completed) {
@@ -882,10 +668,6 @@ void TransportController::UpdateAggregateStates_n() {
         RTC_FROM_HERE, this, MSG_ICEGATHERINGSTATE,
         new rtc::TypedMessageData<IceGatheringState>(new_gathering_state));
   }
-}
-
-void TransportController::OnDtlsHandshakeError(rtc::SSLHandshakeError error) {
-  SignalDtlsHandshakeError(error);
 }
 
 }  // namespace cricket

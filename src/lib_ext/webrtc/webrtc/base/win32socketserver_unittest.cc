@@ -16,7 +16,7 @@ namespace rtc {
 
 // Test that Win32SocketServer::Wait works as expected.
 TEST(Win32SocketServerTest, TestWait) {
-  Win32SocketServer server;
+  Win32SocketServer server(NULL);
   uint32_t start = Time();
   server.Wait(1000, true);
   EXPECT_GE(TimeSince(start), 1000);
@@ -24,22 +24,22 @@ TEST(Win32SocketServerTest, TestWait) {
 
 // Test that Win32Socket::Pump does not touch general Windows messages.
 TEST(Win32SocketServerTest, TestPump) {
-  Win32SocketServer server;
-  rtc::AutoSocketServerThread thread(&server);
-  EXPECT_EQ(TRUE, PostMessage(nullptr, WM_USER, 999, 0));
+  Win32SocketServer server(NULL);
+  SocketServerScope scope(&server);
+  EXPECT_EQ(TRUE, PostMessage(NULL, WM_USER, 999, 0));
   server.Pump();
   MSG msg;
-  EXPECT_EQ(TRUE, PeekMessage(&msg, nullptr, WM_USER, 0, PM_REMOVE));
-  EXPECT_EQ(static_cast<UINT>(WM_USER), msg.message);
-  EXPECT_EQ(999u, msg.wParam);
+  EXPECT_EQ(TRUE, PeekMessage(&msg, NULL, WM_USER, 0, PM_REMOVE));
+  EXPECT_EQ(WM_USER, msg.message);
+  EXPECT_EQ(999, msg.wParam);
 }
 
 // Test that Win32Socket passes all the generic Socket tests.
 class Win32SocketTest : public SocketTest {
  protected:
-  Win32SocketTest() : thread_(&server_) {}
+  Win32SocketTest() : server_(NULL), scope_(&server_) {}
   Win32SocketServer server_;
-  rtc::AutoSocketServerThread thread_;
+  SocketServerScope scope_;
 };
 
 TEST_F(Win32SocketTest, TestConnectIPv4) {
@@ -146,15 +146,11 @@ TEST_F(Win32SocketTest, TestUdpIPv6) {
   SocketTest::TestUdpIPv6();
 }
 
-// Breaks win_x64_dbg bot.
-// https://bugs.chromium.org/p/webrtc/issues/detail?id=6178
-TEST_F(Win32SocketTest, DISABLED_TestGetSetOptionsIPv4) {
+TEST_F(Win32SocketTest, TestGetSetOptionsIPv4) {
   SocketTest::TestGetSetOptionsIPv4();
 }
 
-// Breaks win_x64_dbg bot.
-// https://bugs.chromium.org/p/webrtc/issues/detail?id=6178
-TEST_F(Win32SocketTest, DISABLED_TestGetSetOptionsIPv6) {
+TEST_F(Win32SocketTest, TestGetSetOptionsIPv6) {
   SocketTest::TestGetSetOptionsIPv6();
 }
 

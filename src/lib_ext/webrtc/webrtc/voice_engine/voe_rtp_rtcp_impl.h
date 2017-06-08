@@ -28,6 +28,14 @@ class VoERTP_RTCPImpl : public VoERTP_RTCP {
 
   int GetRemoteRTCP_CNAME(int channel, char cName[256]) override;
 
+  int GetRemoteRTCPData(int channel,
+                        unsigned int& NTPHigh,
+                        unsigned int& NTPLow,
+                        unsigned int& timestamp,
+                        unsigned int& playoutTimestamp,
+                        unsigned int* jitter = NULL,
+                        unsigned short* fractionLost = NULL) override;
+
   // SSRC
   int SetLocalSSRC(int channel, unsigned int ssrc) override;
 
@@ -39,8 +47,37 @@ class VoERTP_RTCPImpl : public VoERTP_RTCP {
   int SetSendAudioLevelIndicationStatus(int channel,
                                         bool enable,
                                         unsigned char id) override;
+  int SetReceiveAudioLevelIndicationStatus(int channel,
+                                           bool enable,
+                                           unsigned char id) override;
+
+  // RTP Header Extension for Absolute Sender Time
+  int SetSendAbsoluteSenderTimeStatus(int channel,
+                                      bool enable,
+                                      unsigned char id) override;
+  int SetReceiveAbsoluteSenderTimeStatus(int channel,
+                                         bool enable,
+                                         unsigned char id) override;
+
+  // Statistics
+  int GetRTPStatistics(int channel,
+                       unsigned int& averageJitterMs,
+                       unsigned int& maxJitterMs,
+                       unsigned int& discardedPackets) override;
 
   int GetRTCPStatistics(int channel, CallStatistics& stats) override;
+
+  int GetRemoteRTCPReportBlocks(
+      int channel,
+      std::vector<ReportBlock>* report_blocks) override;
+
+  // RED
+  int SetREDStatus(int channel, bool enable, int redPayloadtype = -1) override;
+
+  int GetREDStatus(int channel, bool& enabled, int& redPayloadtype) override;
+
+  // NACK
+  int SetNACKStatus(int channel, bool enable, int maxNoPackets) override;
 
  protected:
   VoERTP_RTCPImpl(voe::SharedData* shared);

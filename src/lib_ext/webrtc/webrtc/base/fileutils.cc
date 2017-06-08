@@ -8,12 +8,13 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "webrtc/base/fileutils.h"
+#include <assert.h>
 
 #include "webrtc/base/arraysize.h"
-#include "webrtc/base/checks.h"
 #include "webrtc/base/pathutils.h"
+#include "webrtc/base/fileutils.h"
 #include "webrtc/base/stringutils.h"
+#include "webrtc/base/stream.h"
 
 #if defined(WEBRTC_WIN)
 #include "webrtc/base/win32filesystem.h"
@@ -40,8 +41,7 @@ DirectoryIterator::DirectoryIterator()
 #ifdef WEBRTC_WIN
     : handle_(INVALID_HANDLE_VALUE) {
 #else
-    : dir_(nullptr),
-      dirent_(nullptr){
+    : dir_(NULL), dirent_(NULL) {
 #endif
 }
 
@@ -69,13 +69,13 @@ bool DirectoryIterator::Iterate(const Pathname &dir) {
   if (handle_ == INVALID_HANDLE_VALUE)
     return false;
 #else
-  if (dir_ != nullptr)
+  if (dir_ != NULL)
     closedir(dir_);
   dir_ = ::opendir(directory_.c_str());
-  if (dir_ == nullptr)
+  if (dir_ == NULL)
     return false;
   dirent_ = readdir(dir_);
-  if (dirent_ == nullptr)
+  if (dirent_ == NULL)
     return false;
 
   if (::stat(std::string(directory_ + Name()).c_str(), &stat_) != 0)
@@ -91,7 +91,7 @@ bool DirectoryIterator::Next() {
   return ::FindNextFile(handle_, &data_) == TRUE;
 #else
   dirent_ = ::readdir(dir_);
-  if (dirent_ == nullptr)
+  if (dirent_ == NULL)
     return false;
 
   return ::stat(std::string(directory_ + Name()).c_str(), &stat_) == 0;
@@ -112,12 +112,31 @@ std::string DirectoryIterator::Name() const {
 #if defined(WEBRTC_WIN)
   return ToUtf8(data_.cFileName);
 #else
-  RTC_DCHECK(dirent_);
+  assert(dirent_ != NULL);
   return dirent_->d_name;
 #endif
 }
 
-FilesystemInterface* Filesystem::default_filesystem_ = nullptr;
+  // returns the size of the file currently pointed to
+size_t DirectoryIterator::FileSize() const {
+#if !defined(WEBRTC_WIN)
+  return stat_.st_size;
+#else
+  return data_.nFileSizeLow;
+#endif
+}
+
+bool DirectoryIterator::OlderThan(int seconds) const {
+  time_t file_modify_time;
+#if defined(WEBRTC_WIN)
+  FileTimeToUnixTime(data_.ftLastWriteTime, &file_modify_time);
+#else
+  file_modify_time = stat_.st_mtime;
+#endif
+  return time(NULL) - file_modify_time >= seconds;
+}
+
+FilesystemInterface* Filesystem::default_filesystem_ = NULL;
 
 FilesystemInterface *Filesystem::EnsureDefaultFilesystem() {
   if (!default_filesystem_) {
@@ -128,6 +147,138 @@ FilesystemInterface *Filesystem::EnsureDefaultFilesystem() {
 #endif
   }
   return default_filesystem_;
+}
+
+DirectoryIterator* FilesystemInterface::IterateDirectory() {
+  return new DirectoryIterator();
+}
+
+bool FilesystemInterface::CopyFolder(const Pathname &old_path,
+                                     const Pathname &new_path) {
+  bool success = true;
+  VERIFY(IsFolder(old_path));
+  Pathname new_dir;
+  new_dir.SetFolder(new_path.pathname());
+  Pathname old_dir;
+  old_dir.SetFolder(old_path.pathname());
+  if (!CreateFolder(new_dir))
+    return false;
+  DirectoryIterator *di = IterateDirectory();
+  if (!di)
+    return false;
+  if (di->Iterate(old_dir.pathname())) {
+    do {
+      if (di->Name() == "." || di->Name() == "..")
+        continue;
+      Pathname source;
+      Pathname dest;
+      source.SetFolder(old_dir.pathname());
+      dest.SetFolder(new_path.pathname());
+      source.SetFilename(di->Name());
+      dest.SetFilename(di->Name());
+      if (!CopyFileOrFolder(source, dest))
+        success = false;
+    } while (di->Next());
+  }
+  delete di;
+  return success;
+}
+
+bool FilesystemInterface::DeleteFolderContents(const Pathname &folder) {
+  bool success = true;
+  VERIFY(IsFolder(folder));
+  DirectoryIterator *di = IterateDirectory();
+  if (!di)
+    return false;
+  if (di->Iterate(folder)) {
+    do {
+      if (di->Name() == "." || di->Name() == "..")
+        continue;
+      Pathname subdir;
+      subdir.SetFolder(folder.pathname());
+      if (di->IsDirectory()) {
+        subdir.AppendFolder(di->Name());
+        if (!DeleteFolderAndContents(subdir)) {
+          success = false;
+        }
+      } else {
+        subdir.SetFilename(di->Name());
+        if (!DeleteFile(subdir)) {
+          success = false;
+        }
+      }
+    } while (di->Next());
+  }
+  delete di;
+  return success;
+}
+
+bool FilesystemInterface::DeleteFolderAndContents(const Pathname& folder) {
+  return DeleteFolderContents(folder) && DeleteEmptyFolder(folder);
+}
+
+bool FilesystemInterface::CleanAppTempFolder() {
+  Pathname path;
+  if (!GetAppTempFolder(&path))
+    return false;
+  if (IsAbsent(path))
+    return true;
+  if (!IsTemporaryPath(path)) {
+    ASSERT(false);
+    return false;
+  }
+  return DeleteFolderContents(path);
+}
+
+Pathname Filesystem::GetCurrentDirectory() {
+  return EnsureDefaultFilesystem()->GetCurrentDirectory();
+}
+
+bool CreateUniqueFile(Pathname& path, bool create_empty) {
+  LOG(LS_INFO) << "Path " << path.pathname() << std::endl;
+  // If no folder is supplied, use the temporary folder
+  if (path.folder().empty()) {
+    Pathname temporary_path;
+    if (!Filesystem::GetTemporaryFolder(temporary_path, true, NULL)) {
+      printf("Get temp failed\n");
+      return false;
+    }
+    path.SetFolder(temporary_path.pathname());
+  }
+
+  // If no filename is supplied, use a temporary name
+  if (path.filename().empty()) {
+    std::string folder(path.folder());
+    std::string filename = Filesystem::TempFilename(folder, "gt");
+    path.SetPathname(filename);
+    if (!create_empty) {
+      Filesystem::DeleteFile(path.pathname());
+    }
+    return true;
+  }
+
+  // Otherwise, create a unique name based on the given filename
+  // foo.txt -> foo-N.txt
+  const std::string basename = path.basename();
+  const size_t MAX_VERSION = 100;
+  size_t version = 0;
+  while (version < MAX_VERSION) {
+    std::string pathname = path.pathname();
+
+    if (!Filesystem::IsFile(pathname)) {
+      if (create_empty) {
+        FileStream* fs = Filesystem::OpenFile(pathname, "w");
+        delete fs;
+      }
+      return true;
+    }
+    version += 1;
+    char version_base[MAX_PATH];
+    sprintfn(version_base, arraysize(version_base), "%s-%u", basename.c_str(),
+             version);
+    path.SetBasename(version_base);
+  }
+  return true;
 }
 
 }  // namespace rtc

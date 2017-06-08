@@ -11,7 +11,8 @@
 #ifndef WEBRTC_BASE_RATELIMITER_H_
 #define WEBRTC_BASE_RATELIMITER_H_
 
-#include <stddef.h>
+#include <stdlib.h>
+#include "webrtc/base/basictypes.h"
 
 namespace rtc {
 

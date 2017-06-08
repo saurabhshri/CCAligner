@@ -8,9 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "testing/gtest/include/gtest/gtest.h"
+
 #include "webrtc/system_wrappers/include/metrics.h"
 #include "webrtc/system_wrappers/include/metrics_default.h"
-#include "webrtc/test/gtest.h"
 
 namespace webrtc {
 
@@ -134,16 +135,6 @@ TEST_F(MetricsDefaultTest, GetAndReset) {
   EXPECT_EQ(1, NumEvents("Histogram1", 4, histograms));
   EXPECT_EQ(2, NumEvents("Histogram1", 5, histograms));
   EXPECT_EQ(1, NumEvents("Histogram2", 10, histograms));
-
-  // Add samples after reset.
-  metrics::GetAndReset(&histograms);
-  EXPECT_EQ(0u, histograms.size());
-  RTC_HISTOGRAM_PERCENTAGE("Histogram1", 50);
-  RTC_HISTOGRAM_PERCENTAGE("Histogram2", 8);
-  EXPECT_EQ(1, metrics::NumSamples("Histogram1"));
-  EXPECT_EQ(1, metrics::NumSamples("Histogram2"));
-  EXPECT_EQ(1, metrics::NumEvents("Histogram1", 50));
-  EXPECT_EQ(1, metrics::NumEvents("Histogram2", 8));
 }
 
 TEST_F(MetricsDefaultTest, TestMinMaxBucket) {

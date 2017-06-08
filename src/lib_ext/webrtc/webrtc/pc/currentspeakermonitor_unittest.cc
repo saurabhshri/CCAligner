@@ -122,13 +122,7 @@ TEST_F(CurrentSpeakerMonitorTest, DISABLED_RapidSpeakerChange) {
   EXPECT_EQ(num_changes_, 1);
 }
 
-// Flaky on iOS: webrtc:7057.
-#if defined(WEBRTC_IOS)
-#define MAYBE_SpeakerChange DISABLED_SpeakerChange
-#else
-#define MAYBE_SpeakerChange SpeakerChange
-#endif
-TEST_F(CurrentSpeakerMonitorTest, MAYBE_SpeakerChange) {
+TEST_F(CurrentSpeakerMonitorTest, SpeakerChange) {
   AudioInfo info;
   InitAudioInfo(&info, 0, 0);
 

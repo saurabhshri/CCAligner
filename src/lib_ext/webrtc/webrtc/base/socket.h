@@ -151,7 +151,6 @@ class Socket {
   virtual int Connect(const SocketAddress& addr) = 0;
   virtual int Send(const void *pv, size_t cb) = 0;
   virtual int SendTo(const void *pv, size_t cb, const SocketAddress& addr) = 0;
-  // |timestamp| is in units of microseconds.
   virtual int Recv(void* pv, size_t cb, int64_t* timestamp) = 0;
   virtual int RecvFrom(void* pv,
                        size_t cb,
@@ -170,6 +169,11 @@ class Socket {
     CS_CONNECTED
   };
   virtual ConnState GetState() const = 0;
+
+  // Fills in the given uint16_t with the current estimate of the MTU along the
+  // path to the address to which this socket is connected. NOTE: This method
+  // can block for up to 10 seconds on Windows.
+  virtual int EstimateMTU(uint16_t* mtu) = 0;
 
   enum Option {
     OPT_DONTFRAGMENT,

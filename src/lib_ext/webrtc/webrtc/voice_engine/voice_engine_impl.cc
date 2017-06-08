@@ -12,6 +12,7 @@
 #include "webrtc/modules/audio_device/android/audio_device_template.h"
 #include "webrtc/modules/audio_device/android/audio_record_jni.h"
 #include "webrtc/modules/audio_device/android/audio_track_jni.h"
+#include "webrtc/modules/utility/include/jvm_android.h"
 #endif
 
 #include "webrtc/base/checks.h"
@@ -28,8 +29,8 @@ namespace webrtc {
 // improvement here.
 static int32_t gVoiceEngineInstanceCounter = 0;
 
-VoiceEngine* GetVoiceEngine() {
-  VoiceEngineImpl* self = new VoiceEngineImpl();
+VoiceEngine* GetVoiceEngine(const Config* config, bool owns_config) {
+  VoiceEngineImpl* self = new VoiceEngineImpl(config, owns_config);
   if (self != NULL) {
     self->AddRef();  // First reference.  Released in VoiceEngine::Delete.
     gVoiceEngineInstanceCounter++;
@@ -71,7 +72,12 @@ std::unique_ptr<voe::ChannelProxy> VoiceEngineImpl::GetChannelProxy(
 }
 
 VoiceEngine* VoiceEngine::Create() {
-  return GetVoiceEngine();
+  Config* config = new Config();
+  return GetVoiceEngine(config, true);
+}
+
+VoiceEngine* VoiceEngine::Create(const Config& config) {
+  return GetVoiceEngine(&config, false);
 }
 
 int VoiceEngine::SetTraceFilter(unsigned int filter) {
@@ -127,6 +133,19 @@ bool VoiceEngine::Delete(VoiceEngine*& voiceEngine) {
 
   return true;
 }
+
+#if !defined(WEBRTC_CHROMIUM_BUILD)
+// TODO(henrika): change types to JavaVM* and jobject instead of void*.
+int VoiceEngine::SetAndroidObjects(void* javaVM, void* context) {
+#ifdef WEBRTC_ANDROID
+  webrtc::JVM::Initialize(reinterpret_cast<JavaVM*>(javaVM),
+                          reinterpret_cast<jobject>(context));
+  return 0;
+#else
+  return -1;
+#endif
+}
+#endif
 
 std::string VoiceEngine::GetVersionString() {
   std::string version = "VoiceEngine 4.1.0";

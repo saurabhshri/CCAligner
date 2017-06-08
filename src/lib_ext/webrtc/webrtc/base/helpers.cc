@@ -13,11 +13,21 @@
 #include <limits>
 #include <memory>
 
+#if defined(FEATURE_ENABLE_SSL)
+#include "webrtc/base/sslconfig.h"
+#if defined(SSL_USE_OPENSSL)
 #include <openssl/rand.h>
+#else
+#if defined(WEBRTC_WIN)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <ntsecapi.h>
+#endif  // WEBRTC_WIN
+#endif  // else
+#endif  // FEATURE_ENABLED_SSL
 
 #include "webrtc/base/base64.h"
 #include "webrtc/base/basictypes.h"
-#include "webrtc/base/checks.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/timeutils.h"
 
@@ -34,6 +44,7 @@ class RandomGenerator {
   virtual bool Generate(void* buf, size_t len) = 0;
 };
 
+#if defined(SSL_USE_OPENSSL)
 // The OpenSSL RNG.
 class SecureRandomGenerator : public RandomGenerator {
  public:
@@ -44,6 +55,92 @@ class SecureRandomGenerator : public RandomGenerator {
     return (RAND_bytes(reinterpret_cast<unsigned char*>(buf), len) > 0);
   }
 };
+
+#elif defined(SSL_USE_NSS_RNG)
+// The NSS RNG.
+class SecureRandomGenerator : public RandomGenerator {
+ public:
+  SecureRandomGenerator() {}
+  ~SecureRandomGenerator() override {}
+  bool Init(const void* seed, size_t len) override { return true; }
+  bool Generate(void* buf, size_t len) override {
+    return (PK11_GenerateRandom(reinterpret_cast<unsigned char*>(buf),
+                                static_cast<int>(len)) == SECSuccess);
+  }
+};
+
+#else
+#if defined(WEBRTC_WIN)
+class SecureRandomGenerator : public RandomGenerator {
+ public:
+  SecureRandomGenerator() : advapi32_(NULL), rtl_gen_random_(NULL) {}
+  ~SecureRandomGenerator() {
+    FreeLibrary(advapi32_);
+  }
+
+  virtual bool Init(const void* seed, size_t seed_len) {
+    // We don't do any additional seeding on Win32, we just use the CryptoAPI
+    // RNG (which is exposed as a hidden function off of ADVAPI32 so that we
+    // don't need to drag in all of CryptoAPI)
+    if (rtl_gen_random_) {
+      return true;
+    }
+
+    advapi32_ = LoadLibrary(L"advapi32.dll");
+    if (!advapi32_) {
+      return false;
+    }
+
+    rtl_gen_random_ = reinterpret_cast<RtlGenRandomProc>(
+        GetProcAddress(advapi32_, "SystemFunction036"));
+    if (!rtl_gen_random_) {
+      FreeLibrary(advapi32_);
+      return false;
+    }
+
+    return true;
+  }
+  virtual bool Generate(void* buf, size_t len) {
+    if (!rtl_gen_random_ && !Init(NULL, 0)) {
+      return false;
+    }
+    return (rtl_gen_random_(buf, static_cast<int>(len)) != FALSE);
+  }
+
+ private:
+  typedef BOOL (WINAPI *RtlGenRandomProc)(PVOID, ULONG);
+  HINSTANCE advapi32_;
+  RtlGenRandomProc rtl_gen_random_;
+};
+
+#elif !defined(FEATURE_ENABLE_SSL)
+
+// No SSL implementation -- use rand()
+class SecureRandomGenerator : public RandomGenerator {
+ public:
+  virtual bool Init(const void* seed, size_t len) {
+    if (len >= 4) {
+      srand(*reinterpret_cast<const int*>(seed));
+    } else {
+      srand(*reinterpret_cast<const char*>(seed));
+    }
+    return true;
+  }
+  virtual bool Generate(void* buf, size_t len) {
+    char* bytes = reinterpret_cast<char*>(buf);
+    for (size_t i = 0; i < len; ++i) {
+      bytes[i] = static_cast<char>(rand());
+    }
+    return true;
+  }
+};
+
+#else
+
+#error No SSL implementation has been selected!
+
+#endif  // WEBRTC_WIN
+#endif
 
 // A test random generator, for predictable output.
 class TestRandomGenerator : public RandomGenerator {
@@ -118,19 +215,14 @@ bool InitRandom(const char* seed, size_t len) {
 
 std::string CreateRandomString(size_t len) {
   std::string str;
-  RTC_CHECK(CreateRandomString(len, &str));
+  CreateRandomString(len, &str);
   return str;
 }
 
-static bool CreateRandomString(size_t len,
+bool CreateRandomString(size_t len,
                         const char* table, int table_size,
                         std::string* str) {
   str->clear();
-  // Avoid biased modulo division below.
-  if (256 % table_size) {
-    LOG(LS_ERROR) << "Table size must divide 256 evenly!";
-    return false;
-  }
   std::unique_ptr<uint8_t[]> bytes(new uint8_t[len]);
   if (!Rng().Generate(bytes.get(), len)) {
     LOG(LS_ERROR) << "Failed to generate random string!";
@@ -153,20 +245,16 @@ bool CreateRandomString(size_t len, const std::string& table,
                             static_cast<int>(table.size()), str);
 }
 
-bool CreateRandomData(size_t length, std::string* data) {
-  data->resize(length);
-  // std::string is guaranteed to use contiguous memory in c++11 so we can
-  // safely write directly to it.
-  return Rng().Generate(&data->at(0), length);
-}
-
 // Version 4 UUID is of the form:
 // xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
 // Where 'x' is a hex digit, and 'y' is 8, 9, a or b.
 std::string CreateRandomUuid() {
   std::string str;
   std::unique_ptr<uint8_t[]> bytes(new uint8_t[31]);
-  RTC_CHECK(Rng().Generate(bytes.get(), 31));
+  if (!Rng().Generate(bytes.get(), 31)) {
+    LOG(LS_ERROR) << "Failed to generate random string!";
+    return str;
+  }
   str.reserve(36);
   for (size_t i = 0; i < 8; ++i) {
     str.push_back(kHex[bytes[i] % 16]);
@@ -194,7 +282,9 @@ std::string CreateRandomUuid() {
 
 uint32_t CreateRandomId() {
   uint32_t id;
-  RTC_CHECK(Rng().Generate(&id, sizeof(id)));
+  if (!Rng().Generate(&id, sizeof(id))) {
+    LOG(LS_ERROR) << "Failed to generate random id!";
+  }
   return id;
 }
 

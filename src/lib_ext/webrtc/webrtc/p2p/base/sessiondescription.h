@@ -14,8 +14,8 @@
 #include <string>
 #include <vector>
 
-#include "webrtc/base/constructormagic.h"
 #include "webrtc/p2p/base/transportinfo.h"
+#include "webrtc/base/constructormagic.h"
 
 namespace cricket {
 
@@ -32,31 +32,20 @@ class ContentDescription {
 // name = name of <content name="...">
 // type = xmlns of <content>
 struct ContentInfo {
-  ContentInfo() {}
+  ContentInfo() : description(NULL) {}
   ContentInfo(const std::string& name,
               const std::string& type,
-              ContentDescription* description)
-      : name(name), type(type), description(description) {}
+              ContentDescription* description) :
+      name(name), type(type), rejected(false), description(description) {}
   ContentInfo(const std::string& name,
               const std::string& type,
               bool rejected,
               ContentDescription* description) :
       name(name), type(type), rejected(rejected), description(description) {}
-  ContentInfo(const std::string& name,
-              const std::string& type,
-              bool rejected,
-              bool bundle_only,
-              ContentDescription* description)
-      : name(name),
-        type(type),
-        rejected(rejected),
-        bundle_only(bundle_only),
-        description(description) {}
   std::string name;
   std::string type;
-  bool rejected = false;
-  bool bundle_only = false;
-  ContentDescription* description = nullptr;
+  bool rejected;
+  ContentDescription* description;
 };
 
 typedef std::vector<std::string> ContentNames;
@@ -137,11 +126,6 @@ class SessionDescription {
   void AddContent(const std::string& name,
                   const std::string& type,
                   bool rejected,
-                  ContentDescription* description);
-  void AddContent(const std::string& name,
-                  const std::string& type,
-                  bool rejected,
-                  bool bundle_only,
                   ContentDescription* description);
   bool RemoveContentByName(const std::string& name);
 

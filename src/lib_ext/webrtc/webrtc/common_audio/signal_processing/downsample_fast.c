@@ -10,9 +10,6 @@
 
 #include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
 
-#include "webrtc/base/checks.h"
-#include "webrtc/base/sanitizer.h"
-
 // TODO(Bjornv): Change the function parameter order to WebRTC code style.
 // C version of WebRtcSpl_DownsampleFast() for generic platforms.
 int WebRtcSpl_DownsampleFastC(const int16_t* data_in,
@@ -23,7 +20,6 @@ int WebRtcSpl_DownsampleFastC(const int16_t* data_in,
                               size_t coefficients_length,
                               int factor,
                               size_t delay) {
-  int16_t* const original_data_out = data_out;
   size_t i = 0;
   size_t j = 0;
   int32_t out_s32 = 0;
@@ -35,14 +31,10 @@ int WebRtcSpl_DownsampleFastC(const int16_t* data_in,
     return -1;
   }
 
-  rtc_MsanCheckInitialized(coefficients, sizeof(coefficients[0]),
-                           coefficients_length);
-
   for (i = delay; i < endpos; i += factor) {
     out_s32 = 2048;  // Round value, 0.5 in Q12.
 
     for (j = 0; j < coefficients_length; j++) {
-      rtc_MsanCheckInitialized(&data_in[i - j], sizeof(data_in[0]), 1);
       out_s32 += coefficients[j] * data_in[i - j];  // Q12.
     }
 
@@ -51,10 +43,6 @@ int WebRtcSpl_DownsampleFastC(const int16_t* data_in,
     // Saturate and store the output.
     *data_out++ = WebRtcSpl_SatW32ToW16(out_s32);
   }
-
-  RTC_DCHECK_EQ(original_data_out + data_out_length, data_out);
-  rtc_MsanCheckInitialized(original_data_out, sizeof(original_data_out[0]),
-                           data_out_length);
 
   return 0;
 }

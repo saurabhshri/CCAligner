@@ -67,7 +67,7 @@ void DumpBacktrace() {
   PrintError("\n==== C stack trace ===============================\n\n");
   if (size == 0) {
     PrintError("(empty)\n");
-  } else if (symbols == nullptr) {
+  } else if (symbols == NULL) {
     PrintError("(no symbols)\n");
   } else {
     for (int i = 1; i < size; ++i) {
@@ -76,9 +76,8 @@ void DumpBacktrace() {
         PrintError("%2d: ", i);
         int status;
         size_t length;
-        char* demangled =
-            abi::__cxa_demangle(mangled, nullptr, &length, &status);
-        PrintError("%s\n", demangled != nullptr ? demangled : mangled);
+        char* demangled = abi::__cxa_demangle(mangled, NULL, &length, &status);
+        PrintError("%s\n", demangled != NULL ? demangled : mangled);
         free(demangled);
       } else {
         // If parsing failed, at least print the unparsed symbol.
@@ -134,8 +133,3 @@ template std::string* MakeCheckOpString<std::string, std::string>(
 #endif
 
 }  // namespace rtc
-
-// Function to call from the C version of the RTC_CHECK and RTC_DCHECK macros.
-NO_RETURN void rtc_FatalMessage(const char* file, int line, const char* msg) {
-  rtc::FatalMessage(file, line).stream() << msg;
-}

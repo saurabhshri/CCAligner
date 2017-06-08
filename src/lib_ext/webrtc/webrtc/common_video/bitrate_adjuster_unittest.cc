@@ -8,9 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "testing/gtest/include/gtest/gtest.h"
+
 #include "webrtc/common_video/include/bitrate_adjuster.h"
 #include "webrtc/system_wrappers/include/clock.h"
-#include "webrtc/test/gtest.h"
 
 namespace webrtc {
 

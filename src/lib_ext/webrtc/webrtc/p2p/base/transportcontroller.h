@@ -17,21 +17,13 @@
 #include <vector>
 
 #include "webrtc/base/asyncinvoker.h"
-#include "webrtc/base/constructormagic.h"
-#include "webrtc/base/refcountedobject.h"
 #include "webrtc/base/sigslot.h"
 #include "webrtc/base/sslstreamadapter.h"
 #include "webrtc/p2p/base/candidate.h"
-#include "webrtc/p2p/base/dtlstransportchannel.h"
-#include "webrtc/p2p/base/jseptransport.h"
-#include "webrtc/p2p/base/p2ptransportchannel.h"
+#include "webrtc/p2p/base/transport.h"
 
 namespace rtc {
 class Thread;
-class PacketTransportInternal;
-}
-namespace webrtc {
-class MetricsObserverInterface;
 }
 
 namespace cricket {
@@ -39,17 +31,9 @@ namespace cricket {
 class TransportController : public sigslot::has_slots<>,
                             public rtc::MessageHandler {
  public:
-  // If |redetermine_role_on_ice_restart| is true, ICE role is redetermined
-  // upon setting a local transport description that indicates an ICE restart.
-  // For the constructor that doesn't take this parameter, it defaults to true.
-  //
-  // |crypto_options| is used to determine if created DTLS transports negotiate
-  // GCM crypto suites or not.
   TransportController(rtc::Thread* signaling_thread,
                       rtc::Thread* network_thread,
-                      PortAllocator* port_allocator,
-                      bool redetermine_role_on_ice_restart,
-                      const rtc::CryptoOptions& crypto_options);
+                      PortAllocator* port_allocator);
 
   virtual ~TransportController();
 
@@ -66,17 +50,7 @@ class TransportController : public sigslot::has_slots<>,
   void SetIceConfig(const IceConfig& config);
   void SetIceRole(IceRole ice_role);
 
-  // Set the "needs-ice-restart" flag as described in JSEP. After the flag is
-  // set, offers should generate new ufrags/passwords until an ICE restart
-  // occurs.
-  void SetNeedsIceRestartFlag();
-  // Returns true if the ICE restart flag above was set, and no ICE restart has
-  // occurred yet for this transport (by applying a local description with
-  // changed ufrag/password). If the transport has been deleted as a result of
-  // bundling, returns false.
-  bool NeedsIceRestart(const std::string& transport_name) const;
-
-  bool GetSslRole(const std::string& transport_name, rtc::SSLRole* role) const;
+  bool GetSslRole(const std::string& transport_name, rtc::SSLRole* role);
 
   // Specifies the identity to use in this session.
   // Can only be called once.
@@ -84,11 +58,10 @@ class TransportController : public sigslot::has_slots<>,
       const rtc::scoped_refptr<rtc::RTCCertificate>& certificate);
   bool GetLocalCertificate(
       const std::string& transport_name,
-      rtc::scoped_refptr<rtc::RTCCertificate>* certificate) const;
-  // Caller owns returned certificate. This method mainly exists for stats
-  // reporting.
+      rtc::scoped_refptr<rtc::RTCCertificate>* certificate);
+  // Caller owns returned certificate
   std::unique_ptr<rtc::SSLCertificate> GetRemoteSSLCertificate(
-      const std::string& transport_name) const;
+      const std::string& transport_name);
   bool SetLocalTransportDescription(const std::string& transport_name,
                                     const TransportDescription& tdesc,
                                     ContentAction action,
@@ -104,41 +77,22 @@ class TransportController : public sigslot::has_slots<>,
                            const Candidates& candidates,
                            std::string* err);
   bool RemoveRemoteCandidates(const Candidates& candidates, std::string* err);
-  bool ReadyForRemoteCandidates(const std::string& transport_name) const;
-  // TODO(deadbeef): GetStats isn't const because all the way down to
-  // OpenSSLStreamAdapter,
-  // GetSslCipherSuite and GetDtlsSrtpCryptoSuite are not const. Fix this.
+  bool ReadyForRemoteCandidates(const std::string& transport_name);
   bool GetStats(const std::string& transport_name, TransportStats* stats);
-  void SetMetricsObserver(webrtc::MetricsObserverInterface* metrics_observer);
 
   // Creates a channel if it doesn't exist. Otherwise, increments a reference
   // count and returns an existing channel.
-  DtlsTransportInternal* CreateDtlsTransport(const std::string& transport_name,
-                                             int component);
-  virtual DtlsTransportInternal* CreateDtlsTransport_n(
+  virtual TransportChannel* CreateTransportChannel_n(
       const std::string& transport_name,
       int component);
 
   // Decrements a channel's reference count, and destroys the channel if
   // nothing is referencing it.
-  virtual void DestroyDtlsTransport(const std::string& transport_name,
-                                    int component);
-  virtual void DestroyDtlsTransport_n(const std::string& transport_name,
-                                      int component);
+  virtual void DestroyTransportChannel_n(const std::string& transport_name,
+                                         int component);
 
   void use_quic() { quic_ = true; }
   bool quic() const { return quic_; }
-
-  // TODO(deadbeef): Remove all for_testing methods!
-  const rtc::scoped_refptr<rtc::RTCCertificate>& certificate_for_testing()
-      const {
-    return certificate_;
-  }
-  std::vector<std::string> transport_names_for_testing();
-  std::vector<DtlsTransportInternal*> channels_for_testing();
-  DtlsTransportInternal* get_channel_for_testing(
-      const std::string& transport_name,
-      int component);
 
   // All of these signals are fired on the signalling thread.
 
@@ -162,57 +116,62 @@ class TransportController : public sigslot::has_slots<>,
 
   sigslot::signal1<const Candidates&> SignalCandidatesRemoved;
 
-  sigslot::signal1<rtc::SSLHandshakeError> SignalDtlsHandshakeError;
+  // for unit test
+  const rtc::scoped_refptr<rtc::RTCCertificate>& certificate_for_testing();
 
  protected:
-  // TODO(deadbeef): Get rid of these virtual methods. Used by
-  // FakeTransportController currently, but FakeTransportController shouldn't
-  // even be functioning by subclassing TransportController.
-  virtual IceTransportInternal* CreateIceTransportChannel_n(
-      const std::string& transport_name,
-      int component);
-  virtual DtlsTransportInternal* CreateDtlsTransportChannel_n(
-      const std::string& transport_name,
-      int component,
-      IceTransportInternal* ice);
+  // Protected and virtual so we can override it in unit tests.
+  virtual Transport* CreateTransport_n(const std::string& transport_name);
+
+  // For unit tests
+  const std::map<std::string, Transport*>& transports() { return transports_; }
+  Transport* GetTransport_n(const std::string& transport_name);
 
  private:
   void OnMessage(rtc::Message* pmsg) override;
 
-  class ChannelPair;
-  typedef rtc::RefCountedObject<ChannelPair> RefCountedChannel;
+  // It's the Transport that's currently responsible for creating/destroying
+  // channels, but the TransportController keeps track of how many external
+  // objects (BaseChannels) reference each channel.
+  struct RefCountedChannel {
+    RefCountedChannel() : impl_(nullptr), ref_(0) {}
+    explicit RefCountedChannel(TransportChannelImpl* impl)
+        : impl_(impl), ref_(0) {}
 
-  // Helper functions to get a channel or transport, or iterator to it (in case
-  // it needs to be erased).
-  std::vector<RefCountedChannel*>::iterator GetChannelIterator_n(
+    void AddRef() { ++ref_; }
+    void DecRef() {
+      ASSERT(ref_ > 0);
+      --ref_;
+    }
+    int ref() const { return ref_; }
+
+    TransportChannelImpl* get() const { return impl_; }
+    TransportChannelImpl* operator->() const { return impl_; }
+
+   private:
+    TransportChannelImpl* impl_;
+    int ref_;
+  };
+
+  std::vector<RefCountedChannel>::iterator FindChannel_n(
       const std::string& transport_name,
       int component);
-  std::vector<RefCountedChannel*>::const_iterator GetChannelIterator_n(
-      const std::string& transport_name,
-      int component) const;
-  const JsepTransport* GetJsepTransport(
-      const std::string& transport_name) const;
-  JsepTransport* GetJsepTransport(const std::string& transport_name);
-  const RefCountedChannel* GetChannel_n(const std::string& transport_name,
-                                        int component) const;
-  RefCountedChannel* GetChannel_n(const std::string& transport_name,
-                                  int component);
 
-  JsepTransport* GetOrCreateJsepTransport(const std::string& transport_name);
-  void DestroyAllChannels_n();
+  Transport* GetOrCreateTransport_n(const std::string& transport_name);
+  void DestroyTransport_n(const std::string& transport_name);
+  void DestroyAllTransports_n();
 
   bool SetSslMaxProtocolVersion_n(rtc::SSLProtocolVersion version);
   void SetIceConfig_n(const IceConfig& config);
   void SetIceRole_n(IceRole ice_role);
-  bool GetSslRole_n(const std::string& transport_name,
-                    rtc::SSLRole* role) const;
+  bool GetSslRole_n(const std::string& transport_name, rtc::SSLRole* role);
   bool SetLocalCertificate_n(
       const rtc::scoped_refptr<rtc::RTCCertificate>& certificate);
   bool GetLocalCertificate_n(
       const std::string& transport_name,
-      rtc::scoped_refptr<rtc::RTCCertificate>* certificate) const;
+      rtc::scoped_refptr<rtc::RTCCertificate>* certificate);
   std::unique_ptr<rtc::SSLCertificate> GetRemoteSSLCertificate_n(
-      const std::string& transport_name) const;
+      const std::string& transport_name);
   bool SetLocalTransportDescription_n(const std::string& transport_name,
                                       const TransportDescription& tdesc,
                                       ContentAction action,
@@ -226,52 +185,46 @@ class TransportController : public sigslot::has_slots<>,
                              const Candidates& candidates,
                              std::string* err);
   bool RemoveRemoteCandidates_n(const Candidates& candidates, std::string* err);
-  bool ReadyForRemoteCandidates_n(const std::string& transport_name) const;
+  bool ReadyForRemoteCandidates_n(const std::string& transport_name);
   bool GetStats_n(const std::string& transport_name, TransportStats* stats);
-  void SetMetricsObserver_n(webrtc::MetricsObserverInterface* metrics_observer);
 
   // Handlers for signals from Transport.
-  void OnChannelWritableState_n(rtc::PacketTransportInternal* transport);
-  void OnChannelReceivingState_n(rtc::PacketTransportInternal* transport);
-  void OnChannelGatheringState_n(IceTransportInternal* channel);
-  void OnChannelCandidateGathered_n(IceTransportInternal* channel,
+  void OnChannelWritableState_n(TransportChannel* channel);
+  void OnChannelReceivingState_n(TransportChannel* channel);
+  void OnChannelGatheringState_n(TransportChannelImpl* channel);
+  void OnChannelCandidateGathered_n(TransportChannelImpl* channel,
                                     const Candidate& candidate);
   void OnChannelCandidatesRemoved(const Candidates& candidates);
-  void OnChannelCandidatesRemoved_n(IceTransportInternal* channel,
+  void OnChannelCandidatesRemoved_n(TransportChannelImpl* channel,
                                     const Candidates& candidates);
-  void OnChannelRoleConflict_n(IceTransportInternal* channel);
-  void OnChannelStateChanged_n(IceTransportInternal* channel);
+  void OnChannelRoleConflict_n(TransportChannelImpl* channel);
+  void OnChannelStateChanged_n(TransportChannelImpl* channel);
 
   void UpdateAggregateStates_n();
 
-  void OnDtlsHandshakeError(rtc::SSLHandshakeError error);
-
   rtc::Thread* const signaling_thread_ = nullptr;
   rtc::Thread* const network_thread_ = nullptr;
-  PortAllocator* const port_allocator_ = nullptr;
+  typedef std::map<std::string, Transport*> TransportMap;
+  TransportMap transports_;
 
-  std::map<std::string, std::unique_ptr<JsepTransport>> transports_;
-  std::vector<RefCountedChannel*> channels_;
+  std::vector<RefCountedChannel> channels_;
+
+  PortAllocator* const port_allocator_ = nullptr;
+  rtc::SSLProtocolVersion ssl_max_version_ = rtc::SSL_PROTOCOL_DTLS_12;
 
   // Aggregate state for TransportChannelImpls.
   IceConnectionState connection_state_ = kIceConnectionConnecting;
   bool receiving_ = false;
   IceGatheringState gathering_state_ = kIceGatheringNew;
 
+  // TODO(deadbeef): Move the fields below down to the transports themselves
   IceConfig ice_config_;
   IceRole ice_role_ = ICEROLE_CONTROLLING;
-  bool redetermine_role_on_ice_restart_;
   uint64_t ice_tiebreaker_ = rtc::CreateRandomId64();
-  rtc::CryptoOptions crypto_options_;
-  rtc::SSLProtocolVersion ssl_max_version_ = rtc::SSL_PROTOCOL_DTLS_12;
   rtc::scoped_refptr<rtc::RTCCertificate> certificate_;
   rtc::AsyncInvoker invoker_;
   // True if QUIC is used instead of DTLS.
   bool quic_ = false;
-
-  webrtc::MetricsObserverInterface* metrics_observer_ = nullptr;
-
-  RTC_DISALLOW_COPY_AND_ASSIGN(TransportController);
 };
 
 }  // namespace cricket

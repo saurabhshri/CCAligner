@@ -24,7 +24,6 @@ typedef struct _GdkEventKey GdkEventKey;
 typedef struct _GtkTreeView GtkTreeView;
 typedef struct _GtkTreePath GtkTreePath;
 typedef struct _GtkTreeViewColumn GtkTreeViewColumn;
-typedef struct _cairo cairo_t;
 
 // Implements the main UI of the peer connection client.
 // This is functionally equivalent to the MainWnd class in the Windows
@@ -72,17 +71,15 @@ class GtkMainWnd : public MainWindow {
 
   void OnRedraw();
 
-  void Draw(GtkWidget* widget, cairo_t* cr);
-
  protected:
-  class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
+  class VideoRenderer : public rtc::VideoSinkInterface<cricket::VideoFrame> {
    public:
     VideoRenderer(GtkMainWnd* main_wnd,
                   webrtc::VideoTrackInterface* track_to_render);
     virtual ~VideoRenderer();
 
     // VideoSinkInterface implementation
-    void OnFrame(const webrtc::VideoFrame& frame) override;
+    void OnFrame(const cricket::VideoFrame& frame) override;
 
     const uint8_t* image() const { return image_.get(); }
 
@@ -117,8 +114,6 @@ class GtkMainWnd : public MainWindow {
   bool autocall_;
   std::unique_ptr<VideoRenderer> local_renderer_;
   std::unique_ptr<VideoRenderer> remote_renderer_;
-  int width_;
-  int height_;
   std::unique_ptr<uint8_t[]> draw_buffer_;
   int draw_buffer_size_;
 };

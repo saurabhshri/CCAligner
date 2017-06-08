@@ -87,12 +87,12 @@
 
 #include "webrtc/common_audio/resampler/sinc_resampler.h"
 
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
 #include <limits>
 
-#include "webrtc/base/checks.h"
 #include "webrtc/system_wrappers/include/cpu_features_wrapper.h"
 #include "webrtc/typedefs.h"
 
@@ -117,8 +117,6 @@ double SincScaleFactor(double io_ratio) {
 }
 
 }  // namespace
-
-const size_t SincResampler::kKernelSize;
 
 // If we know the minimum architecture at compile time, avoid CPU detection.
 #if defined(WEBRTC_ARCH_X86_FAMILY)
@@ -161,17 +159,17 @@ SincResampler::SincResampler(double io_sample_rate_ratio,
       input_buffer_(static_cast<float*>(
           AlignedMalloc(sizeof(float) * input_buffer_size_, 16))),
 #if defined(WEBRTC_CPU_DETECTION)
-      convolve_proc_(nullptr),
+      convolve_proc_(NULL),
 #endif
       r1_(input_buffer_.get()),
       r2_(input_buffer_.get() + kKernelSize / 2) {
 #if defined(WEBRTC_CPU_DETECTION)
   InitializeCPUSpecificFeatures();
-  RTC_DCHECK(convolve_proc_);
+  assert(convolve_proc_);
 #endif
-  RTC_DCHECK_GT(request_frames_, 0);
+  assert(request_frames_ > 0);
   Flush();
-  RTC_DCHECK_GT(block_size_, kKernelSize);
+  assert(block_size_ > kKernelSize);
 
   memset(kernel_storage_.get(), 0,
          sizeof(*kernel_storage_.get()) * kKernelStorageSize);
@@ -194,11 +192,11 @@ void SincResampler::UpdateRegions(bool second_load) {
   block_size_ = r4_ - r2_;
 
   // r1_ at the beginning of the buffer.
-  RTC_DCHECK_EQ(r1_, input_buffer_.get());
+  assert(r1_ == input_buffer_.get());
   // r1_ left of r2_, r4_ left of r3_ and size correct.
-  RTC_DCHECK_EQ(r2_ - r1_, r4_ - r3_);
+  assert(r2_ - r1_ == r4_ - r3_);
   // r2_ left of r3.
-  RTC_DCHECK_LT(r2_, r3_);
+  assert(r2_ < r3_);
 }
 
 void SincResampler::InitializeKernel() {
@@ -285,7 +283,7 @@ void SincResampler::Resample(size_t frames, float* destination) {
     for (int i = static_cast<int>(
              ceil((block_size_ - virtual_source_idx_) / current_io_ratio));
          i > 0; --i) {
-      RTC_DCHECK_LT(virtual_source_idx_, block_size_);
+      assert(virtual_source_idx_ < block_size_);
 
       // |virtual_source_idx_| lies in between two kernel offsets so figure out
       // what they are.
@@ -303,8 +301,8 @@ void SincResampler::Resample(size_t frames, float* destination) {
 
       // Ensure |k1|, |k2| are 16-byte aligned for SIMD usage.  Should always be
       // true so long as kKernelSize is a multiple of 16.
-      RTC_DCHECK_EQ(0, reinterpret_cast<uintptr_t>(k1) % 16);
-      RTC_DCHECK_EQ(0, reinterpret_cast<uintptr_t>(k2) % 16);
+      assert(0u == (reinterpret_cast<uintptr_t>(k1) & 0x0F));
+      assert(0u == (reinterpret_cast<uintptr_t>(k2) & 0x0F));
 
       // Initialize input pointer based on quantized |virtual_source_idx_|.
       const float* const input_ptr = r1_ + source_idx;

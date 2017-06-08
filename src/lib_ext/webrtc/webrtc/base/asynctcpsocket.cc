@@ -17,6 +17,7 @@
 
 #include "webrtc/base/byteorder.h"
 #include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/logging.h"
 
 #if defined(WEBRTC_POSIX)
@@ -47,11 +48,11 @@ AsyncSocket* AsyncTCPSocketBase::ConnectSocket(
   std::unique_ptr<rtc::AsyncSocket> owned_socket(socket);
   if (socket->Bind(bind_address) < 0) {
     LOG(LS_ERROR) << "Bind() failed with error " << socket->GetError();
-    return nullptr;
+    return NULL;
   }
   if (socket->Connect(remote_address) < 0) {
     LOG(LS_ERROR) << "Connect() failed with error " << socket->GetError();
-    return nullptr;
+    return NULL;
   }
   return owned_socket.release();
 }
@@ -67,7 +68,7 @@ AsyncTCPSocketBase::AsyncTCPSocketBase(AsyncSocket* socket, bool listen,
     inbuf_.EnsureCapacity(kMinimumRecvSize);
   }
 
-  RTC_DCHECK(socket_.get() != nullptr);
+  RTC_DCHECK(socket_.get() != NULL);
   socket_->SignalConnectEvent.connect(
       this, &AsyncTCPSocketBase::OnConnectEvent);
   socket_->SignalReadEvent.connect(this, &AsyncTCPSocketBase::OnReadEvent);
@@ -260,7 +261,7 @@ void AsyncTCPSocketBase::OnCloseEvent(AsyncSocket* socket, int error) {
 
 // AsyncTCPSocket
 // Binds and connects |socket| and creates AsyncTCPSocket for
-// it. Takes ownership of |socket|. Returns null if bind() or
+// it. Takes ownership of |socket|. Returns NULL if bind() or
 // connect() fail (|socket| is destroyed in that case).
 AsyncTCPSocket* AsyncTCPSocket::Create(
     AsyncSocket* socket,

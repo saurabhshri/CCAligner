@@ -17,6 +17,7 @@ import android.preference.PreferenceFragment;
  * Settings fragment for AppRTC.
  */
 public class SettingsFragment extends PreferenceFragment {
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);

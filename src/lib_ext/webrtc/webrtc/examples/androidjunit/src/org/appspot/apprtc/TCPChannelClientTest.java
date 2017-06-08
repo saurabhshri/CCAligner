@@ -10,27 +10,28 @@
 
 package org.appspot.apprtc;
 
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import org.chromium.base.test.util.DisabledTest;
-import org.chromium.testing.local.LocalRobolectricTestRunner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLog;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(LocalRobolectricTestRunner.class)
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+
+@RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE)
 public class TCPChannelClientTest {
   private static final int PORT = 8888;
@@ -52,6 +53,7 @@ public class TCPChannelClientTest {
   private ExecutorService executor;
   private TCPChannelClient server;
   private TCPChannelClient client;
+
 
   @Before
   public void setUp() {
@@ -97,10 +99,7 @@ public class TCPChannelClientTest {
     verify(clientEvents, timeout(CONNECT_TIMEOUT)).onTCPConnected(false);
   }
 
-  // @Test
-  // Disabled because it fails when IPv6 is not supported on the bot.
-  // TODO(ehmaldonado): Enable when bugs.webrtc.org/6437 is fixed.
-  @DisabledTest
+  @Test
   public void testConnectIPv6() {
     setUpIPv6Server();
     try {

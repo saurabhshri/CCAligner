@@ -75,8 +75,6 @@ void CopyCodecSpecific(const CodecSpecificInfo* info, RTPVideoHeader* rtp) {
     }
     case kVideoCodecH264:
       rtp->codec = kRtpVideoH264;
-      rtp->codecHeader.H264.packetization_mode =
-          info->codecSpecific.H264.packetization_mode;
       return;
     case kVideoCodecGeneric:
       rtp->codec = kRtpVideoGeneric;
@@ -92,77 +90,111 @@ void CopyCodecSpecific(const CodecSpecificInfo* info, RTPVideoHeader* rtp) {
 PayloadRouter::PayloadRouter(const std::vector<RtpRtcp*>& rtp_modules,
                              int payload_type)
     : active_(false),
+      num_sending_modules_(1),
       rtp_modules_(rtp_modules),
       payload_type_(payload_type) {
+  UpdateModuleSendingState();
 }
 
 PayloadRouter::~PayloadRouter() {}
 
-void PayloadRouter::SetActive(bool active) {
+size_t PayloadRouter::DefaultMaxPayloadLength() {
+  const size_t kIpUdpSrtpLength = 44;
+  return IP_PACKET_SIZE - kIpUdpSrtpLength;
+}
+
+void PayloadRouter::set_active(bool active) {
   rtc::CritScope lock(&crit_);
   if (active_ == active)
     return;
   active_ = active;
-
-  for (auto& module : rtp_modules_) {
-    module->SetSendingStatus(active_);
-    module->SetSendingMediaStatus(active_);
-  }
+  UpdateModuleSendingState();
 }
 
-bool PayloadRouter::IsActive() {
+bool PayloadRouter::active() {
   rtc::CritScope lock(&crit_);
   return active_ && !rtp_modules_.empty();
 }
 
-EncodedImageCallback::Result PayloadRouter::OnEncodedImage(
-    const EncodedImage& encoded_image,
-    const CodecSpecificInfo* codec_specific_info,
-    const RTPFragmentationHeader* fragmentation) {
+void PayloadRouter::SetSendStreams(const std::vector<VideoStream>& streams) {
+  RTC_DCHECK_LE(streams.size(), rtp_modules_.size());
+  rtc::CritScope lock(&crit_);
+  num_sending_modules_ = streams.size();
+  streams_ = streams;
+  // TODO(perkj): Should SetSendStreams also call SetTargetSendBitrate?
+  UpdateModuleSendingState();
+}
+
+void PayloadRouter::UpdateModuleSendingState() {
+  for (size_t i = 0; i < num_sending_modules_; ++i) {
+    rtp_modules_[i]->SetSendingStatus(active_);
+    rtp_modules_[i]->SetSendingMediaStatus(active_);
+  }
+  // Disable inactive modules.
+  for (size_t i = num_sending_modules_; i < rtp_modules_.size(); ++i) {
+    rtp_modules_[i]->SetSendingStatus(false);
+    rtp_modules_[i]->SetSendingMediaStatus(false);
+  }
+}
+
+int32_t PayloadRouter::Encoded(const EncodedImage& encoded_image,
+                               const CodecSpecificInfo* codec_specific_info,
+                               const RTPFragmentationHeader* fragmentation) {
   rtc::CritScope lock(&crit_);
   RTC_DCHECK(!rtp_modules_.empty());
-  if (!active_)
-    return Result(Result::ERROR_SEND_FAILED);
+  if (!active_ || num_sending_modules_ == 0)
+    return -1;
+
+  int stream_idx = 0;
 
   RTPVideoHeader rtp_video_header;
   memset(&rtp_video_header, 0, sizeof(RTPVideoHeader));
   if (codec_specific_info)
     CopyCodecSpecific(codec_specific_info, &rtp_video_header);
   rtp_video_header.rotation = encoded_image.rotation_;
-  rtp_video_header.content_type = encoded_image.content_type_;
   rtp_video_header.playout_delay = encoded_image.playout_delay_;
 
-  int stream_index = rtp_video_header.simulcastIdx;
-  RTC_DCHECK_LT(stream_index, rtp_modules_.size());
-  uint32_t frame_id;
-  bool send_result = rtp_modules_[stream_index]->SendOutgoingData(
+  RTC_DCHECK_LT(rtp_video_header.simulcastIdx, rtp_modules_.size());
+  // The simulcast index might actually be larger than the number of modules
+  // in case the encoder was processing a frame during a codec reconfig.
+  if (rtp_video_header.simulcastIdx >= num_sending_modules_)
+    return -1;
+  stream_idx = rtp_video_header.simulcastIdx;
+
+  return rtp_modules_[stream_idx]->SendOutgoingData(
       encoded_image._frameType, payload_type_, encoded_image._timeStamp,
       encoded_image.capture_time_ms_, encoded_image._buffer,
-      encoded_image._length, fragmentation, &rtp_video_header, &frame_id);
-  if (!send_result)
-    return Result(Result::ERROR_SEND_FAILED);
-
-  return Result(Result::OK, frame_id);
+      encoded_image._length, fragmentation, &rtp_video_header);
 }
 
-void PayloadRouter::OnBitrateAllocationUpdated(
-    const BitrateAllocation& bitrate) {
+void PayloadRouter::SetTargetSendBitrate(uint32_t bitrate_bps) {
   rtc::CritScope lock(&crit_);
-  if (IsActive()) {
-    if (rtp_modules_.size() == 1) {
-      // If spatial scalability is enabled, it is covered by a single stream.
-      rtp_modules_[0]->SetVideoBitrateAllocation(bitrate);
+  RTC_DCHECK_LE(streams_.size(), rtp_modules_.size());
+
+  // TODO(sprang): Rebase https://codereview.webrtc.org/1913073002/ on top of
+  // this.
+  int bitrate_remainder = bitrate_bps;
+  for (size_t i = 0; i < streams_.size() && bitrate_remainder > 0; ++i) {
+    int stream_bitrate = 0;
+    if (streams_[i].max_bitrate_bps > bitrate_remainder) {
+      stream_bitrate = bitrate_remainder;
     } else {
-      // Simulcast is in use, split the BitrateAllocation into one struct per
-      // rtp stream, moving over the temporal layer allocation.
-      for (size_t si = 0; si < rtp_modules_.size(); ++si) {
-        BitrateAllocation layer_bitrate;
-        for (int tl = 0; tl < kMaxTemporalStreams; ++tl)
-          layer_bitrate.SetBitrate(0, tl, bitrate.GetBitrate(si, tl));
-        rtp_modules_[si]->SetVideoBitrateAllocation(layer_bitrate);
-      }
+      stream_bitrate = streams_[i].max_bitrate_bps;
     }
+    bitrate_remainder -= stream_bitrate;
+    rtp_modules_[i]->SetTargetSendBitrate(stream_bitrate);
   }
+}
+
+size_t PayloadRouter::MaxPayloadLength() const {
+  size_t min_payload_length = DefaultMaxPayloadLength();
+  rtc::CritScope lock(&crit_);
+  for (size_t i = 0; i < num_sending_modules_; ++i) {
+    size_t module_payload_length = rtp_modules_[i]->MaxDataPayloadLength();
+    if (module_payload_length < min_payload_length)
+      min_payload_length = module_payload_length;
+  }
+  return min_payload_length;
 }
 
 }  // namespace webrtc

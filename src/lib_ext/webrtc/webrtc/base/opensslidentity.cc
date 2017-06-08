@@ -8,6 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#if HAVE_OPENSSL_SSL_H
+
 #include "webrtc/base/opensslidentity.h"
 
 #include <memory>
@@ -46,44 +48,37 @@ static EVP_PKEY* MakeKey(const KeyParams& key_params) {
     RSA* rsa = RSA_new();
     if (!pkey || !exponent || !rsa ||
         !BN_set_word(exponent, key_params.rsa_params().pub_exp) ||
-        !RSA_generate_key_ex(rsa, key_length, exponent, nullptr) ||
+        !RSA_generate_key_ex(rsa, key_length, exponent, NULL) ||
         !EVP_PKEY_assign_RSA(pkey, rsa)) {
       EVP_PKEY_free(pkey);
       BN_free(exponent);
       RSA_free(rsa);
       LOG(LS_ERROR) << "Failed to make RSA key pair";
-      return nullptr;
+      return NULL;
     }
     // ownership of rsa struct was assigned, don't free it.
     BN_free(exponent);
   } else if (key_params.type() == KT_ECDSA) {
     if (key_params.ec_curve() == EC_NIST_P256) {
       EC_KEY* ec_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-
-      // Ensure curve name is included when EC key is serialized.
-      // Without this call, OpenSSL versions before 1.1.0 will create
-      // certificates that don't work for TLS.
-      // This is a no-op for BoringSSL and OpenSSL 1.1.0+
-      EC_KEY_set_asn1_flag(ec_key, OPENSSL_EC_NAMED_CURVE);
-
       if (!pkey || !ec_key || !EC_KEY_generate_key(ec_key) ||
           !EVP_PKEY_assign_EC_KEY(pkey, ec_key)) {
         EVP_PKEY_free(pkey);
         EC_KEY_free(ec_key);
         LOG(LS_ERROR) << "Failed to make EC key pair";
-        return nullptr;
+        return NULL;
       }
       // ownership of ec_key struct was assigned, don't free it.
     } else {
       // Add generation of any other curves here.
       EVP_PKEY_free(pkey);
       LOG(LS_ERROR) << "ECDSA key requested for unknown curve";
-      return nullptr;
+      return NULL;
     }
   } else {
     EVP_PKEY_free(pkey);
     LOG(LS_ERROR) << "Key type requested not understood";
-    return nullptr;
+    return NULL;
   }
 
   LOG(LS_INFO) << "Returning key pair";
@@ -94,12 +89,12 @@ static EVP_PKEY* MakeKey(const KeyParams& key_params) {
 // given key pair. Caller is responsible for freeing the returned object.
 static X509* MakeCertificate(EVP_PKEY* pkey, const SSLIdentityParams& params) {
   LOG(LS_INFO) << "Making certificate for " << params.common_name;
-  X509* x509 = nullptr;
-  BIGNUM* serial_number = nullptr;
-  X509_NAME* name = nullptr;
+  X509* x509 = NULL;
+  BIGNUM* serial_number = NULL;
+  X509_NAME* name = NULL;
   time_t epoch_off = 0;  // Time offset since epoch.
 
-  if ((x509 = X509_new()) == nullptr)
+  if ((x509=X509_new()) == NULL)
     goto error;
 
   if (!X509_set_pubkey(x509, pkey))
@@ -108,9 +103,9 @@ static X509* MakeCertificate(EVP_PKEY* pkey, const SSLIdentityParams& params) {
   // serial number
   // temporary reference to serial number inside x509 struct
   ASN1_INTEGER* asn1_serial_number;
-  if ((serial_number = BN_new()) == nullptr ||
+  if ((serial_number = BN_new()) == NULL ||
       !BN_pseudo_rand(serial_number, SERIAL_RAND_BITS, 0, 0) ||
-      (asn1_serial_number = X509_get_serialNumber(x509)) == nullptr ||
+      (asn1_serial_number = X509_get_serialNumber(x509)) == NULL ||
       !BN_to_ASN1_INTEGER(serial_number, asn1_serial_number))
     goto error;
 
@@ -124,11 +119,12 @@ static X509* MakeCertificate(EVP_PKEY* pkey, const SSLIdentityParams& params) {
   // arbitrary common_name. Note that this certificate goes out in
   // clear during SSL negotiation, so there may be a privacy issue in
   // putting anything recognizable here.
-  if ((name = X509_NAME_new()) == nullptr ||
-      !X509_NAME_add_entry_by_NID(name, NID_commonName, MBSTRING_UTF8,
-                                  (unsigned char*)params.common_name.c_str(),
-                                  -1, -1, 0) ||
-      !X509_set_subject_name(x509, name) || !X509_set_issuer_name(x509, name))
+  if ((name = X509_NAME_new()) == NULL ||
+      !X509_NAME_add_entry_by_NID(
+          name, NID_commonName, MBSTRING_UTF8,
+          (unsigned char*)params.common_name.c_str(), -1, -1, 0) ||
+      !X509_set_subject_name(x509, name) ||
+      !X509_set_issuer_name(x509, name))
     goto error;
 
   if (!X509_time_adj(X509_get_notBefore(x509), params.not_before, &epoch_off) ||
@@ -147,7 +143,7 @@ static X509* MakeCertificate(EVP_PKEY* pkey, const SSLIdentityParams& params) {
   BN_free(serial_number);
   X509_NAME_free(name);
   X509_free(x509);
-  return nullptr;
+  return NULL;
 }
 
 // This dumps the SSL error stack to the log.
@@ -165,7 +161,7 @@ OpenSSLKeyPair* OpenSSLKeyPair::Generate(const KeyParams& key_params) {
   EVP_PKEY* pkey = MakeKey(key_params);
   if (!pkey) {
     LogSSLErrors("Generating key pair");
-    return nullptr;
+    return NULL;
   }
   return new OpenSSLKeyPair(pkey);
 }
@@ -288,7 +284,7 @@ OpenSSLCertificate* OpenSSLCertificate::Generate(
   X509* x509 = MakeCertificate(key_pair->pkey(), actual_params);
   if (!x509) {
     LogSSLErrors("Generating certificate");
-    return nullptr;
+    return NULL;
   }
 #if !defined(NDEBUG)
   PrintCert(x509);
@@ -302,14 +298,13 @@ OpenSSLCertificate* OpenSSLCertificate::FromPEMString(
     const std::string& pem_string) {
   BIO* bio = BIO_new_mem_buf(const_cast<char*>(pem_string.c_str()), -1);
   if (!bio)
-    return nullptr;
+    return NULL;
   BIO_set_mem_eof_return(bio, 0);
-  X509* x509 =
-      PEM_read_bio_X509(bio, nullptr, nullptr, const_cast<char*>("\0"));
+  X509* x509 = PEM_read_bio_X509(bio, NULL, NULL, const_cast<char*>("\0"));
   BIO_free(bio);  // Frees the BIO, but not the pointed-to string.
 
   if (!x509)
-    return nullptr;
+    return NULL;
 
   OpenSSLCertificate* ret = new OpenSSLCertificate(x509);
   X509_free(x509);
@@ -441,7 +436,7 @@ void OpenSSLCertificate::ToDER(Buffer* der_buffer) const {
 }
 
 void OpenSSLCertificate::AddReference() const {
-  RTC_DCHECK(x509_ != nullptr);
+  ASSERT(x509_ != NULL);
 #if defined(OPENSSL_IS_BORINGSSL)
   X509_up_ref(x509_);
 #else
@@ -476,8 +471,8 @@ int64_t OpenSSLCertificate::CertificateExpirationTime() const {
 OpenSSLIdentity::OpenSSLIdentity(OpenSSLKeyPair* key_pair,
                                  OpenSSLCertificate* certificate)
     : key_pair_(key_pair), certificate_(certificate) {
-  RTC_DCHECK(key_pair != nullptr);
-  RTC_DCHECK(certificate != nullptr);
+  ASSERT(key_pair != NULL);
+  ASSERT(certificate != NULL);
 }
 
 OpenSSLIdentity::~OpenSSLIdentity() = default;
@@ -493,7 +488,7 @@ OpenSSLIdentity* OpenSSLIdentity::GenerateInternal(
     delete key_pair;
   }
   LOG(LS_INFO) << "Identity generation failed";
-  return nullptr;
+  return NULL;
 }
 
 OpenSSLIdentity* OpenSSLIdentity::GenerateWithExpiration(
@@ -503,7 +498,7 @@ OpenSSLIdentity* OpenSSLIdentity::GenerateWithExpiration(
   SSLIdentityParams params;
   params.key_params = key_params;
   params.common_name = common_name;
-  time_t now = time(nullptr);
+  time_t now = time(NULL);
   params.not_before = now + kCertificateWindowInSeconds;
   params.not_after = now + certificate_lifetime;
   if (params.not_before > params.not_after)
@@ -574,3 +569,5 @@ bool OpenSSLIdentity::operator!=(const OpenSSLIdentity& other) const {
 }
 
 }  // namespace rtc
+
+#endif  // HAVE_OPENSSL_SSL_H

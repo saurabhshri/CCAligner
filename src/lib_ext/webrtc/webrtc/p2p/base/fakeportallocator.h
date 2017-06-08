@@ -89,7 +89,7 @@ class TestUDPPort : public UDPPort {
 class FakePortAllocatorSession : public PortAllocatorSession {
  public:
   FakePortAllocatorSession(PortAllocator* allocator,
-                           rtc::Thread* network_thread,
+                           rtc::Thread* worker_thread,
                            rtc::PacketSocketFactory* factory,
                            const std::string& content_name,
                            int component,
@@ -100,7 +100,7 @@ class FakePortAllocatorSession : public PortAllocatorSession {
                              ice_ufrag,
                              ice_pwd,
                              allocator->flags()),
-        network_thread_(network_thread),
+        worker_thread_(worker_thread),
         factory_(factory),
         ipv4_network_("network",
                       "unittest",
@@ -111,6 +111,7 @@ class FakePortAllocatorSession : public PortAllocatorSession {
                       rtc::IPAddress(in6addr_loopback),
                       64),
         port_(),
+        running_(false),
         port_config_count_(0),
         stun_servers_(allocator->stun_servers()),
         turn_servers_(allocator->turn_servers()) {
@@ -128,11 +129,9 @@ class FakePortAllocatorSession : public PortAllocatorSession {
           (rtc::HasIPv6Enabled() && (flags() & PORTALLOCATOR_ENABLE_IPV6))
               ? ipv6_network_
               : ipv4_network_;
-      port_.reset(TestUDPPort::Create(network_thread_, factory_, &network,
+      port_.reset(TestUDPPort::Create(worker_thread_, factory_, &network,
                                       network.GetBestIP(), 0, 0, username(),
                                       password(), std::string(), false));
-      port_->SignalDestroyed.connect(
-          this, &FakePortAllocatorSession::OnPortDestroyed);
       AddPort(port_.get());
     }
     ++port_config_count_;
@@ -142,14 +141,12 @@ class FakePortAllocatorSession : public PortAllocatorSession {
   void StopGettingPorts() override { running_ = false; }
   bool IsGettingPorts() override { return running_; }
   void ClearGettingPorts() override {}
-
   std::vector<PortInterface*> ReadyPorts() const override {
     return ready_ports_;
   }
   std::vector<Candidate> ReadyCandidates() const override {
     return candidates_;
   }
-  void PruneAllPorts() override { port_->Prune(); }
   bool CandidatesAllocationDone() const override { return allocation_done_; }
 
   int port_config_count() { return port_config_count_; }
@@ -182,7 +179,6 @@ class FakePortAllocatorSession : public PortAllocatorSession {
     port->PrepareAddress();
     ready_ports_.push_back(port);
     SignalPortReady(this, port);
-    port->KeepAliveUntilPruned();
   }
   void OnPortComplete(cricket::Port* port) {
     const std::vector<Candidate>& candidates = port->Candidates();
@@ -192,16 +188,13 @@ class FakePortAllocatorSession : public PortAllocatorSession {
     allocation_done_ = true;
     SignalCandidatesAllocationDone(this);
   }
-  void OnPortDestroyed(cricket::PortInterface* port) {
-    // Don't want to double-delete port if it deletes itself.
-    port_.release();
-  }
 
-  rtc::Thread* network_thread_;
+  rtc::Thread* worker_thread_;
   rtc::PacketSocketFactory* factory_;
   rtc::Network ipv4_network_;
   rtc::Network ipv6_network_;
   std::unique_ptr<cricket::Port> port_;
+  bool running_;
   int port_config_count_;
   std::vector<Candidate> candidates_;
   std::vector<PortInterface*> ready_ports_;
@@ -210,24 +203,17 @@ class FakePortAllocatorSession : public PortAllocatorSession {
   std::vector<RelayServerConfig> turn_servers_;
   uint32_t candidate_filter_ = CF_ALL;
   int transport_info_update_count_ = 0;
-  bool running_ = false;
 };
 
 class FakePortAllocator : public cricket::PortAllocator {
  public:
-  FakePortAllocator(rtc::Thread* network_thread,
+  FakePortAllocator(rtc::Thread* worker_thread,
                     rtc::PacketSocketFactory* factory)
-      : network_thread_(network_thread), factory_(factory) {
+      : worker_thread_(worker_thread), factory_(factory) {
     if (factory_ == NULL) {
-      owned_factory_.reset(new rtc::BasicPacketSocketFactory(network_thread_));
+      owned_factory_.reset(new rtc::BasicPacketSocketFactory(worker_thread_));
       factory_ = owned_factory_.get();
     }
-  }
-
-  void Initialize() override {
-    // Port allocator should be initialized on the network thread.
-    RTC_CHECK(network_thread_->IsCurrent());
-    initialized_ = true;
   }
 
   void SetNetworkIgnoreMask(int network_ignore_mask) override {}
@@ -237,18 +223,15 @@ class FakePortAllocator : public cricket::PortAllocator {
       int component,
       const std::string& ice_ufrag,
       const std::string& ice_pwd) override {
-    return new FakePortAllocatorSession(this, network_thread_, factory_,
+    return new FakePortAllocatorSession(this, worker_thread_, factory_,
                                         content_name, component, ice_ufrag,
                                         ice_pwd);
   }
 
-  bool initialized() const { return initialized_; }
-
  private:
-  rtc::Thread* network_thread_;
+  rtc::Thread* worker_thread_;
   rtc::PacketSocketFactory* factory_;
   std::unique_ptr<rtc::BasicPacketSocketFactory> owned_factory_;
-  bool initialized_ = false;
 };
 
 }  // namespace cricket

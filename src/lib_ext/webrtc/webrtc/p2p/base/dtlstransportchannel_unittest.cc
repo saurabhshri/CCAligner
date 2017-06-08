@@ -11,10 +11,9 @@
 #include <memory>
 #include <set>
 
-#include "webrtc/p2p/base/dtlstransportchannel.h"
-#include "webrtc/p2p/base/fakeicetransport.h"
-#include "webrtc/p2p/base/packettransportinternal.h"
-#include "webrtc/base/checks.h"
+#include "webrtc/p2p/base/dtlstransport.h"
+#include "webrtc/p2p/base/faketransportcontroller.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/dscp.h"
 #include "webrtc/base/gunit.h"
 #include "webrtc/base/helpers.h"
@@ -46,13 +45,9 @@ cricket::TransportDescription MakeTransportDescription(
   std::unique_ptr<rtc::SSLFingerprint> fingerprint;
   if (cert) {
     std::string digest_algorithm;
-    EXPECT_TRUE(
-        cert->ssl_certificate().GetSignatureDigestAlgorithm(&digest_algorithm));
-    EXPECT_FALSE(digest_algorithm.empty());
+    cert->ssl_certificate().GetSignatureDigestAlgorithm(&digest_algorithm);
     fingerprint.reset(
         rtc::SSLFingerprint::Create(digest_algorithm, cert->identity()));
-    EXPECT_TRUE(fingerprint.get() != NULL);
-    EXPECT_EQ(rtc::DIGEST_SHA_256, digest_algorithm);
   }
   return cricket::TransportDescription(std::vector<std::string>(), kIceUfrag1,
                                        kIcePwd1, cricket::ICEMODE_FULL, role,
@@ -63,9 +58,6 @@ using cricket::ConnectionRole;
 
 enum Flags { NF_REOFFER = 0x1, NF_EXPECT_FAILURE = 0x2 };
 
-// TODO(deadbeef): Remove the dependency on JsepTransport. This test should be
-// testing DtlsTransportChannel by itself, calling methods to set the
-// configuration directly instead of negotiating TransportDescriptions.
 class DtlsTestClient : public sigslot::has_slots<> {
  public:
   DtlsTestClient(const std::string& name) : name_(name) {}
@@ -77,59 +69,50 @@ class DtlsTestClient : public sigslot::has_slots<> {
   const rtc::scoped_refptr<rtc::RTCCertificate>& certificate() {
     return certificate_;
   }
+  void SetupSrtp() {
+    ASSERT(certificate_);
+    use_dtls_srtp_ = true;
+  }
   void SetupMaxProtocolVersion(rtc::SSLProtocolVersion version) {
+    ASSERT(!transport_);
     ssl_max_version_ = version;
   }
-  void SetupChannels(int count, cricket::IceRole role, int async_delay_ms = 0) {
-    transport_.reset(
-        new cricket::JsepTransport("dtls content name", certificate_));
+  void SetupChannels(int count, cricket::IceRole role) {
+    transport_.reset(new cricket::DtlsTransport<cricket::FakeTransport>(
+        "dtls content name", nullptr, certificate_));
+    transport_->SetAsync(true);
+    transport_->SetIceRole(role);
+    transport_->SetIceTiebreaker(
+        (role == cricket::ICEROLE_CONTROLLING) ? 1 : 2);
+
     for (int i = 0; i < count; ++i) {
-      cricket::FakeIceTransport* fake_ice_channel =
-          new cricket::FakeIceTransport(transport_->mid(), i);
-      fake_ice_channel->SetAsync(true);
-      fake_ice_channel->SetAsyncDelay(async_delay_ms);
-      // Hook the raw packets so that we can verify they are encrypted.
-      fake_ice_channel->SignalReadPacket.connect(
-          this, &DtlsTestClient::OnFakeTransportChannelReadPacket);
-
-      cricket::DtlsTransport* dtls =
-          new cricket::DtlsTransport(fake_ice_channel, rtc::CryptoOptions());
-      dtls->SetLocalCertificate(certificate_);
-      dtls->ice_transport()->SetIceRole(role);
-      dtls->ice_transport()->SetIceTiebreaker(
-          (role == cricket::ICEROLE_CONTROLLING) ? 1 : 2);
-      dtls->SetSslMaxProtocolVersion(ssl_max_version_);
-      dtls->SignalWritableState.connect(
-          this, &DtlsTestClient::OnTransportChannelWritableState);
-      dtls->SignalReadPacket.connect(
-          this, &DtlsTestClient::OnTransportChannelReadPacket);
-      dtls->SignalSentPacket.connect(
+      cricket::DtlsTransportChannelWrapper* channel =
+          static_cast<cricket::DtlsTransportChannelWrapper*>(
+              transport_->CreateChannel(i));
+      ASSERT_TRUE(channel != NULL);
+      channel->SetSslMaxProtocolVersion(ssl_max_version_);
+      channel->SignalWritableState.connect(this,
+        &DtlsTestClient::OnTransportChannelWritableState);
+      channel->SignalReadPacket.connect(this,
+        &DtlsTestClient::OnTransportChannelReadPacket);
+      channel->SignalSentPacket.connect(
           this, &DtlsTestClient::OnTransportChannelSentPacket);
-      dtls_transports_.push_back(std::unique_ptr<cricket::DtlsTransport>(dtls));
-      fake_ice_transports_.push_back(
-          std::unique_ptr<cricket::FakeIceTransport>(fake_ice_channel));
-      transport_->AddChannel(dtls, i);
+      channels_.push_back(channel);
+
+      // Hook the raw packets so that we can verify they are encrypted.
+      channel->channel()->SignalReadPacket.connect(
+          this, &DtlsTestClient::OnFakeTransportChannelReadPacket);
     }
   }
 
-  cricket::JsepTransport* transport() { return transport_.get(); }
+  cricket::Transport* transport() { return transport_.get(); }
 
-  cricket::FakeIceTransport* GetFakeIceTransort(int component) {
-    for (const auto& ch : fake_ice_transports_) {
-      if (ch->component() == component) {
-        return ch.get();
-      }
-    }
-    return nullptr;
-  }
-
-  cricket::DtlsTransport* GetDtlsTransport(int component) {
-    for (const auto& dtls : dtls_transports_) {
-      if (dtls->component() == component) {
-        return dtls.get();
-      }
-    }
-    return nullptr;
+  cricket::FakeTransportChannel* GetFakeChannel(int component) {
+    cricket::TransportChannelImpl* ch = transport_->GetChannel(component);
+    cricket::DtlsTransportChannelWrapper* wrapper =
+        static_cast<cricket::DtlsTransportChannelWrapper*>(ch);
+    return (wrapper) ?
+        static_cast<cricket::FakeTransportChannel*>(wrapper->channel()) : NULL;
   }
 
   // Offer DTLS if we have an identity; pass in a remote fingerprint only if
@@ -141,34 +124,6 @@ class DtlsTestClient : public sigslot::has_slots<> {
               local_role, remote_role, flags);
   }
 
-  void SetLocalTransportDescription(
-      const rtc::scoped_refptr<rtc::RTCCertificate>& cert,
-      cricket::ContentAction action,
-      ConnectionRole role,
-      int flags) {
-    // If |NF_EXPECT_FAILURE| is set, expect SRTD or SLTD to fail when
-    // content action is CA_ANSWER.
-    bool expect_success =
-        !((action == cricket::CA_ANSWER) && (flags & NF_EXPECT_FAILURE));
-    EXPECT_EQ(expect_success,
-              transport_->SetLocalTransportDescription(
-                  MakeTransportDescription(cert, role), action, nullptr));
-  }
-
-  void SetRemoteTransportDescription(
-      const rtc::scoped_refptr<rtc::RTCCertificate>& cert,
-      cricket::ContentAction action,
-      ConnectionRole role,
-      int flags) {
-    // If |NF_EXPECT_FAILURE| is set, expect SRTD or SLTD to fail when
-    // content action is CA_ANSWER.
-    bool expect_success =
-        !((action == cricket::CA_ANSWER) && (flags & NF_EXPECT_FAILURE));
-    EXPECT_EQ(expect_success,
-              transport_->SetRemoteTransportDescription(
-                  MakeTransportDescription(cert, role), action, nullptr));
-  }
-
   // Allow any DTLS configuration to be specified (including invalid ones).
   void Negotiate(const rtc::scoped_refptr<rtc::RTCCertificate>& local_cert,
                  const rtc::scoped_refptr<rtc::RTCCertificate>& remote_cert,
@@ -176,47 +131,92 @@ class DtlsTestClient : public sigslot::has_slots<> {
                  ConnectionRole local_role,
                  ConnectionRole remote_role,
                  int flags) {
-    if (action == cricket::CA_OFFER) {
-      SetLocalTransportDescription(local_cert, cricket::CA_OFFER, local_role,
-                                   flags);
-      SetRemoteTransportDescription(remote_cert, cricket::CA_ANSWER,
-                                    remote_role, flags);
-    } else {
-      SetRemoteTransportDescription(remote_cert, cricket::CA_OFFER, remote_role,
-                                    flags);
-      // If remote if the offerer and has no DTLS support, answer will be
-      // without any fingerprint.
-      SetLocalTransportDescription(remote_cert ? local_cert : nullptr,
-                                   cricket::CA_ANSWER, local_role, flags);
+    std::unique_ptr<rtc::SSLFingerprint> local_fingerprint;
+    std::unique_ptr<rtc::SSLFingerprint> remote_fingerprint;
+    if (local_cert) {
+      std::string digest_algorithm;
+      ASSERT_TRUE(local_cert->ssl_certificate().GetSignatureDigestAlgorithm(
+          &digest_algorithm));
+      ASSERT_FALSE(digest_algorithm.empty());
+      local_fingerprint.reset(rtc::SSLFingerprint::Create(
+          digest_algorithm, local_cert->identity()));
+      ASSERT_TRUE(local_fingerprint.get() != NULL);
+      EXPECT_EQ(rtc::DIGEST_SHA_256, digest_algorithm);
     }
+    if (remote_cert) {
+      std::string digest_algorithm;
+      ASSERT_TRUE(remote_cert->ssl_certificate().GetSignatureDigestAlgorithm(
+          &digest_algorithm));
+      ASSERT_FALSE(digest_algorithm.empty());
+      remote_fingerprint.reset(rtc::SSLFingerprint::Create(
+          digest_algorithm, remote_cert->identity()));
+      ASSERT_TRUE(remote_fingerprint.get() != NULL);
+      EXPECT_EQ(rtc::DIGEST_SHA_256, digest_algorithm);
+    }
+
+    if (use_dtls_srtp_ && !(flags & NF_REOFFER)) {
+      // SRTP ciphers will be set only in the beginning.
+      for (std::vector<cricket::DtlsTransportChannelWrapper*>::iterator it =
+           channels_.begin(); it != channels_.end(); ++it) {
+        std::vector<int> ciphers;
+        ciphers.push_back(rtc::SRTP_AES128_CM_SHA1_80);
+        ASSERT_TRUE((*it)->SetSrtpCryptoSuites(ciphers));
+      }
+    }
+
+    cricket::TransportDescription local_desc(
+        std::vector<std::string>(), kIceUfrag1, kIcePwd1, cricket::ICEMODE_FULL,
+        local_role,
+        // If remote if the offerer and has no DTLS support, answer will be
+        // without any fingerprint.
+        (action == cricket::CA_ANSWER && !remote_cert)
+            ? nullptr
+            : local_fingerprint.get());
+
+    cricket::TransportDescription remote_desc(
+        std::vector<std::string>(), kIceUfrag1, kIcePwd1, cricket::ICEMODE_FULL,
+        remote_role, remote_fingerprint.get());
+
+    bool expect_success = (flags & NF_EXPECT_FAILURE) ? false : true;
+    // If |expect_success| is false, expect SRTD or SLTD to fail when
+    // content action is CA_ANSWER.
+    if (action == cricket::CA_OFFER) {
+      ASSERT_TRUE(transport_->SetLocalTransportDescription(
+          local_desc, cricket::CA_OFFER, NULL));
+      ASSERT_EQ(expect_success, transport_->SetRemoteTransportDescription(
+          remote_desc, cricket::CA_ANSWER, NULL));
+    } else {
+      ASSERT_TRUE(transport_->SetRemoteTransportDescription(
+          remote_desc, cricket::CA_OFFER, NULL));
+      ASSERT_EQ(expect_success, transport_->SetLocalTransportDescription(
+          local_desc, cricket::CA_ANSWER, NULL));
+    }
+    negotiated_dtls_ = (local_cert && remote_cert);
   }
 
   bool Connect(DtlsTestClient* peer, bool asymmetric) {
-    for (auto& ice : fake_ice_transports_) {
-      ice->SetDestination(peer->GetFakeIceTransort(ice->component()),
-                          asymmetric);
-    }
+    transport_->SetDestination(peer->transport_.get(), asymmetric);
     return true;
   }
 
-  bool all_dtls_transports_writable() const {
-    if (dtls_transports_.empty()) {
+  bool all_channels_writable() const {
+    if (channels_.empty()) {
       return false;
     }
-    for (const auto& dtls : dtls_transports_) {
-      if (!dtls->writable()) {
+    for (cricket::DtlsTransportChannelWrapper* channel : channels_) {
+      if (!channel->writable()) {
         return false;
       }
     }
     return true;
   }
 
-  bool all_ice_transports_writable() const {
-    if (dtls_transports_.empty()) {
+  bool all_raw_channels_writable() const {
+    if (channels_.empty()) {
       return false;
     }
-    for (const auto& dtls : dtls_transports_) {
-      if (!dtls->ice_transport()->writable()) {
+    for (cricket::DtlsTransportChannelWrapper* channel : channels_) {
+      if (!channel->channel()->writable()) {
         return false;
       }
     }
@@ -225,17 +225,6 @@ class DtlsTestClient : public sigslot::has_slots<> {
 
   int received_dtls_client_hellos() const {
     return received_dtls_client_hellos_;
-  }
-
-  int received_dtls_server_hellos() const {
-    return received_dtls_server_hellos_;
-  }
-
-  bool negotiated_dtls() const {
-    return transport_->local_description() &&
-           transport_->local_description()->identity_fingerprint &&
-           transport_->remote_description() &&
-           transport_->remote_description()->identity_fingerprint;
   }
 
   void CheckRole(rtc::SSLRole role) {
@@ -249,11 +238,12 @@ class DtlsTestClient : public sigslot::has_slots<> {
   }
 
   void CheckSrtp(int expected_crypto_suite) {
-    for (const auto& dtls : dtls_transports_) {
+    for (std::vector<cricket::DtlsTransportChannelWrapper*>::iterator it =
+           channels_.begin(); it != channels_.end(); ++it) {
       int crypto_suite;
 
-      bool rv = dtls->GetSrtpCryptoSuite(&crypto_suite);
-      if (negotiated_dtls() && expected_crypto_suite) {
+      bool rv = (*it)->GetSrtpCryptoSuite(&crypto_suite);
+      if (negotiated_dtls_ && expected_crypto_suite) {
         ASSERT_TRUE(rv);
 
         ASSERT_EQ(crypto_suite, expected_crypto_suite);
@@ -264,11 +254,12 @@ class DtlsTestClient : public sigslot::has_slots<> {
   }
 
   void CheckSsl() {
-    for (const auto& dtls : dtls_transports_) {
+    for (std::vector<cricket::DtlsTransportChannelWrapper*>::iterator it =
+           channels_.begin(); it != channels_.end(); ++it) {
       int cipher;
 
-      bool rv = dtls->GetSslCipherSuite(&cipher);
-      if (negotiated_dtls()) {
+      bool rv = (*it)->GetSslCipherSuite(&cipher);
+      if (negotiated_dtls_) {
         ASSERT_TRUE(rv);
 
         EXPECT_TRUE(
@@ -279,8 +270,8 @@ class DtlsTestClient : public sigslot::has_slots<> {
     }
   }
 
-  void SendPackets(size_t transport, size_t size, size_t count, bool srtp) {
-    RTC_CHECK(transport < dtls_transports_.size());
+  void SendPackets(size_t channel, size_t size, size_t count, bool srtp) {
+    ASSERT(channel < channels_.size());
     std::unique_ptr<char[]> packet(new char[size]);
     size_t sent = 0;
     do {
@@ -295,26 +286,26 @@ class DtlsTestClient : public sigslot::has_slots<> {
       int flags = (certificate_ && srtp) ? cricket::PF_SRTP_BYPASS : 0;
       rtc::PacketOptions packet_options;
       packet_options.packet_id = kFakePacketId;
-      int rv = dtls_transports_[transport]->SendPacket(packet.get(), size,
-                                                       packet_options, flags);
+      int rv = channels_[channel]->SendPacket(
+          packet.get(), size, packet_options, flags);
       ASSERT_GT(rv, 0);
       ASSERT_EQ(size, static_cast<size_t>(rv));
       ++sent;
     } while (sent < count);
   }
 
-  int SendInvalidSrtpPacket(size_t transport, size_t size) {
-    RTC_CHECK(transport < dtls_transports_.size());
+  int SendInvalidSrtpPacket(size_t channel, size_t size) {
+    ASSERT(channel < channels_.size());
     std::unique_ptr<char[]> packet(new char[size]);
     // Fill the packet with 0 to form an invalid SRTP packet.
     memset(packet.get(), 0, size);
 
     rtc::PacketOptions packet_options;
-    return dtls_transports_[transport]->SendPacket(
+    return channels_[channel]->SendPacket(
         packet.get(), size, packet_options, cricket::PF_SRTP_BYPASS);
   }
 
-  void ExpectPackets(size_t transport, size_t size) {
+  void ExpectPackets(size_t channel, size_t size) {
     packet_size_ = size;
     received_.clear();
   }
@@ -356,15 +347,13 @@ class DtlsTestClient : public sigslot::has_slots<> {
   }
 
   // Transport channel callbacks
-  void OnTransportChannelWritableState(
-      rtc::PacketTransportInternal* transport) {
-    LOG(LS_INFO) << name_ << ": Channel '" << transport->debug_name()
+  void OnTransportChannelWritableState(cricket::TransportChannel* channel) {
+    LOG(LS_INFO) << name_ << ": Channel '" << channel->component()
                  << "' is writable";
   }
 
-  void OnTransportChannelReadPacket(rtc::PacketTransportInternal* transport,
-                                    const char* data,
-                                    size_t size,
+  void OnTransportChannelReadPacket(cricket::TransportChannel* channel,
+                                    const char* data, size_t size,
                                     const rtc::PacketTime& packet_time,
                                     int flags) {
     uint32_t packet_num = 0;
@@ -376,7 +365,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
     ASSERT_EQ(expected_flags, flags);
   }
 
-  void OnTransportChannelSentPacket(rtc::PacketTransportInternal* transport,
+  void OnTransportChannelSentPacket(cricket::TransportChannel* channel,
                                     const rtc::SentPacket& sent_packet) {
     sent_packet_ = sent_packet;
   }
@@ -384,9 +373,8 @@ class DtlsTestClient : public sigslot::has_slots<> {
   rtc::SentPacket sent_packet() const { return sent_packet_; }
 
   // Hook into the raw packet stream to make sure DTLS packets are encrypted.
-  void OnFakeTransportChannelReadPacket(rtc::PacketTransportInternal* transport,
-                                        const char* data,
-                                        size_t size,
+  void OnFakeTransportChannelReadPacket(cricket::TransportChannel* channel,
+                                        const char* data, size_t size,
                                         const rtc::PacketTime& time,
                                         int flags) {
     // Flags shouldn't be set on the underlying TransportChannel packets.
@@ -400,7 +388,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
       } else if (data[13] == 2) {
         ++received_dtls_server_hellos_;
       }
-    } else if (negotiated_dtls() && !(data[0] >= 20 && data[0] <= 22)) {
+    } else if (negotiated_dtls_ && !(data[0] >= 20 && data[0] <= 22)) {
       ASSERT_TRUE(data[0] == 23 || IsRtpLeadByte(data[0]));
       if (data[0] == 23) {
         ASSERT_TRUE(VerifyEncryptedPacket(data, size));
@@ -413,29 +401,28 @@ class DtlsTestClient : public sigslot::has_slots<> {
  private:
   std::string name_;
   rtc::scoped_refptr<rtc::RTCCertificate> certificate_;
-  std::vector<std::unique_ptr<cricket::FakeIceTransport>> fake_ice_transports_;
-  std::vector<std::unique_ptr<cricket::DtlsTransport>> dtls_transports_;
-  std::unique_ptr<cricket::JsepTransport> transport_;
+  std::unique_ptr<cricket::FakeTransport> transport_;
+  std::vector<cricket::DtlsTransportChannelWrapper*> channels_;
   size_t packet_size_ = 0u;
   std::set<int> received_;
+  bool use_dtls_srtp_ = false;
   rtc::SSLProtocolVersion ssl_max_version_ = rtc::SSL_PROTOCOL_DTLS_12;
+  bool negotiated_dtls_ = false;
   int received_dtls_client_hellos_ = 0;
   int received_dtls_server_hellos_ = 0;
   rtc::SentPacket sent_packet_;
 };
 
-// Base class for DtlsTransportChannelTest and DtlsEventOrderingTest, which
-// inherit from different variants of testing::Test.
-//
 // Note that this test always uses a FakeClock, due to the |fake_clock_| member
 // variable.
-class DtlsTransportChannelTestBase {
+class DtlsTransportChannelTest : public testing::Test {
  public:
-  DtlsTransportChannelTestBase()
+  DtlsTransportChannelTest()
       : client1_("P1"),
         client2_("P2"),
         channel_ct_(1),
         use_dtls_(false),
+        use_dtls_srtp_(false),
         ssl_expected_version_(rtc::SSL_PROTOCOL_DTLS_12) {}
 
   void SetChannelCount(size_t channel_ct) {
@@ -457,43 +444,31 @@ class DtlsTransportChannelTestBase {
     if (c1 && c2)
       use_dtls_ = true;
   }
+  void PrepareDtlsSrtp(bool c1, bool c2) {
+    if (!use_dtls_)
+      return;
 
-  // Negotiate local/remote fingerprint before or after the underlying
-  // tranpsort is connected?
-  enum NegotiateOrdering { NEGOTIATE_BEFORE_CONNECT, CONNECT_BEFORE_NEGOTIATE };
-  bool Connect(ConnectionRole client1_role,
-               ConnectionRole client2_role,
-               NegotiateOrdering ordering = NEGOTIATE_BEFORE_CONNECT) {
-    bool rv;
-    if (ordering == NEGOTIATE_BEFORE_CONNECT) {
-      Negotiate(client1_role, client2_role);
-      rv = client1_.Connect(&client2_, false);
-    } else {
-      client1_.SetupChannels(channel_ct_, cricket::ICEROLE_CONTROLLING);
-      client2_.SetupChannels(channel_ct_, cricket::ICEROLE_CONTROLLED);
-      // This is equivalent to an offer being processed on both sides, but an
-      // answer not yet being received on the initiating side. So the
-      // connection will be made before negotiation has finished on both sides.
-      client1_.SetLocalTransportDescription(client1_.certificate(),
-                                            cricket::CA_OFFER, client1_role, 0);
-      client2_.SetRemoteTransportDescription(
-          client1_.certificate(), cricket::CA_OFFER, client1_role, 0);
-      client2_.SetLocalTransportDescription(
-          client2_.certificate(), cricket::CA_ANSWER, client2_role, 0);
-      rv = client1_.Connect(&client2_, false);
-      client1_.SetRemoteTransportDescription(
-          client2_.certificate(), cricket::CA_ANSWER, client2_role, 0);
-    }
+    if (c1)
+      client1_.SetupSrtp();
+    if (c2)
+      client2_.SetupSrtp();
 
+    if (c1 && c2)
+      use_dtls_srtp_ = true;
+  }
+
+  bool Connect(ConnectionRole client1_role, ConnectionRole client2_role) {
+    Negotiate(client1_role, client2_role);
+
+    bool rv = client1_.Connect(&client2_, false);
     EXPECT_TRUE(rv);
     if (!rv)
       return false;
 
-    EXPECT_TRUE_SIMULATED_WAIT(client1_.all_dtls_transports_writable() &&
-                                   client2_.all_dtls_transports_writable(),
-                               kTimeout, fake_clock_);
-    if (!client1_.all_dtls_transports_writable() ||
-        !client2_.all_dtls_transports_writable())
+    EXPECT_TRUE_WAIT(
+        client1_.all_channels_writable() && client2_.all_channels_writable(),
+        kTimeout);
+    if (!client1_.all_channels_writable() || !client2_.all_channels_writable())
       return false;
 
     // Check that we used the right roles.
@@ -514,14 +489,11 @@ class DtlsTransportChannelTestBase {
       client2_.CheckRole(client2_ssl_role);
     }
 
-    if (use_dtls_) {
-      // Check that we negotiated the right ciphers. Since GCM ciphers are not
-      // negotiated by default, we should end up with SRTP_AES128_CM_SHA1_32.
-      client1_.CheckSrtp(rtc::SRTP_AES128_CM_SHA1_32);
-      client2_.CheckSrtp(rtc::SRTP_AES128_CM_SHA1_32);
+    // Check that we negotiated the right ciphers.
+    if (use_dtls_srtp_) {
+      client1_.CheckSrtp(rtc::SRTP_AES128_CM_SHA1_80);
+      client2_.CheckSrtp(rtc::SRTP_AES128_CM_SHA1_80);
     } else {
-      // If DTLS isn't actually being used, GetSrtpCryptoSuite should return
-      // false.
       client1_.CheckSrtp(rtc::SRTP_INVALID_CRYPTO_SUITE);
       client2_.CheckSrtp(rtc::SRTP_INVALID_CRYPTO_SUITE);
     }
@@ -582,12 +554,11 @@ class DtlsTransportChannelTestBase {
     }
   }
 
-  void TestTransfer(size_t transport, size_t size, size_t count, bool srtp) {
+  void TestTransfer(size_t channel, size_t size, size_t count, bool srtp) {
     LOG(LS_INFO) << "Expect packets, size=" << size;
-    client2_.ExpectPackets(transport, size);
-    client1_.SendPackets(transport, size, count, srtp);
-    EXPECT_EQ_SIMULATED_WAIT(count, client2_.NumPacketsReceived(), kTimeout,
-                             fake_clock_);
+    client2_.ExpectPackets(channel, size);
+    client1_.SendPackets(channel, size, count, srtp);
+    EXPECT_EQ_WAIT(count, client2_.NumPacketsReceived(), kTimeout);
   }
 
  protected:
@@ -596,17 +567,15 @@ class DtlsTransportChannelTestBase {
   DtlsTestClient client2_;
   int channel_ct_;
   bool use_dtls_;
+  bool use_dtls_srtp_;
   rtc::SSLProtocolVersion ssl_expected_version_;
 };
-
-class DtlsTransportChannelTest : public DtlsTransportChannelTestBase,
-                                 public ::testing::Test {};
 
 // Test that transport negotiation of ICE, no DTLS works properly.
 TEST_F(DtlsTransportChannelTest, TestChannelSetupIce) {
   Negotiate();
-  cricket::FakeIceTransport* channel1 = client1_.GetFakeIceTransort(0);
-  cricket::FakeIceTransport* channel2 = client2_.GetFakeIceTransort(0);
+  cricket::FakeTransportChannel* channel1 = client1_.GetFakeChannel(0);
+  cricket::FakeTransportChannel* channel2 = client2_.GetFakeChannel(0);
   ASSERT_TRUE(channel1 != NULL);
   ASSERT_TRUE(channel2 != NULL);
   EXPECT_EQ(cricket::ICEROLE_CONTROLLING, channel1->GetIceRole());
@@ -656,6 +625,7 @@ TEST_F(DtlsTransportChannelTest, TestTransferSrtpTwoChannels) {
 
 // Connect with DTLS, and transfer some data.
 TEST_F(DtlsTransportChannelTest, TestTransferDtls) {
+  MAYBE_SKIP_TEST(HaveDtls);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   ASSERT_TRUE(Connect());
   TestTransfer(0, 1000, 100, false);
@@ -663,6 +633,7 @@ TEST_F(DtlsTransportChannelTest, TestTransferDtls) {
 
 // Create two channels with DTLS, and transfer some data.
 TEST_F(DtlsTransportChannelTest, TestTransferDtlsTwoChannels) {
+  MAYBE_SKIP_TEST(HaveDtls);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   ASSERT_TRUE(Connect());
@@ -686,6 +657,7 @@ TEST_F(DtlsTransportChannelTest, TestTransferDtlsNotOffered) {
 
 // Create two channels with DTLS 1.0 and check ciphers.
 TEST_F(DtlsTransportChannelTest, TestDtls12None) {
+  MAYBE_SKIP_TEST(HaveDtls);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   SetMaxProtocolVersions(rtc::SSL_PROTOCOL_DTLS_10, rtc::SSL_PROTOCOL_DTLS_10);
@@ -694,6 +666,7 @@ TEST_F(DtlsTransportChannelTest, TestDtls12None) {
 
 // Create two channels with DTLS 1.2 and check ciphers.
 TEST_F(DtlsTransportChannelTest, TestDtls12Both) {
+  MAYBE_SKIP_TEST(HaveDtls);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   SetMaxProtocolVersions(rtc::SSL_PROTOCOL_DTLS_12, rtc::SSL_PROTOCOL_DTLS_12);
@@ -702,6 +675,7 @@ TEST_F(DtlsTransportChannelTest, TestDtls12Both) {
 
 // Create two channels with DTLS 1.0 / DTLS 1.2 and check ciphers.
 TEST_F(DtlsTransportChannelTest, TestDtls12Client1) {
+  MAYBE_SKIP_TEST(HaveDtls);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   SetMaxProtocolVersions(rtc::SSL_PROTOCOL_DTLS_12, rtc::SSL_PROTOCOL_DTLS_10);
@@ -710,15 +684,18 @@ TEST_F(DtlsTransportChannelTest, TestDtls12Client1) {
 
 // Create two channels with DTLS 1.2 / DTLS 1.0 and check ciphers.
 TEST_F(DtlsTransportChannelTest, TestDtls12Client2) {
+  MAYBE_SKIP_TEST(HaveDtls);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   SetMaxProtocolVersions(rtc::SSL_PROTOCOL_DTLS_10, rtc::SSL_PROTOCOL_DTLS_12);
   ASSERT_TRUE(Connect());
 }
 
-// Connect with DTLS, negotiating DTLS-SRTP, and transfer SRTP using bypass.
+// Connect with DTLS, negotiate DTLS-SRTP, and transfer SRTP using bypass.
 TEST_F(DtlsTransportChannelTest, TestTransferDtlsSrtp) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   ASSERT_TRUE(Connect());
   TestTransfer(0, 1000, 100, true);
 }
@@ -726,7 +703,9 @@ TEST_F(DtlsTransportChannelTest, TestTransferDtlsSrtp) {
 // Connect with DTLS-SRTP, transfer an invalid SRTP packet, and expects -1
 // returned.
 TEST_F(DtlsTransportChannelTest, TestTransferDtlsInvalidSrtpPacket) {
+  MAYBE_SKIP_TEST(HaveDtls);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   ASSERT_TRUE(Connect());
   int result = client1_.SendInvalidSrtpPacket(0, 100);
   ASSERT_EQ(-1, result);
@@ -734,20 +713,26 @@ TEST_F(DtlsTransportChannelTest, TestTransferDtlsInvalidSrtpPacket) {
 
 // Connect with DTLS. A does DTLS-SRTP but B does not.
 TEST_F(DtlsTransportChannelTest, TestTransferDtlsSrtpRejected) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, false);
   ASSERT_TRUE(Connect());
 }
 
 // Connect with DTLS. B does DTLS-SRTP but A does not.
 TEST_F(DtlsTransportChannelTest, TestTransferDtlsSrtpNotOffered) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(false, true);
   ASSERT_TRUE(Connect());
 }
 
 // Create two channels with DTLS, negotiate DTLS-SRTP, and transfer bypass SRTP.
 TEST_F(DtlsTransportChannelTest, TestTransferDtlsSrtpTwoChannels) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   ASSERT_TRUE(Connect());
   TestTransfer(0, 1000, 100, true);
   TestTransfer(1, 1000, 100, true);
@@ -755,7 +740,9 @@ TEST_F(DtlsTransportChannelTest, TestTransferDtlsSrtpTwoChannels) {
 
 // Create a single channel with DTLS, and send normal data and SRTP data on it.
 TEST_F(DtlsTransportChannelTest, TestTransferDtlsSrtpDemux) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   ASSERT_TRUE(Connect());
   TestTransfer(0, 1000, 100, false);
   TestTransfer(0, 1000, 100, true);
@@ -763,8 +750,10 @@ TEST_F(DtlsTransportChannelTest, TestTransferDtlsSrtpDemux) {
 
 // Testing when the remote is passive.
 TEST_F(DtlsTransportChannelTest, TestTransferDtlsAnswererIsPassive) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   ASSERT_TRUE(Connect(cricket::CONNECTIONROLE_ACTPASS,
                       cricket::CONNECTIONROLE_PASSIVE));
   TestTransfer(0, 1000, 100, true);
@@ -774,17 +763,24 @@ TEST_F(DtlsTransportChannelTest, TestTransferDtlsAnswererIsPassive) {
 // Testing with the legacy DTLS client which doesn't use setup attribute.
 // In this case legacy is the answerer.
 TEST_F(DtlsTransportChannelTest, TestDtlsSetupWithLegacyAsAnswerer) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   NegotiateWithLegacy();
-  EXPECT_EQ(rtc::SSL_SERVER, *client1_.transport()->GetSslRole());
-  EXPECT_EQ(rtc::SSL_CLIENT, *client2_.transport()->GetSslRole());
+  rtc::SSLRole channel1_role;
+  rtc::SSLRole channel2_role;
+  EXPECT_TRUE(client1_.transport()->GetSslRole(&channel1_role));
+  EXPECT_TRUE(client2_.transport()->GetSslRole(&channel2_role));
+  EXPECT_EQ(rtc::SSL_SERVER, channel1_role);
+  EXPECT_EQ(rtc::SSL_CLIENT, channel2_role);
 }
 
 // Testing re offer/answer after the session is estbalished. Roles will be
 // kept same as of the previous negotiation.
 TEST_F(DtlsTransportChannelTest, TestDtlsReOfferFromOfferer) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   // Initial role for client1 is ACTPASS and client2 is ACTIVE.
   ASSERT_TRUE(Connect(cricket::CONNECTIONROLE_ACTPASS,
                       cricket::CONNECTIONROLE_ACTIVE));
@@ -798,8 +794,10 @@ TEST_F(DtlsTransportChannelTest, TestDtlsReOfferFromOfferer) {
 }
 
 TEST_F(DtlsTransportChannelTest, TestDtlsReOfferFromAnswerer) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   // Initial role for client1 is ACTPASS and client2 is ACTIVE.
   ASSERT_TRUE(Connect(cricket::CONNECTIONROLE_ACTPASS,
                       cricket::CONNECTIONROLE_ACTIVE));
@@ -814,8 +812,10 @@ TEST_F(DtlsTransportChannelTest, TestDtlsReOfferFromAnswerer) {
 
 // Test that any change in role after the intial setup will result in failure.
 TEST_F(DtlsTransportChannelTest, TestDtlsRoleReversal) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   ASSERT_TRUE(Connect(cricket::CONNECTIONROLE_ACTPASS,
                       cricket::CONNECTIONROLE_PASSIVE));
 
@@ -828,8 +828,10 @@ TEST_F(DtlsTransportChannelTest, TestDtlsRoleReversal) {
 // Test that using different setup attributes which results in similar ssl
 // role as the initial negotiation will result in success.
 TEST_F(DtlsTransportChannelTest, TestDtlsReOfferWithDifferentSetupAttr) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   ASSERT_TRUE(Connect(cricket::CONNECTIONROLE_ACTPASS,
                       cricket::CONNECTIONROLE_PASSIVE));
   // Renegotiate from client2 with actpass and client1 as active.
@@ -842,17 +844,19 @@ TEST_F(DtlsTransportChannelTest, TestDtlsReOfferWithDifferentSetupAttr) {
 // Test that re-negotiation can be started before the clients become connected
 // in the first negotiation.
 TEST_F(DtlsTransportChannelTest, TestRenegotiateBeforeConnect) {
+  MAYBE_SKIP_TEST(HaveDtlsSrtp);
   SetChannelCount(2);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
+  PrepareDtlsSrtp(true, true);
   Negotiate();
 
   Renegotiate(&client1_, cricket::CONNECTIONROLE_ACTPASS,
               cricket::CONNECTIONROLE_ACTIVE, NF_REOFFER);
   bool rv = client1_.Connect(&client2_, false);
   EXPECT_TRUE(rv);
-  EXPECT_TRUE_SIMULATED_WAIT(client1_.all_dtls_transports_writable() &&
-                                 client2_.all_dtls_transports_writable(),
-                             kTimeout, fake_clock_);
+  EXPECT_TRUE_WAIT(
+      client1_.all_channels_writable() && client2_.all_channels_writable(),
+      kTimeout);
 
   TestTransfer(0, 1000, 100, true);
   TestTransfer(1, 1000, 100, true);
@@ -860,6 +864,7 @@ TEST_F(DtlsTransportChannelTest, TestRenegotiateBeforeConnect) {
 
 // Test Certificates state after negotiation but before connection.
 TEST_F(DtlsTransportChannelTest, TestCertificatesBeforeConnect) {
+  MAYBE_SKIP_TEST(HaveDtls);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   Negotiate();
 
@@ -874,12 +879,13 @@ TEST_F(DtlsTransportChannelTest, TestCertificatesBeforeConnect) {
   ASSERT_TRUE(client2_.transport()->GetLocalCertificate(&certificate2));
   ASSERT_NE(certificate1->ssl_certificate().ToPEMString(),
             certificate2->ssl_certificate().ToPEMString());
-  ASSERT_FALSE(client1_.GetDtlsTransport(0)->GetRemoteSSLCertificate());
-  ASSERT_FALSE(client2_.GetDtlsTransport(0)->GetRemoteSSLCertificate());
+  ASSERT_FALSE(client1_.transport()->GetRemoteSSLCertificate());
+  ASSERT_FALSE(client2_.transport()->GetRemoteSSLCertificate());
 }
 
 // Test Certificates state after connection.
 TEST_F(DtlsTransportChannelTest, TestCertificatesAfterConnect) {
+  MAYBE_SKIP_TEST(HaveDtls);
   PrepareDtls(true, true, rtc::KT_DEFAULT);
   ASSERT_TRUE(Connect());
 
@@ -894,15 +900,81 @@ TEST_F(DtlsTransportChannelTest, TestCertificatesAfterConnect) {
 
   // Each side's remote certificate is the other side's local certificate.
   std::unique_ptr<rtc::SSLCertificate> remote_cert1 =
-      client1_.GetDtlsTransport(0)->GetRemoteSSLCertificate();
+      client1_.transport()->GetRemoteSSLCertificate();
   ASSERT_TRUE(remote_cert1);
   ASSERT_EQ(remote_cert1->ToPEMString(),
             certificate2->ssl_certificate().ToPEMString());
   std::unique_ptr<rtc::SSLCertificate> remote_cert2 =
-      client2_.GetDtlsTransport(0)->GetRemoteSSLCertificate();
+      client2_.transport()->GetRemoteSSLCertificate();
   ASSERT_TRUE(remote_cert2);
   ASSERT_EQ(remote_cert2->ToPEMString(),
             certificate1->ssl_certificate().ToPEMString());
+}
+
+// Test that DTLS completes promptly if a ClientHello is received before the
+// transport channel is writable (allowing a ServerHello to be sent).
+TEST_F(DtlsTransportChannelTest, TestReceiveClientHelloBeforeWritable) {
+  MAYBE_SKIP_TEST(HaveDtls);
+  PrepareDtls(true, true, rtc::KT_DEFAULT);
+  // Exchange transport descriptions.
+  Negotiate(cricket::CONNECTIONROLE_ACTPASS, cricket::CONNECTIONROLE_ACTIVE);
+
+  // Make client2_ writable, but not client1_.
+  EXPECT_TRUE(client2_.Connect(&client1_, true));
+  EXPECT_TRUE_WAIT(client2_.all_raw_channels_writable(), kTimeout);
+
+  // Expect a DTLS ClientHello to be sent even while client1_ isn't writable.
+  EXPECT_EQ_WAIT(1, client1_.received_dtls_client_hellos(), kTimeout);
+  EXPECT_FALSE(client1_.all_raw_channels_writable());
+
+  // Now make client1_ writable and expect the handshake to complete
+  // without client2_ needing to retransmit the ClientHello.
+  EXPECT_TRUE(client1_.Connect(&client2_, true));
+  EXPECT_TRUE_WAIT(
+      client1_.all_channels_writable() && client2_.all_channels_writable(),
+      kTimeout);
+  EXPECT_EQ(1, client1_.received_dtls_client_hellos());
+}
+
+// Test that DTLS completes promptly if a ClientHello is received before the
+// transport channel has a remote fingerprint (allowing a ServerHello to be
+// sent).
+TEST_F(DtlsTransportChannelTest,
+       TestReceiveClientHelloBeforeRemoteFingerprint) {
+  MAYBE_SKIP_TEST(HaveDtls);
+  PrepareDtls(true, true, rtc::KT_DEFAULT);
+  client1_.SetupChannels(channel_ct_, cricket::ICEROLE_CONTROLLING);
+  client2_.SetupChannels(channel_ct_, cricket::ICEROLE_CONTROLLED);
+
+  // Make client2_ writable and give it local/remote certs, but don't yet give
+  // client1_ a remote fingerprint.
+  client1_.transport()->SetLocalTransportDescription(
+      MakeTransportDescription(client1_.certificate(),
+                               cricket::CONNECTIONROLE_ACTPASS),
+      cricket::CA_OFFER, nullptr);
+  client2_.Negotiate(&client1_, cricket::CA_ANSWER,
+                     cricket::CONNECTIONROLE_ACTIVE,
+                     cricket::CONNECTIONROLE_ACTPASS, 0);
+  EXPECT_TRUE(client2_.Connect(&client1_, true));
+  EXPECT_TRUE_WAIT(client2_.all_raw_channels_writable(), kTimeout);
+
+  // Expect a DTLS ClientHello to be sent even while client1_ doesn't have a
+  // remote fingerprint.
+  EXPECT_EQ_WAIT(1, client1_.received_dtls_client_hellos(), kTimeout);
+  EXPECT_FALSE(client1_.all_raw_channels_writable());
+
+  // Now make give client1_ its remote fingerprint and make it writable, and
+  // expect the handshake to complete without client2_ needing to retransmit
+  // the ClientHello.
+  client1_.transport()->SetRemoteTransportDescription(
+      MakeTransportDescription(client2_.certificate(),
+                               cricket::CONNECTIONROLE_ACTIVE),
+      cricket::CA_ANSWER, nullptr);
+  EXPECT_TRUE(client1_.Connect(&client2_, true));
+  EXPECT_TRUE_WAIT(
+      client1_.all_channels_writable() && client2_.all_channels_writable(),
+      kTimeout);
+  EXPECT_EQ(1, client1_.received_dtls_client_hellos());
 }
 
 // Test that packets are retransmitted according to the expected schedule.
@@ -910,6 +982,7 @@ TEST_F(DtlsTransportChannelTest, TestCertificatesAfterConnect) {
 // 60 seconds. The timer defaults to 1 second, but for WebRTC we should be
 // initializing it to 50ms.
 TEST_F(DtlsTransportChannelTest, TestRetransmissionSchedule) {
+  MAYBE_SKIP_TEST(HaveDtls);
   // We can only change the retransmission schedule with a recently-added
   // BoringSSL API. Skip the test if not built with BoringSSL.
   MAYBE_SKIP_TEST(IsBoringSsl);
@@ -921,12 +994,11 @@ TEST_F(DtlsTransportChannelTest, TestRetransmissionSchedule) {
   // Make client2_ writable, but not client1_.
   // This means client1_ will send DTLS client hellos but get no response.
   EXPECT_TRUE(client2_.Connect(&client1_, true));
-  EXPECT_TRUE_SIMULATED_WAIT(client2_.all_ice_transports_writable(), kTimeout,
-                             fake_clock_);
+  EXPECT_TRUE_WAIT(client2_.all_raw_channels_writable(), kTimeout);
 
   // Wait for the first client hello to be sent.
   EXPECT_EQ_WAIT(1, client1_.received_dtls_client_hellos(), kTimeout);
-  EXPECT_FALSE(client1_.all_ice_transports_writable());
+  EXPECT_FALSE(client1_.all_raw_channels_writable());
 
   static int timeout_schedule_ms[] = {50,   100,  200,   400,   800,   1600,
                                       3200, 6400, 12800, 25600, 51200, 60000};
@@ -946,173 +1018,3 @@ TEST_F(DtlsTransportChannelTest, TestRetransmissionSchedule) {
     EXPECT_EQ(++expected_hellos, client1_.received_dtls_client_hellos());
   }
 }
-
-// Test that a DTLS connection can be made even if the underlying transport
-// is connected before DTLS fingerprints/roles have been negotiated.
-TEST_F(DtlsTransportChannelTest, TestConnectBeforeNegotiate) {
-  PrepareDtls(true, true, rtc::KT_DEFAULT);
-  ASSERT_TRUE(Connect(cricket::CONNECTIONROLE_ACTPASS,
-                      cricket::CONNECTIONROLE_ACTIVE,
-                      CONNECT_BEFORE_NEGOTIATE));
-  TestTransfer(0, 1000, 100, false);
-}
-
-// The following events can occur in many different orders:
-// 1. Caller receives remote fingerprint.
-// 2. Caller is writable.
-// 3. Caller receives ClientHello.
-// 4. DTLS handshake finishes.
-//
-// The tests below cover all causally consistent permutations of these events;
-// the caller must be writable and receive a ClientHello before the handshake
-// finishes, but otherwise any ordering is possible.
-//
-// For each permutation, the test verifies that a connection is established and
-// fingerprint verified without any DTLS packet needing to be retransmitted.
-//
-// Each permutation is also tested with valid and invalid fingerprints,
-// ensuring that the handshake fails with an invalid fingerprint.
-enum DtlsTransportEvent {
-  CALLER_RECEIVES_FINGERPRINT,
-  CALLER_WRITABLE,
-  CALLER_RECEIVES_CLIENTHELLO,
-  HANDSHAKE_FINISHES
-};
-
-class DtlsEventOrderingTest
-    : public DtlsTransportChannelTestBase,
-      public ::testing::TestWithParam<
-          ::testing::tuple<std::vector<DtlsTransportEvent>, bool>> {
- protected:
-  // If |valid_fingerprint| is false, the caller will receive a fingerprint
-  // that doesn't match the callee's certificate, so the handshake should fail.
-  void TestEventOrdering(const std::vector<DtlsTransportEvent>& events,
-                         bool valid_fingerprint) {
-    // Pre-setup: Set local certificate on both caller and callee, and
-    // remote fingerprint on callee, but neither is writable and the caller
-    // doesn't have the callee's fingerprint.
-    PrepareDtls(true, true, rtc::KT_DEFAULT);
-    // Simulate packets being sent and arriving asynchronously.
-    // Otherwise the entire DTLS handshake would occur in one clock tick, and
-    // we couldn't inject method calls in the middle of it.
-    int simulated_delay_ms = 10;
-    client1_.SetupChannels(channel_ct_, cricket::ICEROLE_CONTROLLING,
-                           simulated_delay_ms);
-    client2_.SetupChannels(channel_ct_, cricket::ICEROLE_CONTROLLED,
-                           simulated_delay_ms);
-    client1_.SetLocalTransportDescription(client1_.certificate(),
-                                          cricket::CA_OFFER,
-                                          cricket::CONNECTIONROLE_ACTPASS, 0);
-    client2_.Negotiate(&client1_, cricket::CA_ANSWER,
-                       cricket::CONNECTIONROLE_ACTIVE,
-                       cricket::CONNECTIONROLE_ACTPASS, 0);
-
-    for (DtlsTransportEvent e : events) {
-      switch (e) {
-        case CALLER_RECEIVES_FINGERPRINT:
-          if (valid_fingerprint) {
-            client1_.SetRemoteTransportDescription(
-                client2_.certificate(), cricket::CA_ANSWER,
-                cricket::CONNECTIONROLE_ACTIVE, 0);
-          } else {
-            // Create a fingerprint with a correct algorithm but an invalid
-            // digest.
-            cricket::TransportDescription remote_desc =
-                MakeTransportDescription(client2_.certificate(),
-                                         cricket::CONNECTIONROLE_ACTIVE);
-            ++(remote_desc.identity_fingerprint->digest[0]);
-            // Even if certificate verification fails inside this method,
-            // it should return true as long as the fingerprint was formatted
-            // correctly.
-            EXPECT_TRUE(client1_.transport()->SetRemoteTransportDescription(
-                remote_desc, cricket::CA_ANSWER, nullptr));
-          }
-          break;
-        case CALLER_WRITABLE:
-          EXPECT_TRUE(client1_.Connect(&client2_, true));
-          EXPECT_TRUE_SIMULATED_WAIT(client1_.all_ice_transports_writable(),
-                                     kTimeout, fake_clock_);
-          break;
-        case CALLER_RECEIVES_CLIENTHELLO:
-          // Sanity check that a ClientHello hasn't already been received.
-          EXPECT_EQ(0, client1_.received_dtls_client_hellos());
-          // Making client2_ writable will cause it to send the ClientHello.
-          EXPECT_TRUE(client2_.Connect(&client1_, true));
-          EXPECT_TRUE_SIMULATED_WAIT(client2_.all_ice_transports_writable(),
-                                     kTimeout, fake_clock_);
-          EXPECT_EQ_SIMULATED_WAIT(1, client1_.received_dtls_client_hellos(),
-                                   kTimeout, fake_clock_);
-          break;
-        case HANDSHAKE_FINISHES:
-          // Sanity check that the handshake hasn't already finished.
-          EXPECT_FALSE(client1_.GetDtlsTransport(0)->IsDtlsConnected() ||
-                       client1_.GetDtlsTransport(0)->dtls_state() ==
-                           cricket::DTLS_TRANSPORT_FAILED);
-          EXPECT_TRUE_SIMULATED_WAIT(
-              client1_.GetDtlsTransport(0)->IsDtlsConnected() ||
-                  client1_.GetDtlsTransport(0)->dtls_state() ==
-                      cricket::DTLS_TRANSPORT_FAILED,
-              kTimeout, fake_clock_);
-          break;
-      }
-    }
-
-    cricket::DtlsTransportState expected_final_state =
-        valid_fingerprint ? cricket::DTLS_TRANSPORT_CONNECTED
-                          : cricket::DTLS_TRANSPORT_FAILED;
-    EXPECT_EQ_SIMULATED_WAIT(expected_final_state,
-                             client1_.GetDtlsTransport(0)->dtls_state(),
-                             kTimeout, fake_clock_);
-    EXPECT_EQ_SIMULATED_WAIT(expected_final_state,
-                             client2_.GetDtlsTransport(0)->dtls_state(),
-                             kTimeout, fake_clock_);
-
-    // Channel should be writable iff there was a valid fingerprint.
-    EXPECT_EQ(valid_fingerprint, client1_.GetDtlsTransport(0)->writable());
-    EXPECT_EQ(valid_fingerprint, client2_.GetDtlsTransport(0)->writable());
-
-    // Check that no hello needed to be retransmitted.
-    EXPECT_EQ(1, client1_.received_dtls_client_hellos());
-    EXPECT_EQ(1, client2_.received_dtls_server_hellos());
-
-    if (valid_fingerprint) {
-      TestTransfer(0, 1000, 100, false);
-    }
-  }
-};
-
-TEST_P(DtlsEventOrderingTest, TestEventOrdering) {
-  TestEventOrdering(::testing::get<0>(GetParam()),
-                    ::testing::get<1>(GetParam()));
-}
-
-INSTANTIATE_TEST_CASE_P(
-    TestEventOrdering,
-    DtlsEventOrderingTest,
-    ::testing::Combine(
-        ::testing::Values(
-            std::vector<DtlsTransportEvent>{
-                CALLER_RECEIVES_FINGERPRINT, CALLER_WRITABLE,
-                CALLER_RECEIVES_CLIENTHELLO, HANDSHAKE_FINISHES},
-            std::vector<DtlsTransportEvent>{
-                CALLER_WRITABLE, CALLER_RECEIVES_FINGERPRINT,
-                CALLER_RECEIVES_CLIENTHELLO, HANDSHAKE_FINISHES},
-            std::vector<DtlsTransportEvent>{
-                CALLER_WRITABLE, CALLER_RECEIVES_CLIENTHELLO,
-                CALLER_RECEIVES_FINGERPRINT, HANDSHAKE_FINISHES},
-            std::vector<DtlsTransportEvent>{
-                CALLER_WRITABLE, CALLER_RECEIVES_CLIENTHELLO,
-                HANDSHAKE_FINISHES, CALLER_RECEIVES_FINGERPRINT},
-            std::vector<DtlsTransportEvent>{
-                CALLER_RECEIVES_FINGERPRINT, CALLER_RECEIVES_CLIENTHELLO,
-                CALLER_WRITABLE, HANDSHAKE_FINISHES},
-            std::vector<DtlsTransportEvent>{
-                CALLER_RECEIVES_CLIENTHELLO, CALLER_RECEIVES_FINGERPRINT,
-                CALLER_WRITABLE, HANDSHAKE_FINISHES},
-            std::vector<DtlsTransportEvent>{
-                CALLER_RECEIVES_CLIENTHELLO, CALLER_WRITABLE,
-                CALLER_RECEIVES_FINGERPRINT, HANDSHAKE_FINISHES},
-            std::vector<DtlsTransportEvent>{CALLER_RECEIVES_CLIENTHELLO,
-                                            CALLER_WRITABLE, HANDSHAKE_FINISHES,
-                                            CALLER_RECEIVES_FINGERPRINT}),
-        ::testing::Bool()));

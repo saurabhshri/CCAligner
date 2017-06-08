@@ -11,8 +11,7 @@
 #ifndef WEBRTC_MEDIA_ENGINE_WEBRTCVIDEOENCODERFACTORY_H_
 #define WEBRTC_MEDIA_ENGINE_WEBRTCVIDEOENCODERFACTORY_H_
 
-#include <vector>
-
+#include "webrtc/base/refcount.h"
 #include "webrtc/common_types.h"
 #include "webrtc/media/base/codec.h"
 
@@ -24,15 +23,28 @@ namespace cricket {
 
 class WebRtcVideoEncoderFactory {
  public:
+  struct VideoCodec {
+    webrtc::VideoCodecType type;
+    std::string name;
+    int max_width;
+    int max_height;
+    int max_fps;
+
+    VideoCodec(webrtc::VideoCodecType t, const std::string& nm, int w, int h,
+               int fr)
+        : type(t), name(nm), max_width(w), max_height(h), max_fps(fr) {
+    }
+  };
+
   virtual ~WebRtcVideoEncoderFactory() {}
 
   // Caller takes the ownership of the returned object and it should be released
   // by calling DestroyVideoEncoder().
   virtual webrtc::VideoEncoder* CreateVideoEncoder(
-      const cricket::VideoCodec& codec) = 0;
+      webrtc::VideoCodecType type) = 0;
 
   // Returns a list of supported codecs in order of preference.
-  virtual const std::vector<cricket::VideoCodec>& supported_codecs() const = 0;
+  virtual const std::vector<VideoCodec>& codecs() const = 0;
 
   // Returns true if encoders created by this factory of the given codec type
   // will use internal camera sources, meaning that they don't require/expect

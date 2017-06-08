@@ -20,21 +20,12 @@ class VideoDecoder;
 
 namespace cricket {
 
-struct VideoDecoderParams {
-  std::string receive_stream_id;
-};
-
 class WebRtcVideoDecoderFactory {
  public:
   // Caller takes the ownership of the returned object and it should be released
   // by calling DestroyVideoDecoder().
   virtual webrtc::VideoDecoder* CreateVideoDecoder(
       webrtc::VideoCodecType type) = 0;
-  virtual webrtc::VideoDecoder* CreateVideoDecoderWithParams(
-      webrtc::VideoCodecType type,
-      VideoDecoderParams params) {
-    return CreateVideoDecoder(type);
-  }
   virtual ~WebRtcVideoDecoderFactory() {}
 
   virtual void DestroyVideoDecoder(webrtc::VideoDecoder* decoder) = 0;

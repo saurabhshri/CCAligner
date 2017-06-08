@@ -23,7 +23,10 @@
 #ifndef WEBRTC_BASE_FLAGS_H__
 #define WEBRTC_BASE_FLAGS_H__
 
+#include <assert.h>
+
 #include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/constructormagic.h"
 
 namespace rtc {
@@ -85,43 +88,43 @@ class Flag {
 
   // Flag variables
   bool* bool_variable() const {
-    RTC_DCHECK_EQ(BOOL, type_);
+    assert(type_ == BOOL);
     return &variable_->b;
   }
 
   int* int_variable() const {
-    RTC_DCHECK_EQ(INT, type_);
+    assert(type_ == INT);
     return &variable_->i;
   }
 
   double* float_variable() const {
-    RTC_DCHECK_EQ(FLOAT, type_);
+    assert(type_ == FLOAT);
     return &variable_->f;
   }
 
   const char** string_variable() const {
-    RTC_DCHECK_EQ(STRING, type_);
+    assert(type_ == STRING);
     return &variable_->s;
   }
 
   // Default values
   bool bool_default() const {
-    RTC_DCHECK_EQ(BOOL, type_);
+    assert(type_ == BOOL);
     return default_.b;
   }
 
   int int_default() const {
-    RTC_DCHECK_EQ(INT, type_);
+    assert(type_ == INT);
     return default_.i;
   }
 
   double float_default() const {
-    RTC_DCHECK_EQ(FLOAT, type_);
+    assert(type_ == FLOAT);
     return default_.f;
   }
 
   const char* string_default() const {
-    RTC_DCHECK_EQ(STRING, type_);
+    assert(type_ == STRING);
     return default_.s;
   }
 
@@ -189,19 +192,19 @@ class FlagList {
  public:
   FlagList();
 
-  // The null-terminated list of all flags. Traverse with Flag::next().
+  // The NULL-terminated list of all flags. Traverse with Flag::next().
   static Flag* list()  { return list_; }
 
-  // If file != nullptr, prints information for all flags defined in file;
-  // otherwise prints information for all flags in all files. The current flag
-  // value is only printed if print_current_value is set.
+  // If file != NULL, prints information for all flags defined in file;
+  // otherwise prints information for all flags in all files. The current
+  // flag value is only printed if print_current_value is set.
   static void Print(const char* file, bool print_current_value);
 
-  // Lookup a flag by name. Returns the matching flag or null.
+  // Lookup a flag by name. Returns the matching flag or NULL.
   static Flag* Lookup(const char* name);
 
   // Helper function to parse flags: Takes an argument arg and splits it into
-  // a flag name and flag value (or null if they are missing). is_bool is set
+  // a flag name and flag value (or NULL if they are missing). is_bool is set
   // if the arg started with "-no" or "--no". The buffer may be used to NUL-
   // terminate the name, it must be large enough to hold any possible name.
   static void SplitArgument(const char* arg,

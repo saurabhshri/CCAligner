@@ -33,7 +33,6 @@ class SparseFIRFilter final {
                   size_t num_nonzero_coeffs,
                   size_t sparsity,
                   size_t offset);
-  ~SparseFIRFilter();
 
   // Filters the |in| data supplied.
   // |out| must be previously allocated and it must be at least of |length|.

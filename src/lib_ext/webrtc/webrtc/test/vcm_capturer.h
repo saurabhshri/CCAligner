@@ -10,8 +10,6 @@
 #ifndef WEBRTC_TEST_VCM_CAPTURER_H_
 #define WEBRTC_TEST_VCM_CAPTURER_H_
 
-#include <memory>
-
 #include "webrtc/base/criticalsection.h"
 #include "webrtc/base/scoped_ref_ptr.h"
 #include "webrtc/common_types.h"
@@ -22,39 +20,31 @@
 namespace webrtc {
 namespace test {
 
-class VcmCapturer
-    : public VideoCapturer,
-      public rtc::VideoSinkInterface<VideoFrame> {
+class VcmCapturer : public VideoCapturer, public VideoCaptureDataCallback {
  public:
-  static VcmCapturer* Create(size_t width,
+  static VcmCapturer* Create(VideoCaptureInput* input,
+                             size_t width,
                              size_t height,
-                             size_t target_fps,
-                             size_t capture_device_index);
+                             size_t target_fps);
   virtual ~VcmCapturer();
 
   void Start() override;
   void Stop() override;
-  void AddOrUpdateSink(rtc::VideoSinkInterface<VideoFrame>* sink,
-                       const rtc::VideoSinkWants& wants) override;
-  void RemoveSink(rtc::VideoSinkInterface<VideoFrame>* sink) override;
 
-  void OnFrame(const VideoFrame& frame) override;
+  void OnIncomingCapturedFrame(const int32_t id,
+                               const VideoFrame& frame) override;  // NOLINT
+  void OnCaptureDelayChanged(const int32_t id, const int32_t delay) override;
 
  private:
-  VcmCapturer();
-  bool Init(size_t width,
-            size_t height,
-            size_t target_fps,
-            size_t capture_device_index);
+  explicit VcmCapturer(VideoCaptureInput* input);
+  bool Init(size_t width, size_t height, size_t target_fps);
   void Destroy();
 
   rtc::CriticalSection crit_;
   bool started_ GUARDED_BY(crit_);
-  rtc::VideoSinkInterface<VideoFrame>* sink_ GUARDED_BY(crit_);
   rtc::scoped_refptr<VideoCaptureModule> vcm_;
   VideoCaptureCapability capability_;
 };
-
 }  // test
 }  // webrtc
 

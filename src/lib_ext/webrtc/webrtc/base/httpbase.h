@@ -113,7 +113,7 @@ public:
 
   // Obtaining this stream puts HttpBase into stream mode until the stream
   // is closed.  HttpBase can only expose one open stream interface at a time.
-  // Further calls will return null.
+  // Further calls will return NULL.
   StreamInterface* GetDocumentStream();
 
 protected:

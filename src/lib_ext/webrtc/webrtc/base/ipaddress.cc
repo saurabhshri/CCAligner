@@ -294,7 +294,7 @@ bool IPIsAny(const IPAddress& ip) {
 bool IPIsLoopback(const IPAddress& ip) {
   switch (ip.family()) {
     case AF_INET: {
-      return (ip.v4AddressAsHostOrderInteger() >> 24) == 127;
+      return ip == IPAddress(INADDR_LOOPBACK);
     }
     case AF_INET6: {
       return ip == IPAddress(in6addr_loopback);

@@ -10,10 +10,11 @@
 
 #include "webrtc/base/firewallsocketserver.h"
 
+#include <assert.h>
+
 #include <algorithm>
 
 #include "webrtc/base/asyncsocket.h"
-#include "webrtc/base/checks.h"
 #include "webrtc/base/logging.h"
 
 namespace rtc {
@@ -41,13 +42,13 @@ class FirewallSocket : public AsyncSocketAdapter {
     return SendTo(pv, cb, GetRemoteAddress());
   }
   int SendTo(const void* pv, size_t cb, const SocketAddress& addr) override {
-    RTC_DCHECK(type_ == SOCK_DGRAM || type_ == SOCK_STREAM);
-    FirewallProtocol protocol = (type_ == SOCK_DGRAM) ? FP_UDP : FP_TCP;
-    if (!server_->Check(protocol, GetLocalAddress(), addr)) {
-      LOG(LS_VERBOSE) << "FirewallSocket outbound packet with type " << type_
-                      << " from " << GetLocalAddress().ToSensitiveString()
-                      << " to " << addr.ToSensitiveString() << " dropped";
-      return static_cast<int>(cb);
+    if (type_ == SOCK_DGRAM) {
+      if (!server_->Check(FP_UDP, GetLocalAddress(), addr)) {
+        LOG(LS_VERBOSE) << "FirewallSocket outbound UDP packet from "
+                        << GetLocalAddress().ToSensitiveString() << " to "
+                        << addr.ToSensitiveString() << " dropped";
+        return static_cast<int>(cb);
+      }
     }
     return AsyncSocketAdapter::SendTo(pv, cb, addr);
   }
@@ -121,7 +122,7 @@ FirewallSocketServer::~FirewallSocketServer() {
 
   if (server_ && should_delete_server_) {
     delete server_;
-    server_ = nullptr;
+    server_ = NULL;
   }
 }
 
@@ -210,7 +211,7 @@ AsyncSocket* FirewallSocketServer::WrapSocket(AsyncSocket* sock, int type) {
       (type == SOCK_DGRAM && !udp_sockets_enabled_)) {
     LOG(LS_VERBOSE) << "FirewallSocketServer socket creation denied";
     delete sock;
-    return nullptr;
+    return NULL;
   }
   return new FirewallSocket(this, sock, type);
 }
@@ -219,7 +220,7 @@ FirewallManager::FirewallManager() {
 }
 
 FirewallManager::~FirewallManager() {
-  RTC_DCHECK(servers_.empty());
+  assert(servers_.empty());
 }
 
 void FirewallManager::AddServer(FirewallSocketServer* server) {

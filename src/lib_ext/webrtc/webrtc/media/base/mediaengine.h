@@ -18,15 +18,16 @@
 #include <string>
 #include <vector>
 
-#include "webrtc/api/audio_codecs/audio_decoder_factory.h"
-#include "webrtc/api/audio_codecs/audio_encoder_factory.h"
+#include "webrtc/audio_state.h"
 #include "webrtc/api/rtpparameters.h"
 #include "webrtc/base/fileutils.h"
 #include "webrtc/base/sigslotrepeater.h"
-#include "webrtc/call/audio_state.h"
 #include "webrtc/media/base/codec.h"
 #include "webrtc/media/base/mediachannel.h"
+#include "webrtc/media/base/mediacommon.h"
+#include "webrtc/media/base/videocapturer.h"
 #include "webrtc/media/base/videocommon.h"
+#include "webrtc/modules/audio_coding/codecs/audio_decoder_factory.h"
 
 #if defined(GOOGLE_CHROME_BUILD) || defined(CHROMIUM_BUILD)
 #define DISABLE_MEDIA_ENGINE_FACTORY
@@ -34,11 +35,12 @@
 
 namespace webrtc {
 class AudioDeviceModule;
-class AudioMixer;
 class Call;
 }
 
 namespace cricket {
+
+class VideoCapturer;
 
 struct RtpCapabilities {
   std::vector<webrtc::RtpExtension> header_extensions;
@@ -76,7 +78,7 @@ class MediaEngineInterface {
   virtual const std::vector<AudioCodec>& audio_send_codecs() = 0;
   virtual const std::vector<AudioCodec>& audio_recv_codecs() = 0;
   virtual RtpCapabilities GetAudioCapabilities() = 0;
-  virtual std::vector<VideoCodec> video_codecs() = 0;
+  virtual const std::vector<VideoCodec>& video_codecs() = 0;
   virtual RtpCapabilities GetVideoCapabilities() = 0;
 
   // Starts AEC dump using existing file, a maximum file size in bytes can be
@@ -86,6 +88,15 @@ class MediaEngineInterface {
 
   // Stops recording AEC dump.
   virtual void StopAecDump() = 0;
+
+  // Starts RtcEventLog using existing file. A maximum file size in bytes can be
+  // specified. Logging is stopped just before the size limit is exceeded.
+  // If max_size_bytes is set to a value <= 0, no limit will be used.
+  virtual bool StartRtcEventLog(rtc::PlatformFile file,
+                                int64_t max_size_bytes) = 0;
+
+  // Stops recording an RtcEventLog.
+  virtual void StopRtcEventLog() = 0;
 };
 
 
@@ -112,14 +123,11 @@ class MediaEngineFactory {
 template<class VOICE, class VIDEO>
 class CompositeMediaEngine : public MediaEngineInterface {
  public:
-  CompositeMediaEngine(webrtc::AudioDeviceModule* adm,
-                       const rtc::scoped_refptr<webrtc::AudioEncoderFactory>&
-                           audio_encoder_factory,
-                       const rtc::scoped_refptr<webrtc::AudioDecoderFactory>&
-                           audio_decoder_factory,
-                       rtc::scoped_refptr<webrtc::AudioMixer> audio_mixer)
-      : voice_(adm, audio_encoder_factory, audio_decoder_factory, audio_mixer) {
-  }
+  CompositeMediaEngine(
+      webrtc::AudioDeviceModule* adm,
+      const rtc::scoped_refptr<webrtc::AudioDecoderFactory>&
+          audio_decoder_factory)
+      : voice_(adm, audio_decoder_factory) {}
   virtual ~CompositeMediaEngine() {}
   virtual bool Init() {
     video_.Init();
@@ -152,7 +160,9 @@ class CompositeMediaEngine : public MediaEngineInterface {
   virtual RtpCapabilities GetAudioCapabilities() {
     return voice_.GetCapabilities();
   }
-  virtual std::vector<VideoCodec> video_codecs() { return video_.codecs(); }
+  virtual const std::vector<VideoCodec>& video_codecs() {
+    return video_.codecs();
+  }
   virtual RtpCapabilities GetVideoCapabilities() {
     return video_.GetCapabilities();
   }
@@ -165,17 +175,28 @@ class CompositeMediaEngine : public MediaEngineInterface {
     voice_.StopAecDump();
   }
 
+  virtual bool StartRtcEventLog(rtc::PlatformFile file,
+                                int64_t max_size_bytes) {
+    return voice_.StartRtcEventLog(file, max_size_bytes);
+  }
+
+  virtual void StopRtcEventLog() { voice_.StopRtcEventLog(); }
+
  protected:
   VOICE voice_;
   VIDEO video_;
 };
 
-enum DataChannelType { DCT_NONE = 0, DCT_RTP = 1, DCT_SCTP = 2, DCT_QUIC = 3 };
+enum DataChannelType {
+  DCT_NONE = 0,
+  DCT_RTP = 1,
+  DCT_SCTP = 2
+};
 
 class DataEngineInterface {
  public:
   virtual ~DataEngineInterface() {}
-  virtual DataMediaChannel* CreateChannel(const MediaConfig& config) = 0;
+  virtual DataMediaChannel* CreateChannel(DataChannelType type) = 0;
   virtual const std::vector<DataCodec>& data_codecs() = 0;
 };
 

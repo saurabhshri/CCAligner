@@ -1,5 +1,3 @@
-deadbeef@webrtc.org
-honghaiz@webrtc.org
 hta@webrtc.org
 jiayl@webrtc.org
 juberti@webrtc.org
@@ -8,10 +6,7 @@ pthatcher@webrtc.org
 sergeyu@chromium.org
 tommi@webrtc.org
 
-per-file rtcstats*=hbos@webrtc.org
-per-file rtcstats*=hta@webrtc.org
-
 # These are for the common case of adding or renaming files. If you're doing
 # structural changes, please get a review from a reviewer in this file.
-per-file *.gn=*
-per-file *.gni=*
+per-file *.gyp=*
+per-file *.gypi=*

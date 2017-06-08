@@ -6,11 +6,10 @@
 # in the file PATENTS.  All contributing project authors may
 # be found in the AUTHORS file in the root of the source tree.
 
-import("../webrtc.gni")
+import("../build/webrtc.gni")
 
 group("p2p") {
-  public_deps = [
-    ":libstunprober",
+  deps = [
     ":rtc_p2p",
   ]
 }
@@ -19,7 +18,7 @@ config("rtc_p2p_inherited_config") {
   defines = [ "FEATURE_ENABLE_VOICEMAIL" ]
 }
 
-rtc_static_library("rtc_p2p") {
+source_set("rtc_p2p") {
   sources = [
     "base/asyncstuntcpsocket.cc",
     "base/asyncstuntcpsocket.h",
@@ -27,21 +26,16 @@ rtc_static_library("rtc_p2p") {
     "base/basicpacketsocketfactory.h",
     "base/candidate.h",
     "base/common.h",
+    "base/dtlstransport.h",
     "base/dtlstransportchannel.cc",
     "base/dtlstransportchannel.h",
-    "base/dtlstransportinternal.h",
-    "base/icetransportinternal.h",
-    "base/jseptransport.cc",
-    "base/jseptransport.h",
     "base/p2pconstants.cc",
     "base/p2pconstants.h",
+    "base/p2ptransport.cc",
+    "base/p2ptransport.h",
     "base/p2ptransportchannel.cc",
     "base/p2ptransportchannel.h",
-    "base/packetlossestimator.cc",
-    "base/packetlossestimator.h",
     "base/packetsocketfactory.h",
-    "base/packettransportinterface.h",
-    "base/packettransportinternal.h",
     "base/port.cc",
     "base/port.h",
     "base/portallocator.cc",
@@ -55,6 +49,7 @@ rtc_static_library("rtc_p2p") {
     "base/session.h",
     "base/sessiondescription.cc",
     "base/sessiondescription.h",
+    "base/sessionid.h",
     "base/stun.cc",
     "base/stun.h",
     "base/stunport.cc",
@@ -63,7 +58,11 @@ rtc_static_library("rtc_p2p") {
     "base/stunrequest.h",
     "base/tcpport.cc",
     "base/tcpport.h",
+    "base/transport.cc",
     "base/transport.h",
+    "base/transportchannel.cc",
+    "base/transportchannel.h",
+    "base/transportchannelimpl.h",
     "base/transportcontroller.cc",
     "base/transportcontroller.h",
     "base/transportdescription.cc",
@@ -74,24 +73,33 @@ rtc_static_library("rtc_p2p") {
     "base/turnport.cc",
     "base/turnport.h",
     "base/udpport.h",
-    "base/udptransport.cc",
-    "base/udptransport.h",
     "client/basicportallocator.cc",
     "client/basicportallocator.h",
+    "client/httpportallocator.cc",
+    "client/httpportallocator.h",
     "client/socketmonitor.cc",
     "client/socketmonitor.h",
   ]
 
-  defines = []
+  defines = [ "FEATURE_ENABLE_SSL" ]
 
   deps = [
-    "../api:libjingle_peerconnection_api",
-    "../api:ortc_api",
     "../base:rtc_base",
-    "../system_wrappers:field_trial_api",
+    "../libjingle/xmllite",
   ]
 
-  public_configs = [ ":rtc_p2p_inherited_config" ]
+  if (rtc_build_expat) {
+    deps += [ "//third_party/expat" ]
+    public_deps = [
+      "//third_party/expat",
+    ]
+  }
+
+  configs += [ "..:common_config" ]
+  public_configs = [
+    "..:common_inherited_config",
+    ":rtc_p2p_inherited_config",
+  ]
 
   if (build_with_chromium) {
     if (is_nacl) {
@@ -111,9 +119,10 @@ rtc_static_library("rtc_p2p") {
       "FEATURE_ENABLE_PSTN",
     ]
 
-    if (!build_with_chromium && is_clang) {
-      # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-      suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
+    if (is_clang) {
+      # Suppress warnings from Chrome's Clang plugins.
+      # See http://code.google.com/p/webrtc/issues/detail?id=163 for details.
+      configs -= [ "//build/config/clang:find_bad_constructs" ]
     }
   }
 
@@ -137,94 +146,7 @@ rtc_static_library("rtc_p2p") {
   }
 }
 
-if (rtc_include_tests) {
-  rtc_source_set("p2p_test_utils") {
-    testonly = true
-    sources = [
-      "base/fakecandidatepair.h",
-      "base/fakedtlstransport.h",
-      "base/fakeicetransport.h",
-      "base/fakepackettransport.h",
-      "base/fakeportallocator.h",
-      "base/faketransportcontroller.h",
-      "base/mockicetransport.h",
-      "base/testrelayserver.h",
-      "base/teststunserver.h",
-      "base/testturnserver.h",
-    ]
-    deps = [
-      ":rtc_p2p",
-      "../api:ortc_api",
-      "../base:rtc_base",
-      "../base:rtc_base_approved",
-      "../base:rtc_base_tests_utils",
-      "../test:test_support",
-      "//testing/gmock",
-    ]
-  }
-
-  rtc_source_set("rtc_p2p_unittests") {
-    testonly = true
-
-    # Skip restricting visibility on mobile platforms since the tests on those
-    # gets additional generated targets which would require many lines here to
-    # cover (which would be confusing to read and hard to maintain).
-    if (!is_android && !is_ios) {
-      visibility = [ "//webrtc:rtc_unittests" ]
-    }
-    sources = [
-      "base/asyncstuntcpsocket_unittest.cc",
-      "base/dtlstransportchannel_unittest.cc",
-      "base/jseptransport_unittest.cc",
-      "base/p2ptransportchannel_unittest.cc",
-      "base/packetlossestimator_unittest.cc",
-      "base/port_unittest.cc",
-      "base/portallocator_unittest.cc",
-      "base/pseudotcp_unittest.cc",
-      "base/relayport_unittest.cc",
-      "base/relayserver_unittest.cc",
-      "base/stun_unittest.cc",
-      "base/stunport_unittest.cc",
-      "base/stunrequest_unittest.cc",
-      "base/stunserver_unittest.cc",
-      "base/tcpport_unittest.cc",
-      "base/transportcontroller_unittest.cc",
-      "base/transportdescriptionfactory_unittest.cc",
-      "base/turnport_unittest.cc",
-      "base/turnserver_unittest.cc",
-      "base/udptransport_unittest.cc",
-      "client/basicportallocator_unittest.cc",
-    ]
-    if (rtc_use_quic) {
-      sources += [
-        "quic/quicconnectionhelper_unittest.cc",
-        "quic/quicsession_unittest.cc",
-        "quic/quictransport_unittest.cc",
-        "quic/quictransportchannel_unittest.cc",
-        "quic/reliablequicstream_unittest.cc",
-      ]
-    }
-    deps = [
-      ":p2p_test_utils",
-      ":rtc_p2p",
-      "../api:fakemetricsobserver",
-      "../api:ortc_api",
-      "../base:rtc_base",
-      "../base:rtc_base_approved",
-      "../base:rtc_base_tests_utils",
-      "../test:test_support",
-      "//testing/gmock",
-      "//testing/gtest",
-    ]
-    if (!build_with_chromium && is_clang) {
-      # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-      suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
-    }
-    defines = [ "GTEST_RELATIVE_PATH" ]
-  }
-}
-
-rtc_static_library("libstunprober") {
+source_set("libstunprober") {
   sources = [
     "stunprober/stunprober.cc",
   ]
@@ -232,42 +154,11 @@ rtc_static_library("libstunprober") {
   if (!build_with_chromium && is_clang) {
     # Suppress warnings from Chrome's Clang plugins.
     # See http://code.google.com/p/webrtc/issues/detail?id=163 for details.
-    suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
+    configs -= [ "//build/config/clang:find_bad_constructs" ]
   }
 
   deps = [
-    ":rtc_p2p",
     "..:webrtc_common",
     "../base:rtc_base",
   ]
-}
-
-if (rtc_include_tests) {
-  rtc_source_set("libstunprober_unittests") {
-    testonly = true
-
-    # Skip restricting visibility on mobile platforms since the tests on those
-    # gets additional generated targets which would require many lines here to
-    # cover (which would be confusing to read and hard to maintain).
-    if (!is_android && !is_ios) {
-      visibility = [ "//webrtc:rtc_unittests" ]
-    }
-    sources = [
-      "stunprober/stunprober_unittest.cc",
-    ]
-    deps = [
-      ":libstunprober",
-      ":p2p_test_utils",
-      ":rtc_p2p",
-      "../base:rtc_base",
-      "../base:rtc_base_tests_utils",
-      "//testing/gmock",
-      "//testing/gtest",
-    ]
-    if (!build_with_chromium && is_clang) {
-      # Suppress warnings from the Chromium Clang plugin (bugs.webrtc.org/163).
-      suppressed_configs += [ "//build/config/clang:find_bad_constructs" ]
-    }
-    defines = [ "GTEST_RELATIVE_PATH" ]
-  }
 }

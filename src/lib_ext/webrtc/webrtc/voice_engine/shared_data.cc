@@ -22,21 +22,25 @@ namespace voe {
 
 static int32_t _gInstanceCounter = 0;
 
-SharedData::SharedData()
+SharedData::SharedData(const Config& config)
     : _instanceId(++_gInstanceCounter),
-      _channelManager(_gInstanceCounter),
+      _channelManager(_gInstanceCounter, config),
       _engineStatistics(_gInstanceCounter),
       _audioDevicePtr(NULL),
-      _moduleProcessThreadPtr(ProcessThread::Create("VoiceProcessThread")),
-      encoder_queue_("AudioEncoderQueue") {
-  Trace::CreateTrace();
-  if (OutputMixer::Create(_outputMixerPtr, _gInstanceCounter) == 0) {
-    _outputMixerPtr->SetEngineInformation(_engineStatistics);
-  }
-  if (TransmitMixer::Create(_transmitMixerPtr, _gInstanceCounter) == 0) {
-    _transmitMixerPtr->SetEngineInformation(*_moduleProcessThreadPtr,
-                                            _engineStatistics, _channelManager);
-  }
+      _moduleProcessThreadPtr(
+          ProcessThread::Create("VoiceProcessThread")) {
+    Trace::CreateTrace();
+    if (OutputMixer::Create(_outputMixerPtr, _gInstanceCounter) == 0)
+    {
+        _outputMixerPtr->SetEngineInformation(_engineStatistics);
+    }
+    if (TransmitMixer::Create(_transmitMixerPtr, _gInstanceCounter) == 0)
+    {
+        _transmitMixerPtr->SetEngineInformation(*_moduleProcessThreadPtr,
+                                                _engineStatistics,
+                                                _channelManager);
+    }
+    _audioDeviceLayer = AudioDeviceModule::kPlatformDefaultAudio;
 }
 
 SharedData::~SharedData()
@@ -48,11 +52,6 @@ SharedData::~SharedData()
     }
     _moduleProcessThreadPtr->Stop();
     Trace::ReturnTrace();
-}
-
-rtc::TaskQueue* SharedData::encoder_queue() {
-  RTC_DCHECK_RUN_ON(&construction_thread_);
-  return &encoder_queue_;
 }
 
 void SharedData::set_audio_device(

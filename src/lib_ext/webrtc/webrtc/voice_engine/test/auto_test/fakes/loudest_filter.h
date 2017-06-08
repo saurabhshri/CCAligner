@@ -15,7 +15,6 @@
 #include "webrtc/base/timeutils.h"
 #include "webrtc/common_types.h"
 
-namespace webrtc {
 namespace voetest {
 
 class LoudestFilter {
@@ -49,7 +48,7 @@ class LoudestFilter {
   const int kInvalidAudioLevel = 128;
 };
 
+
 }  // namespace voetest
-}  // namespace webrtc
 
 #endif  // WEBRTC_VOICE_ENGINE_TEST_AUTO_TEST_FAKES_LOUDEST_FILTER_H_

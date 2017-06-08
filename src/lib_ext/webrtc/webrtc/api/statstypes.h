@@ -18,10 +18,11 @@
 #include <list>
 #include <map>
 #include <string>
-#include <vector>
 
 #include "webrtc/base/basictypes.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/constructormagic.h"
+#include "webrtc/base/linked_ptr.h"
 #include "webrtc/base/refcount.h"
 #include "webrtc/base/scoped_ref_ptr.h"
 #include "webrtc/base/stringencode.h"
@@ -105,14 +106,11 @@ class StatsReport {
     kStatsValueNameBytesSent,
     kStatsValueNameCodecImplementationName,
     kStatsValueNameDataChannelId,
-    kStatsValueNameFramesDecoded,
-    kStatsValueNameFramesEncoded,
     kStatsValueNameMediaType,
     kStatsValueNamePacketsLost,
     kStatsValueNamePacketsReceived,
     kStatsValueNamePacketsSent,
     kStatsValueNameProtocol,
-    kStatsValueNameQpSum,
     kStatsValueNameReceiving,
     kStatsValueNameSelectedCandidatePairId,
     kStatsValueNameSsrc,
@@ -150,7 +148,6 @@ class StatsReport {
     kStatsValueNameDecodingCNG,
     kStatsValueNameDecodingCTN,
     kStatsValueNameDecodingCTSG,
-    kStatsValueNameDecodingMutedOutput,
     kStatsValueNameDecodingNormal,
     kStatsValueNameDecodingPLC,
     kStatsValueNameDecodingPLCCNG,
@@ -200,8 +197,6 @@ class StatsReport {
     kStatsValueNameRemoteCandidateType,
     kStatsValueNameRemoteCertificateId,
     kStatsValueNameRenderDelayMs,
-    kStatsValueNameResidualEchoLikelihood,
-    kStatsValueNameResidualEchoLikelihoodRecentMax,
     kStatsValueNameRetransmitBitrate,
     kStatsValueNameRtt,
     kStatsValueNameSecondaryDecodedRate,
@@ -214,6 +209,7 @@ class StatsReport {
     kStatsValueNameTransmitBitrate,
     kStatsValueNameTransportType,
     kStatsValueNameTypingNoiseState,
+    kStatsValueNameViewLimitedResolution,
     kStatsValueNameWritable,
   };
 
@@ -235,7 +231,7 @@ class StatsReport {
     // Protected since users of the IdBase type will be using the Id typedef.
     virtual bool Equals(const IdBase& other) const;
 
-    explicit IdBase(StatsType type);  // Only meant for derived classes.
+    IdBase(StatsType type);  // Only meant for derived classes.
     const StatsType type_;
 
     static const char kSeparator = '_';
@@ -262,22 +258,6 @@ class StatsReport {
     Value(StatsValueName name, const Id& value);
 
     ~Value();
-
-    // Support ref counting. Note that for performance reasons, we
-    // don't use thread safe operations. Therefore, all operations
-    // affecting the ref count (in practice, creation and copying of
-    // the Values mapping) must occur on webrtc's signalling thread.
-    int AddRef() const {
-      RTC_DCHECK_RUN_ON(&thread_checker_);
-      return ++ref_count_;
-    }
-    int Release() const {
-      RTC_DCHECK_RUN_ON(&thread_checker_);
-      int count = --ref_count_;
-      if (!count)
-        delete this;
-      return count;
-    }
 
     // TODO(tommi): This compares name as well as value...
     // I think we should only need to compare the value part and
@@ -319,9 +299,6 @@ class StatsReport {
     const StatsValueName name;
 
    private:
-    rtc::ThreadChecker thread_checker_;
-    mutable int ref_count_ ACCESS_ON(thread_checker_) = 0;
-
     const Type type_;
     // TODO(tommi): Use C++ 11 union and make value_ const.
     union InternalType {
@@ -334,15 +311,17 @@ class StatsReport {
       Id* id_;
     } value_;
 
+   private:
     RTC_DISALLOW_COPY_AND_ASSIGN(Value);
   };
 
-  typedef rtc::scoped_refptr<Value> ValuePtr;
+  // TODO(tommi): Consider using a similar approach to how we store Ids using
+  // scoped_refptr for values.
+  typedef rtc::linked_ptr<Value> ValuePtr;
   typedef std::map<StatsValueName, ValuePtr> Values;
 
   // Ownership of |id| is passed to |this|.
   explicit StatsReport(const Id& id);
-  ~StatsReport();
 
   // Factory functions for various types of stats IDs.
   static Id NewBandwidthEstimationId();
@@ -415,7 +394,7 @@ class StatsCollection {
   StatsReport* FindOrAddNew(const StatsReport::Id& id);
   StatsReport* ReplaceOrAddNew(const StatsReport::Id& id);
 
-  // Looks for a report with the given |id|.  If one is not found, null
+  // Looks for a report with the given |id|.  If one is not found, NULL
   // will be returned.
   StatsReport* Find(const StatsReport::Id& id);
 

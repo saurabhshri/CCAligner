@@ -13,12 +13,12 @@
 
 #include <vector>
 
-#include "webrtc/api/video_codecs/video_encoder.h"
 #include "webrtc/base/constructormagic.h"
 #include "webrtc/base/criticalsection.h"
 #include "webrtc/base/thread_annotations.h"
 #include "webrtc/common_types.h"
 #include "webrtc/config.h"
+#include "webrtc/video_encoder.h"
 #include "webrtc/system_wrappers/include/atomic32.h"
 
 namespace webrtc {
@@ -32,29 +32,38 @@ struct RTPVideoHeader;
 class PayloadRouter : public EncodedImageCallback {
  public:
   // Rtp modules are assumed to be sorted in simulcast index order.
-  PayloadRouter(const std::vector<RtpRtcp*>& rtp_modules,
-                int payload_type);
+  explicit PayloadRouter(const std::vector<RtpRtcp*>& rtp_modules,
+                         int payload_type);
   ~PayloadRouter();
+
+  static size_t DefaultMaxPayloadLength();
+  void SetSendStreams(const std::vector<VideoStream>& streams);
 
   // PayloadRouter will only route packets if being active, all packets will be
   // dropped otherwise.
-  void SetActive(bool active);
-  bool IsActive();
+  void set_active(bool active);
+  bool active();
 
   // Implements EncodedImageCallback.
   // Returns 0 if the packet was routed / sent, -1 otherwise.
-  EncodedImageCallback::Result OnEncodedImage(
-      const EncodedImage& encoded_image,
-      const CodecSpecificInfo* codec_specific_info,
-      const RTPFragmentationHeader* fragmentation) override;
+  int32_t Encoded(const EncodedImage& encoded_image,
+                  const CodecSpecificInfo* codec_specific_info,
+                  const RTPFragmentationHeader* fragmentation) override;
 
-  void OnBitrateAllocationUpdated(const BitrateAllocation& bitrate);
+  // Configures current target bitrate.
+  void SetTargetSendBitrate(uint32_t bitrate_bps);
+
+  // Returns the maximum allowed data payload length, given the configured MTU
+  // and RTP headers.
+  size_t MaxPayloadLength() const;
 
  private:
   void UpdateModuleSendingState() EXCLUSIVE_LOCKS_REQUIRED(crit_);
 
   rtc::CriticalSection crit_;
   bool active_ GUARDED_BY(crit_);
+  std::vector<VideoStream> streams_ GUARDED_BY(crit_);
+  size_t num_sending_modules_ GUARDED_BY(crit_);
 
   // Rtp modules are assumed to be sorted in simulcast index order. Not owned.
   const std::vector<RtpRtcp*> rtp_modules_;

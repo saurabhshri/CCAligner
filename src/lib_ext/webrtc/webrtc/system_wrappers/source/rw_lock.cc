@@ -14,6 +14,7 @@
 
 #if defined(_WIN32)
 #include "webrtc/system_wrappers/source/rw_lock_win.h"
+#include "webrtc/system_wrappers/source/rw_lock_winxp_win.h"
 #else
 #include "webrtc/system_wrappers/source/rw_lock_posix.h"
 #endif
@@ -22,7 +23,12 @@ namespace webrtc {
 
 RWLockWrapper* RWLockWrapper::CreateRWLock() {
 #ifdef _WIN32
-  return RWLockWin::Create();
+  // Native implementation is faster, so use that if available.
+  RWLockWrapper* lock = RWLockWin::Create();
+  if (lock) {
+    return lock;
+  }
+  return new RWLockWinXP();
 #else
   return RWLockPosix::Create();
 #endif

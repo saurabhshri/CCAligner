@@ -11,7 +11,6 @@
 
 #include "webrtc/p2p/base/relayport.h"
 #include "webrtc/base/asyncpacketsocket.h"
-#include "webrtc/base/checks.h"
 #include "webrtc/base/helpers.h"
 #include "webrtc/base/logging.h"
 
@@ -244,8 +243,8 @@ void RelayPort::SetReady() {
       // This is due to as mapped address stun attribute is used for allocated
       // address.
       AddAddress(iter->address, iter->address, rtc::SocketAddress(), proto_name,
-                 proto_name, "", RELAY_PORT_TYPE, ICE_TYPE_PREFERENCE_RELAY_UDP,
-                 0, "", false);
+                 proto_name, "", RELAY_PORT_TYPE, ICE_TYPE_PREFERENCE_RELAY, 0,
+                 false);
     }
     ready_ = true;
     SignalPortComplete(this);
@@ -271,7 +270,7 @@ bool RelayPort::HasMagicCookie(const char* data, size_t size) {
 void RelayPort::PrepareAddress() {
   // We initiate a connect on the first entry.  If this completes, it will fill
   // in the server address as the address of this port.
-  RTC_DCHECK(entries_.size() == 1);
+  ASSERT(entries_.size() == 1);
   entries_[0]->Connect();
   ready_ = false;
 }
@@ -342,10 +341,10 @@ int RelayPort::SendTo(const void* data, size_t size,
   // still be necessary).  Otherwise, we can't yet use this connection, so we
   // default to the first one.
   if (!entry || !entry->connected()) {
-    RTC_DCHECK(!entries_.empty());
+    ASSERT(!entries_.empty());
     entry = entries_[0];
     if (!entry->connected()) {
-      error_ = ENOTCONN;
+      error_ = EWOULDBLOCK;
       return SOCKET_ERROR;
     }
   }
@@ -353,7 +352,7 @@ int RelayPort::SendTo(const void* data, size_t size,
   // Send the actual contents to the server using the usual mechanism.
   int sent = entry->SendTo(data, size, addr, options);
   if (sent <= 0) {
-    RTC_DCHECK(sent < 0);
+    ASSERT(sent < 0);
     error_ = entry->GetError();
     return SOCKET_ERROR;
   }
@@ -436,7 +435,7 @@ void RelayConnection::OnSendPacket(const void* data, size_t size,
   if (sent <= 0) {
     LOG(LS_VERBOSE) << "OnSendPacket: failed sending to " << GetAddress() <<
         strerror(socket_->GetError());
-    RTC_DCHECK(sent < 0);
+    ASSERT(sent < 0);
   }
 }
 
@@ -492,9 +491,8 @@ void RelayEntry::Connect() {
         rtc::SocketAddress(port_->ip(), 0),
         port_->min_port(), port_->max_port());
   } else if (ra->proto == PROTO_TCP || ra->proto == PROTO_SSLTCP) {
-    int opts = (ra->proto == PROTO_SSLTCP)
-                   ? rtc::PacketSocketFactory::OPT_TLS_FAKE
-                   : 0;
+    int opts = (ra->proto == PROTO_SSLTCP) ?
+     rtc::PacketSocketFactory::OPT_SSLTCP : 0;
     socket = port_->socket_factory()->CreateClientTcpSocket(
         rtc::SocketAddress(port_->ip(), 0), ra->address,
         port_->proxy(), port_->user_agent(), opts);
@@ -576,32 +574,36 @@ int RelayEntry::SendTo(const void* data, size_t size,
   RelayMessage request;
   request.SetType(STUN_SEND_REQUEST);
 
-  auto magic_cookie_attr =
+  StunByteStringAttribute* magic_cookie_attr =
       StunAttribute::CreateByteString(STUN_ATTR_MAGIC_COOKIE);
   magic_cookie_attr->CopyBytes(TURN_MAGIC_COOKIE_VALUE,
                                sizeof(TURN_MAGIC_COOKIE_VALUE));
-  request.AddAttribute(std::move(magic_cookie_attr));
+  VERIFY(request.AddAttribute(magic_cookie_attr));
 
-  auto username_attr = StunAttribute::CreateByteString(STUN_ATTR_USERNAME);
+  StunByteStringAttribute* username_attr =
+      StunAttribute::CreateByteString(STUN_ATTR_USERNAME);
   username_attr->CopyBytes(port_->username_fragment().c_str(),
                            port_->username_fragment().size());
-  request.AddAttribute(std::move(username_attr));
+  VERIFY(request.AddAttribute(username_attr));
 
-  auto addr_attr = StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
+  StunAddressAttribute* addr_attr =
+      StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
   addr_attr->SetIP(addr.ipaddr());
   addr_attr->SetPort(addr.port());
-  request.AddAttribute(std::move(addr_attr));
+  VERIFY(request.AddAttribute(addr_attr));
 
   // Attempt to lock
   if (ext_addr_ == addr) {
-    auto options_attr = StunAttribute::CreateUInt32(STUN_ATTR_OPTIONS);
+    StunUInt32Attribute* options_attr =
+      StunAttribute::CreateUInt32(STUN_ATTR_OPTIONS);
     options_attr->SetValue(0x1);
-    request.AddAttribute(std::move(options_attr));
+    VERIFY(request.AddAttribute(options_attr));
   }
 
-  auto data_attr = StunAttribute::CreateByteString(STUN_ATTR_DATA);
+  StunByteStringAttribute* data_attr =
+      StunAttribute::CreateByteString(STUN_ATTR_DATA);
   data_attr->CopyBytes(data, size);
-  request.AddAttribute(std::move(data_attr));
+  VERIFY(request.AddAttribute(data_attr));
 
   // TODO: compute the HMAC.
 
@@ -642,7 +644,7 @@ void RelayEntry::HandleConnectFailure(
 }
 
 void RelayEntry::OnMessage(rtc::Message *pmsg) {
-  RTC_DCHECK(pmsg->message_id == kMessageConnectTimeout);
+  ASSERT(pmsg->message_id == kMessageConnectTimeout);
   if (current_connection_) {
     const ProtocolAddress* ra = current_connection_->protocol_address();
     LOG(LS_WARNING) << "Relay " << ra->proto << " connection to " <<
@@ -681,7 +683,7 @@ void RelayEntry::OnReadPacket(
     const char* data, size_t size,
     const rtc::SocketAddress& remote_addr,
     const rtc::PacketTime& packet_time) {
-  // RTC_DCHECK(remote_addr == port_->server_addr());
+  // ASSERT(remote_addr == port_->server_addr());
   // TODO: are we worried about this?
 
   if (current_connection_ == NULL || socket != current_connection_->socket()) {
@@ -783,11 +785,12 @@ AllocateRequest::AllocateRequest(RelayEntry* entry,
 void AllocateRequest::Prepare(StunMessage* request) {
   request->SetType(STUN_ALLOCATE_REQUEST);
 
-  auto username_attr = StunAttribute::CreateByteString(STUN_ATTR_USERNAME);
+  StunByteStringAttribute* username_attr =
+      StunAttribute::CreateByteString(STUN_ATTR_USERNAME);
   username_attr->CopyBytes(
       entry_->port()->username_fragment().c_str(),
       entry_->port()->username_fragment().size());
-  request->AddAttribute(std::move(username_attr));
+  VERIFY(request->AddAttribute(username_attr));
 }
 
 void AllocateRequest::OnSent() {
@@ -824,7 +827,7 @@ void AllocateRequest::OnResponse(StunMessage* response) {
 void AllocateRequest::OnErrorResponse(StunMessage* response) {
   const StunErrorCodeAttribute* attr = response->GetErrorCode();
   if (!attr) {
-    LOG(LS_ERROR) << "Missing allocate response error code.";
+    LOG(INFO) << "Bad allocate response error code";
   } else {
     LOG(INFO) << "Allocate error response:"
               << " code=" << attr->code()

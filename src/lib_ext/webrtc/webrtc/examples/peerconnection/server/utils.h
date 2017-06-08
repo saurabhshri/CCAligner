@@ -10,6 +10,7 @@
 
 #ifndef WEBRTC_EXAMPLES_PEERCONNECTION_SERVER_UTILS_H_
 #define WEBRTC_EXAMPLES_PEERCONNECTION_SERVER_UTILS_H_
+#pragma once
 
 #include <assert.h>
 #include <string>

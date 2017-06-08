@@ -116,6 +116,7 @@ public class TCPChannelClient {
     });
   }
 
+
   /**
    * Base class for server and client sockets. Contains a listening thread that will call
    * eventListener.onTCPMessage on new messages.

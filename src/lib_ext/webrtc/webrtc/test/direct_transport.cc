@@ -9,40 +9,26 @@
  */
 #include "webrtc/test/direct_transport.h"
 
-#include "webrtc/call/call.h"
+#include "testing/gtest/include/gtest/gtest.h"
+
+#include "webrtc/call.h"
 #include "webrtc/system_wrappers/include/clock.h"
 
 namespace webrtc {
 namespace test {
 
-DirectTransport::DirectTransport(
-    Call* send_call,
-    const std::map<uint8_t, MediaType>& payload_type_map)
-    : DirectTransport(FakeNetworkPipe::Config(), send_call, payload_type_map) {}
-
-DirectTransport::DirectTransport(
-    const FakeNetworkPipe::Config& config,
-    Call* send_call,
-    const std::map<uint8_t, MediaType>& payload_type_map)
-    : DirectTransport(
-          config,
-          send_call,
-          std::unique_ptr<Demuxer>(new DemuxerImpl(payload_type_map))) {}
+DirectTransport::DirectTransport(Call* send_call)
+    : DirectTransport(FakeNetworkPipe::Config(), send_call) {}
 
 DirectTransport::DirectTransport(const FakeNetworkPipe::Config& config,
-                                 Call* send_call,
-                                 std::unique_ptr<Demuxer> demuxer)
+                                 Call* send_call)
     : send_call_(send_call),
       packet_event_(false, false),
       thread_(NetworkProcess, this, "NetworkProcess"),
       clock_(Clock::GetRealTimeClock()),
       shutting_down_(false),
-      fake_network_(clock_, config, std::move(demuxer)) {
+      fake_network_(clock_, config) {
   thread_.Start();
-  if (send_call_) {
-    send_call_->SignalChannelNetworkState(MediaType::AUDIO, kNetworkUp);
-    send_call_->SignalChannelNetworkState(MediaType::VIDEO, kNetworkUp);
-  }
 }
 
 DirectTransport::~DirectTransport() { StopSending(); }
@@ -86,22 +72,6 @@ bool DirectTransport::SendRtcp(const uint8_t* data, size_t length) {
 
 int DirectTransport::GetAverageDelayMs() {
   return fake_network_.AverageDelay();
-}
-
-DirectTransport::ForceDemuxer::ForceDemuxer(MediaType media_type)
-    : media_type_(media_type) {}
-
-void DirectTransport::ForceDemuxer::SetReceiver(PacketReceiver* receiver) {
-  packet_receiver_ = receiver;
-}
-
-void DirectTransport::ForceDemuxer::DeliverPacket(
-    const NetworkPacket* packet,
-    const PacketTime& packet_time) {
-  if (!packet_receiver_)
-    return;
-  packet_receiver_->DeliverPacket(media_type_, packet->data(),
-                                  packet->data_length(), packet_time);
 }
 
 bool DirectTransport::NetworkProcess(void* transport) {

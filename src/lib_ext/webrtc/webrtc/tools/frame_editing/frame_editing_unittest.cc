@@ -14,8 +14,8 @@
 #include <fstream>
 #include <memory>
 
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
-#include "webrtc/test/gtest.h"
 #include "webrtc/test/testsupport/fileutils.h"
 #include "webrtc/tools/frame_editing/frame_editing_lib.h"
 
@@ -24,7 +24,7 @@ namespace test {
 
 const int kWidth = 352;
 const int kHeight = 288;
-const size_t kFrameSize = CalcBufferSize(VideoType::kI420, kWidth, kHeight);
+const size_t kFrameSize = CalcBufferSize(kI420, kWidth, kHeight);
 
 class FrameEditingTest : public ::testing::Test {
  protected:

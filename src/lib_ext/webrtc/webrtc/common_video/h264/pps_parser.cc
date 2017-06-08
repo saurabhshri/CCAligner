@@ -10,22 +10,15 @@
 
 #include "webrtc/common_video/h264/pps_parser.h"
 
-#include <memory>
-#include <vector>
-
 #include "webrtc/common_video/h264/h264_common.h"
 #include "webrtc/base/bitbuffer.h"
+#include "webrtc/base/buffer.h"
 #include "webrtc/base/logging.h"
 
 #define RETURN_EMPTY_ON_FAIL(x)                  \
   if (!(x)) {                                    \
     return rtc::Optional<PpsParser::PpsState>(); \
   }
-
-namespace {
-const int kMaxPicInitQpDeltaValue = 25;
-const int kMinPicInitQpDeltaValue = -26;
-}
 
 namespace webrtc {
 
@@ -38,56 +31,27 @@ rtc::Optional<PpsParser::PpsState> PpsParser::ParsePps(const uint8_t* data,
   // First, parse out rbsp, which is basically the source buffer minus emulation
   // bytes (the last byte of a 0x00 0x00 0x03 sequence). RBSP is defined in
   // section 7.3.1 of the H.264 standard.
-  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data, length);
-  rtc::BitBuffer bit_buffer(unpacked_buffer.data(), unpacked_buffer.size());
+  std::unique_ptr<rtc::Buffer> unpacked_buffer = H264::ParseRbsp(data, length);
+  rtc::BitBuffer bit_buffer(unpacked_buffer->data(), unpacked_buffer->size());
   return ParseInternal(&bit_buffer);
-}
-
-bool PpsParser::ParsePpsIds(const uint8_t* data,
-                            size_t length,
-                            uint32_t* pps_id,
-                            uint32_t* sps_id) {
-  RTC_DCHECK(pps_id);
-  RTC_DCHECK(sps_id);
-  // First, parse out rbsp, which is basically the source buffer minus emulation
-  // bytes (the last byte of a 0x00 0x00 0x03 sequence). RBSP is defined in
-  // section 7.3.1 of the H.264 standard.
-  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data, length);
-  rtc::BitBuffer bit_buffer(unpacked_buffer.data(), unpacked_buffer.size());
-  return ParsePpsIdsInternal(&bit_buffer, pps_id, sps_id);
-}
-
-rtc::Optional<uint32_t> PpsParser::ParsePpsIdFromSlice(const uint8_t* data,
-                                                       size_t length) {
-  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data, length);
-  rtc::BitBuffer slice_reader(unpacked_buffer.data(), unpacked_buffer.size());
-
-  uint32_t golomb_tmp;
-  // first_mb_in_slice: ue(v)
-  if (!slice_reader.ReadExponentialGolomb(&golomb_tmp))
-    return rtc::Optional<uint32_t>();
-  // slice_type: ue(v)
-  if (!slice_reader.ReadExponentialGolomb(&golomb_tmp))
-    return rtc::Optional<uint32_t>();
-  // pic_parameter_set_id: ue(v)
-  uint32_t slice_pps_id;
-  if (!slice_reader.ReadExponentialGolomb(&slice_pps_id))
-    return rtc::Optional<uint32_t>();
-  return rtc::Optional<uint32_t>(slice_pps_id);
 }
 
 rtc::Optional<PpsParser::PpsState> PpsParser::ParseInternal(
     rtc::BitBuffer* bit_buffer) {
   PpsState pps;
 
-  RETURN_EMPTY_ON_FAIL(ParsePpsIdsInternal(bit_buffer, &pps.id, &pps.sps_id));
-
   uint32_t bits_tmp;
   uint32_t golomb_ignored;
+  // pic_parameter_set_id: ue(v)
+  RETURN_EMPTY_ON_FAIL(bit_buffer->ReadExponentialGolomb(&golomb_ignored));
+  // seq_parameter_set_id: ue(v)
+  RETURN_EMPTY_ON_FAIL(bit_buffer->ReadExponentialGolomb(&golomb_ignored));
   // entropy_coding_mode_flag: u(1)
   uint32_t entropy_coding_mode_flag;
   RETURN_EMPTY_ON_FAIL(bit_buffer->ReadBits(&entropy_coding_mode_flag, 1));
-  pps.entropy_coding_mode_flag = entropy_coding_mode_flag != 0;
+  // TODO(pbos): Implement CABAC support if spotted in the wild.
+  RTC_CHECK(entropy_coding_mode_flag == 0)
+      << "Don't know how to parse CABAC streams.";
   // bottom_field_pic_order_in_frame_present_flag: u(1)
   uint32_t bottom_field_pic_order_in_frame_present_flag;
   RETURN_EMPTY_ON_FAIL(
@@ -167,11 +131,6 @@ rtc::Optional<PpsParser::PpsState> PpsParser::ParseInternal(
   // pic_init_qp_minus26: se(v)
   RETURN_EMPTY_ON_FAIL(
       bit_buffer->ReadSignedExponentialGolomb(&pps.pic_init_qp_minus26));
-  // Sanity-check parsed value
-  if (pps.pic_init_qp_minus26 > kMaxPicInitQpDeltaValue ||
-      pps.pic_init_qp_minus26 < kMinPicInitQpDeltaValue) {
-    RETURN_EMPTY_ON_FAIL(false);
-  }
   // pic_init_qs_minus26: se(v)
   RETURN_EMPTY_ON_FAIL(bit_buffer->ReadExponentialGolomb(&golomb_ignored));
   // chroma_qp_index_offset: se(v)
@@ -184,18 +143,6 @@ rtc::Optional<PpsParser::PpsState> PpsParser::ParseInternal(
       bit_buffer->ReadBits(&pps.redundant_pic_cnt_present_flag, 1));
 
   return rtc::Optional<PpsParser::PpsState>(pps);
-}
-
-bool PpsParser::ParsePpsIdsInternal(rtc::BitBuffer* bit_buffer,
-                                    uint32_t* pps_id,
-                                    uint32_t* sps_id) {
-  // pic_parameter_set_id: ue(v)
-  if (!bit_buffer->ReadExponentialGolomb(pps_id))
-    return false;
-  // seq_parameter_set_id: ue(v)
-  if (!bit_buffer->ReadExponentialGolomb(sps_id))
-    return false;
-  return true;
 }
 
 }  // namespace webrtc

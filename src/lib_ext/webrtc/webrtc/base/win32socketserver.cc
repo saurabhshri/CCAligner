@@ -14,9 +14,10 @@
 #include <ws2tcpip.h>  // NOLINT
 
 #include "webrtc/base/byteorder.h"
-#include "webrtc/base/checks.h"
+#include "webrtc/base/common.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/win32window.h"
+#include "webrtc/base/winping.h"
 
 namespace rtc {
 
@@ -164,7 +165,7 @@ class Win32Socket::EventSink : public Win32Window {
 };
 
 void Win32Socket::EventSink::Dispose() {
-  parent_ = nullptr;
+  parent_ = NULL;
   if (::IsWindow(handle())) {
     ::DestroyWindow(handle());
   } else {
@@ -226,14 +227,9 @@ void Win32Socket::EventSink::OnNcDestroy() {
 /////////////////////////////////////////////////////////////////////////////
 
 Win32Socket::Win32Socket()
-    : socket_(INVALID_SOCKET),
-      error_(0),
-      state_(CS_CLOSED),
-      connect_time_(0),
-      closing_(false),
-      close_error_(0),
-      sink_(nullptr),
-      dns_(nullptr) {}
+    : socket_(INVALID_SOCKET), error_(0), state_(CS_CLOSED), connect_time_(0),
+      closing_(false), close_error_(0), sink_(NULL), dns_(NULL) {
+}
 
 Win32Socket::~Win32Socket() {
   Close();
@@ -242,7 +238,7 @@ Win32Socket::~Win32Socket() {
 bool Win32Socket::CreateT(int family, int type) {
   Close();
   int proto = (SOCK_DGRAM == type) ? IPPROTO_UDP : IPPROTO_TCP;
-  socket_ = ::WSASocket(family, type, proto, nullptr, 0, 0);
+  socket_ = ::WSASocket(family, type, proto, NULL, NULL, 0);
   if (socket_ == INVALID_SOCKET) {
     UpdateLastError();
     return false;
@@ -254,11 +250,11 @@ bool Win32Socket::CreateT(int family, int type) {
 }
 
 int Win32Socket::Attach(SOCKET s) {
-  RTC_DCHECK(socket_ == INVALID_SOCKET);
+  ASSERT(socket_ == INVALID_SOCKET);
   if (socket_ != INVALID_SOCKET)
     return SOCKET_ERROR;
 
-  RTC_DCHECK(s != INVALID_SOCKET);
+  ASSERT(s != INVALID_SOCKET);
   if (s == INVALID_SOCKET)
     return SOCKET_ERROR;
 
@@ -307,7 +303,7 @@ SocketAddress Win32Socket::GetRemoteAddress() const {
 }
 
 int Win32Socket::Bind(const SocketAddress& addr) {
-  RTC_DCHECK(socket_ != INVALID_SOCKET);
+  ASSERT(socket_ != INVALID_SOCKET);
   if (socket_ == INVALID_SOCKET)
     return SOCKET_ERROR;
 
@@ -491,14 +487,14 @@ Win32Socket* Win32Socket::Accept(SocketAddress* out_addr) {
   SOCKET s = ::accept(socket_, reinterpret_cast<sockaddr*>(&saddr), &addr_len);
   UpdateLastError();
   if (s == INVALID_SOCKET)
-    return nullptr;
+    return NULL;
   if (out_addr)
     SocketAddressFromSockAddrStorage(saddr, out_addr);
   Win32Socket* socket = new Win32Socket;
   if (0 == socket->Attach(s))
     return socket;
   delete socket;
-  return nullptr;
+  return NULL;
 }
 
 int Win32Socket::Close() {
@@ -513,29 +509,60 @@ int Win32Socket::Close() {
   if (dns_) {
     WSACancelAsyncRequest(dns_->handle);
     delete dns_;
-    dns_ = nullptr;
+    dns_ = NULL;
   }
   if (sink_) {
     sink_->Dispose();
-    sink_ = nullptr;
+    sink_ = NULL;
   }
   addr_.Clear();
   state_ = CS_CLOSED;
   return err;
 }
 
+int Win32Socket::EstimateMTU(uint16_t* mtu) {
+  SocketAddress addr = GetRemoteAddress();
+  if (addr.IsAnyIP()) {
+    error_ = ENOTCONN;
+    return -1;
+  }
+
+  WinPing ping;
+  if (!ping.IsValid()) {
+    error_ = EINVAL;  // can't think of a better error ID
+    return -1;
+  }
+
+  for (int level = 0; PACKET_MAXIMUMS[level + 1] > 0; ++level) {
+    int32_t size = PACKET_MAXIMUMS[level] - IP_HEADER_SIZE - ICMP_HEADER_SIZE;
+    WinPing::PingResult result = ping.Ping(addr.ipaddr(), size,
+                                           ICMP_PING_TIMEOUT_MILLIS, 1, false);
+    if (result == WinPing::PING_FAIL) {
+      error_ = EINVAL;  // can't think of a better error ID
+      return -1;
+    }
+    if (result != WinPing::PING_TOO_LARGE) {
+      *mtu = PACKET_MAXIMUMS[level];
+      return 0;
+    }
+  }
+
+  ASSERT(false);
+  return 0;
+}
+
 void Win32Socket::CreateSink() {
-  RTC_DCHECK(nullptr == sink_);
+  ASSERT(NULL == sink_);
 
   // Create window
   sink_ = new EventSink(this);
-  sink_->Create(nullptr, L"EventSink", 0, 0, 0, 0, 10, 10);
+  sink_->Create(NULL, L"EventSink", 0, 0, 0, 0, 10, 10);
 }
 
 bool Win32Socket::SetAsync(int events) {
-  if (nullptr == sink_) {
+  if (NULL == sink_) {
     CreateSink();
-    RTC_DCHECK(nullptr != sink_);
+    ASSERT(NULL != sink_);
   }
 
   // start the async select
@@ -591,7 +618,7 @@ int Win32Socket::TranslateOption(Option opt, int* slevel, int* sopt) {
       LOG(LS_WARNING) << "Socket::OPT_DSCP not supported.";
       return -1;
     default:
-      RTC_NOTREACHED();
+      ASSERT(false);
       return -1;
   }
   return 0;
@@ -682,7 +709,7 @@ void Win32Socket::OnDnsNotify(HANDLE task, int error) {
     SignalCloseEvent(this, error_);
   } else {
     delete dns_;
-    dns_ = nullptr;
+    dns_ = NULL;
   }
 }
 
@@ -694,19 +721,20 @@ void Win32Socket::OnDnsNotify(HANDLE task, int error) {
 static UINT s_wm_wakeup_id = 0;
 const TCHAR Win32SocketServer::kWindowName[] = L"libjingle Message Window";
 
-Win32SocketServer::Win32SocketServer()
-    : wnd_(this),
+Win32SocketServer::Win32SocketServer(MessageQueue* message_queue)
+    : message_queue_(message_queue),
+      wnd_(this),
       posted_(false),
-      hdlg_(nullptr) {
+      hdlg_(NULL) {
   if (s_wm_wakeup_id == 0)
     s_wm_wakeup_id = RegisterWindowMessage(L"WM_WAKEUP");
-  if (!wnd_.Create(nullptr, kWindowName, 0, 0, 0, 0, 0, 0)) {
+  if (!wnd_.Create(NULL, kWindowName, 0, 0, 0, 0, 0, 0)) {
     LOG_GLE(LS_ERROR) << "Failed to create message window.";
   }
 }
 
 Win32SocketServer::~Win32SocketServer() {
-  if (wnd_.handle() != nullptr) {
+  if (wnd_.handle() != NULL) {
     KillTimer(wnd_.handle(), 1);
     wnd_.Destroy();
   }
@@ -730,7 +758,7 @@ AsyncSocket* Win32SocketServer::CreateAsyncSocket(int family, int type) {
     return socket;
   }
   delete socket;
-  return nullptr;
+  return NULL;
 }
 
 void Win32SocketServer::SetMessageQueue(MessageQueue* queue) {
@@ -745,12 +773,12 @@ bool Win32SocketServer::Wait(int cms, bool process_io) {
     uint32_t start = Time();
     do {
       MSG msg;
-      SetTimer(wnd_.handle(), 0, cms, nullptr);
+      SetTimer(wnd_.handle(), 0, cms, NULL);
       // Get the next available message. If we have a modeless dialog, give
       // give the message to IsDialogMessage, which will return true if it
       // was a message for the dialog that it handled internally.
       // Otherwise, dispatch as usual via Translate/DispatchMessage.
-      b = GetMessage(&msg, nullptr, 0, 0);
+      b = GetMessage(&msg, NULL, 0, 0);
       if (b == -1) {
         LOG_GLE(LS_ERROR) << "GetMessage failed.";
         return false;
@@ -764,9 +792,9 @@ bool Win32SocketServer::Wait(int cms, bool process_io) {
     } while (b && TimeSince(start) < cms);
   } else if (cms != 0) {
     // Sit and wait forever for a WakeUp. This is the Thread::Send case.
-    RTC_DCHECK(cms == -1);
+    ASSERT(cms == -1);
     MSG msg;
-    b = GetMessage(&msg, nullptr, s_wm_wakeup_id, s_wm_wakeup_id);
+    b = GetMessage(&msg, NULL, s_wm_wakeup_id, s_wm_wakeup_id);
     {
       CritScope scope(&cs_);
       posted_ = false;
@@ -816,7 +844,7 @@ void Win32SocketServer::Pump() {
   if (delay == -1) {
     KillTimer(wnd_.handle(), 1);
   } else {
-    SetTimer(wnd_.handle(), 1, delay, nullptr);
+    SetTimer(wnd_.handle(), 1, delay, NULL);
   }
 }
 

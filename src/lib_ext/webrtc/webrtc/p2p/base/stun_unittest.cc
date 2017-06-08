@@ -10,14 +10,13 @@
 
 #include <string>
 
+#include "webrtc/p2p/base/stun.h"
 #include "webrtc/base/arraysize.h"
 #include "webrtc/base/bytebuffer.h"
 #include "webrtc/base/gunit.h"
 #include "webrtc/base/logging.h"
 #include "webrtc/base/messagedigest.h"
-#include "webrtc/base/ptr_util.h"
 #include "webrtc/base/socketaddress.h"
-#include "webrtc/p2p/base/stun.h"
 
 namespace cricket {
 
@@ -495,7 +494,7 @@ const in6_addr kIPv6TestAddress2 = { { { 0x24, 0x01, 0xfa, 0x00,
 const in_addr kIPv4TestAddress1 =  { 0xe64417ac };
 #elif defined WEBRTC_WIN
 // Windows in_addr has a union with a uchar[] array first.
-const in_addr kIPv4TestAddress1 =  { { { 0x0ac, 0x017, 0x044, 0x0e6 } } };
+const in_addr kIPv4TestAddress1 =  { { 0x0ac, 0x017, 0x044, 0x0e6 } };
 #endif
 const char kTestUserName1[] = "abcdefgh";
 const char kTestUserName2[] = "abc";
@@ -823,12 +822,14 @@ TEST_F(StunTest, SetIPv4XorAddressAttributeOwner) {
 TEST_F(StunTest, CreateIPv6AddressAttribute) {
   rtc::IPAddress test_ip(kIPv6TestAddress2);
 
-  auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
+  StunAddressAttribute* addr =
+      StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
   rtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
   addr->SetAddress(test_addr);
 
-  CheckStunAddressAttribute(addr.get(), STUN_ADDRESS_IPV6, kTestMessagePort2,
-                            test_ip);
+  CheckStunAddressAttribute(addr, STUN_ADDRESS_IPV6,
+                            kTestMessagePort2, test_ip);
+  delete addr;
 }
 
 TEST_F(StunTest, CreateIPv4AddressAttribute) {
@@ -836,29 +837,36 @@ TEST_F(StunTest, CreateIPv4AddressAttribute) {
   test_in_addr.s_addr = 0xBEB0B0BE;
   rtc::IPAddress test_ip(test_in_addr);
 
-  auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
+  StunAddressAttribute* addr =
+      StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
   rtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
   addr->SetAddress(test_addr);
 
-  CheckStunAddressAttribute(addr.get(), STUN_ADDRESS_IPV4, kTestMessagePort2,
-                            test_ip);
+  CheckStunAddressAttribute(addr, STUN_ADDRESS_IPV4,
+                            kTestMessagePort2, test_ip);
+  delete addr;
 }
 
 // Test that we don't care what order we set the parts of an address
 TEST_F(StunTest, CreateAddressInArbitraryOrder) {
-  auto addr = StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
+  StunAddressAttribute* addr =
+  StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
   // Port first
   addr->SetPort(kTestMessagePort1);
   addr->SetIP(rtc::IPAddress(kIPv4TestAddress1));
   ASSERT_EQ(kTestMessagePort1, addr->port());
   ASSERT_EQ(rtc::IPAddress(kIPv4TestAddress1), addr->ipaddr());
 
-  auto addr2 = StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
+  StunAddressAttribute* addr2 =
+  StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
   // IP first
   addr2->SetIP(rtc::IPAddress(kIPv4TestAddress1));
   addr2->SetPort(kTestMessagePort2);
   ASSERT_EQ(kTestMessagePort2, addr2->port());
   ASSERT_EQ(rtc::IPAddress(kIPv4TestAddress1), addr2->ipaddr());
+
+  delete addr;
+  delete addr2;
 }
 
 TEST_F(StunTest, WriteMessageWithIPv6AddressAttribute) {
@@ -873,10 +881,11 @@ TEST_F(StunTest, WriteMessageWithIPv6AddressAttribute) {
                   kStunTransactionIdLength));
   CheckStunTransactionID(msg, kTestTransactionId1, kStunTransactionIdLength);
 
-  auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
+  StunAddressAttribute* addr =
+      StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
   rtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
   addr->SetAddress(test_addr);
-  msg.AddAttribute(std::move(addr));
+  EXPECT_TRUE(msg.AddAttribute(addr));
 
   CheckStunHeader(msg, STUN_BINDING_REQUEST, (size - 20));
 
@@ -902,10 +911,11 @@ TEST_F(StunTest, WriteMessageWithIPv4AddressAttribute) {
                   kStunTransactionIdLength));
   CheckStunTransactionID(msg, kTestTransactionId1, kStunTransactionIdLength);
 
-  auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
+  StunAddressAttribute* addr =
+      StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
   rtc::SocketAddress test_addr(test_ip, kTestMessagePort4);
   addr->SetAddress(test_addr);
-  msg.AddAttribute(std::move(addr));
+  EXPECT_TRUE(msg.AddAttribute(addr));
 
   CheckStunHeader(msg, STUN_BINDING_RESPONSE, (size - 20));
 
@@ -931,10 +941,11 @@ TEST_F(StunTest, WriteMessageWithIPv6XorAddressAttribute) {
                   kStunTransactionIdLength));
   CheckStunTransactionID(msg, kTestTransactionId2, kStunTransactionIdLength);
 
-  auto addr = StunAttribute::CreateXorAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
+  StunAddressAttribute* addr =
+      StunAttribute::CreateXorAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
   rtc::SocketAddress test_addr(test_ip, kTestMessagePort1);
   addr->SetAddress(test_addr);
-  msg.AddAttribute(std::move(addr));
+  EXPECT_TRUE(msg.AddAttribute(addr));
 
   CheckStunHeader(msg, STUN_BINDING_RESPONSE, (size - 20));
 
@@ -961,10 +972,11 @@ TEST_F(StunTest, WriteMessageWithIPv4XoreAddressAttribute) {
                   kStunTransactionIdLength));
   CheckStunTransactionID(msg, kTestTransactionId1, kStunTransactionIdLength);
 
-  auto addr = StunAttribute::CreateXorAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
+  StunAddressAttribute* addr =
+      StunAttribute::CreateXorAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
   rtc::SocketAddress test_addr(test_ip, kTestMessagePort3);
   addr->SetAddress(test_addr);
-  msg.AddAttribute(std::move(addr));
+  EXPECT_TRUE(msg.AddAttribute(addr));
 
   CheckStunHeader(msg, STUN_BINDING_RESPONSE, (size - 20));
 
@@ -1016,15 +1028,6 @@ TEST_F(StunTest, ReadErrorCodeAttribute) {
   EXPECT_EQ(kTestErrorNumber, errorcode->number());
   EXPECT_EQ(kTestErrorReason, errorcode->reason());
   EXPECT_EQ(kTestErrorCode, errorcode->code());
-  EXPECT_EQ(kTestErrorCode, msg.GetErrorCodeValue());
-}
-
-// Test that GetErrorCodeValue returns STUN_ERROR_GLOBAL_FAILURE if the message
-// in question doesn't have an error code attribute, rather than crashing.
-TEST_F(StunTest, GetErrorCodeValueWithNoErrorAttribute) {
-  StunMessage msg;
-  ReadStunMessage(&msg, kStunMessageWithIPv6MappedAddress);
-  EXPECT_EQ(STUN_ERROR_GLOBAL_FAILURE, msg.GetErrorCodeValue());
 }
 
 TEST_F(StunTest, ReadMessageWithAUInt16ListAttribute) {
@@ -1070,10 +1073,10 @@ TEST_F(StunTest, WriteMessageWithAnErrorCodeAttribute) {
       std::string(reinterpret_cast<const char*>(kTestTransactionId1),
                   kStunTransactionIdLength));
   CheckStunTransactionID(msg, kTestTransactionId1, kStunTransactionIdLength);
-  auto errorcode = StunAttribute::CreateErrorCode();
+  StunErrorCodeAttribute* errorcode = StunAttribute::CreateErrorCode();
   errorcode->SetCode(kTestErrorCode);
   errorcode->SetReason(kTestErrorReason);
-  msg.AddAttribute(std::move(errorcode));
+  EXPECT_TRUE(msg.AddAttribute(errorcode));
   CheckStunHeader(msg, STUN_BINDING_ERROR_RESPONSE, (size - 20));
 
   rtc::ByteBufferWriter out;
@@ -1092,11 +1095,11 @@ TEST_F(StunTest, WriteMessageWithAUInt16ListAttribute) {
       std::string(reinterpret_cast<const char*>(kTestTransactionId2),
                   kStunTransactionIdLength));
   CheckStunTransactionID(msg, kTestTransactionId2, kStunTransactionIdLength);
-  auto list = StunAttribute::CreateUnknownAttributes();
+  StunUInt16ListAttribute* list = StunAttribute::CreateUnknownAttributes();
   list->AddType(0x1U);
   list->AddType(0x1000U);
   list->AddType(0xAB0CU);
-  msg.AddAttribute(std::move(list));
+  EXPECT_TRUE(msg.AddAttribute(list));
   CheckStunHeader(msg, STUN_BINDING_REQUEST, (size - 20));
 
   rtc::ByteBufferWriter out;
@@ -1115,9 +1118,9 @@ TEST_F(StunTest, WriteMessageWithOriginAttribute) {
   msg.SetTransactionID(
       std::string(reinterpret_cast<const char*>(kTestTransactionId1),
                   kStunTransactionIdLength));
-  auto origin =
-      rtc::MakeUnique<StunByteStringAttribute>(STUN_ATTR_ORIGIN, kTestOrigin);
-  msg.AddAttribute(std::move(origin));
+  StunByteStringAttribute* origin =
+      new StunByteStringAttribute(STUN_ATTR_ORIGIN, kTestOrigin);
+  EXPECT_TRUE(msg.AddAttribute(origin));
 
   rtc::ByteBufferWriter out;
   EXPECT_TRUE(msg.Write(&out));
@@ -1386,27 +1389,29 @@ TEST_F(StunTest, ReadRelayMessage) {
   EXPECT_EQ(13, addr->port());
   EXPECT_EQ(legacy_ip, addr->ipaddr());
 
-  auto addr2 = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
+  StunAddressAttribute* addr2 =
+      StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
   addr2->SetPort(13);
   addr2->SetIP(legacy_ip);
-  msg2.AddAttribute(std::move(addr2));
+  EXPECT_TRUE(msg2.AddAttribute(addr2));
 
   const StunByteStringAttribute* bytes = msg.GetByteString(STUN_ATTR_USERNAME);
   ASSERT_TRUE(bytes != NULL);
   EXPECT_EQ(12U, bytes->length());
   EXPECT_EQ("abcdefghijkl", bytes->GetString());
 
-  auto bytes2 = StunAttribute::CreateByteString(STUN_ATTR_USERNAME);
+  StunByteStringAttribute* bytes2 =
+  StunAttribute::CreateByteString(STUN_ATTR_USERNAME);
   bytes2->CopyBytes("abcdefghijkl");
-  msg2.AddAttribute(std::move(bytes2));
+  EXPECT_TRUE(msg2.AddAttribute(bytes2));
 
   const StunUInt32Attribute* uval = msg.GetUInt32(STUN_ATTR_LIFETIME);
   ASSERT_TRUE(uval != NULL);
   EXPECT_EQ(11U, uval->value());
 
-  auto uval2 = StunAttribute::CreateUInt32(STUN_ATTR_LIFETIME);
+  StunUInt32Attribute* uval2 = StunAttribute::CreateUInt32(STUN_ATTR_LIFETIME);
   uval2->SetValue(11);
-  msg2.AddAttribute(std::move(uval2));
+  EXPECT_TRUE(msg2.AddAttribute(uval2));
 
   bytes = msg.GetByteString(STUN_ATTR_MAGIC_COOKIE);
   ASSERT_TRUE(bytes != NULL);
@@ -1419,7 +1424,7 @@ TEST_F(StunTest, ReadRelayMessage) {
   bytes2 = StunAttribute::CreateByteString(STUN_ATTR_MAGIC_COOKIE);
   bytes2->CopyBytes(reinterpret_cast<const char*>(TURN_MAGIC_COOKIE_VALUE),
                     sizeof(TURN_MAGIC_COOKIE_VALUE));
-  msg2.AddAttribute(std::move(bytes2));
+  EXPECT_TRUE(msg2.AddAttribute(bytes2));
 
   uval = msg.GetUInt32(STUN_ATTR_BANDWIDTH);
   ASSERT_TRUE(uval != NULL);
@@ -1427,7 +1432,7 @@ TEST_F(StunTest, ReadRelayMessage) {
 
   uval2 = StunAttribute::CreateUInt32(STUN_ATTR_BANDWIDTH);
   uval2->SetValue(6);
-  msg2.AddAttribute(std::move(uval2));
+  EXPECT_TRUE(msg2.AddAttribute(uval2));
 
   addr = msg.GetAddress(STUN_ATTR_DESTINATION_ADDRESS);
   ASSERT_TRUE(addr != NULL);
@@ -1438,7 +1443,7 @@ TEST_F(StunTest, ReadRelayMessage) {
   addr2 = StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
   addr2->SetPort(13);
   addr2->SetIP(legacy_ip);
-  msg2.AddAttribute(std::move(addr2));
+  EXPECT_TRUE(msg2.AddAttribute(addr2));
 
   addr = msg.GetAddress(STUN_ATTR_SOURCE_ADDRESS2);
   ASSERT_TRUE(addr != NULL);
@@ -1449,7 +1454,7 @@ TEST_F(StunTest, ReadRelayMessage) {
   addr2 = StunAttribute::CreateAddress(STUN_ATTR_SOURCE_ADDRESS2);
   addr2->SetPort(13);
   addr2->SetIP(legacy_ip);
-  msg2.AddAttribute(std::move(addr2));
+  EXPECT_TRUE(msg2.AddAttribute(addr2));
 
   bytes = msg.GetByteString(STUN_ATTR_DATA);
   ASSERT_TRUE(bytes != NULL);
@@ -1458,7 +1463,7 @@ TEST_F(StunTest, ReadRelayMessage) {
 
   bytes2 = StunAttribute::CreateByteString(STUN_ATTR_DATA);
   bytes2->CopyBytes("abcdefg");
-  msg2.AddAttribute(std::move(bytes2));
+  EXPECT_TRUE(msg2.AddAttribute(bytes2));
 
   rtc::ByteBufferWriter out;
   EXPECT_TRUE(msg.Write(&out));

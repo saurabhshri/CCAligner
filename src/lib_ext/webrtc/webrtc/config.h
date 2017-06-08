@@ -16,10 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "webrtc/base/basictypes.h"
-#include "webrtc/base/optional.h"
-#include "webrtc/base/refcount.h"
-#include "webrtc/base/scoped_ref_ptr.h"
+#include "webrtc/common.h"
 #include "webrtc/common_types.h"
 #include "webrtc/typedefs.h"
 
@@ -36,16 +33,14 @@ struct NackConfig {
   int rtp_history_ms;
 };
 
-// Settings for ULPFEC forward error correction.
-// Set the payload types to '-1' to disable.
-struct UlpfecConfig {
-  UlpfecConfig()
+// Settings for forward error correction, see RFC 5109 for details. Set the
+// payload types to '-1' to disable.
+struct FecConfig {
+  FecConfig()
       : ulpfec_payload_type(-1),
         red_payload_type(-1),
         red_rtx_payload_type(-1) {}
   std::string ToString() const;
-  bool operator==(const UlpfecConfig& other) const;
-
   // Payload type used for ULPFEC packets.
   int ulpfec_payload_type;
 
@@ -88,10 +83,6 @@ struct RtpExtension {
   static const char* kVideoRotationUri;
   static const int kVideoRotationDefaultId;
 
-  // Header extension for video content type. E.g. default or screenshare.
-  static const char* kVideoContentTypeUri;
-  static const int kVideoContentTypeDefaultId;
-
   // Header extension for transport sequence number, see url for details:
   // http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions
   static const char* kTransportSequenceNumberUri;
@@ -99,10 +90,6 @@ struct RtpExtension {
 
   static const char* kPlayoutDelayUri;
   static const int kPlayoutDelayDefaultId;
-
-  // Inclusive min and max IDs for one-byte header extensions, per RFC5285.
-  static const int kMinId;
-  static const int kMaxId;
 
   std::string uri;
   int id;
@@ -131,109 +118,61 @@ struct VideoStream {
   // bitrate threshold of 100k and an estimate of 105k does not imply that we
   // get 100k in one temporal layer and 5k in the other, just that the bitrate
   // in the first temporal layer should not exceed 100k.
-  // TODO(kthelgason): Apart from a special case for two-layer screencast these
+  // TODO(pbos): Apart from a special case for two-layer screencast these
   // thresholds are not propagated to the VideoEncoder. To be implemented.
   std::vector<int> temporal_layer_thresholds_bps;
 };
 
-class VideoEncoderConfig {
- public:
-  // These are reference counted to permit copying VideoEncoderConfig and be
-  // kept alive until all encoder_specific_settings go out of scope.
-  // TODO(kthelgason): Consider removing the need for copying VideoEncoderConfig
-  // and use rtc::Optional for encoder_specific_settings instead.
-  class EncoderSpecificSettings : public rtc::RefCountInterface {
-   public:
-    // TODO(pbos): Remove FillEncoderSpecificSettings as soon as VideoCodec is
-    // not in use and encoder implementations ask for codec-specific structs
-    // directly.
-    void FillEncoderSpecificSettings(VideoCodec* codec_struct) const;
-
-    virtual void FillVideoCodecVp8(VideoCodecVP8* vp8_settings) const;
-    virtual void FillVideoCodecVp9(VideoCodecVP9* vp9_settings) const;
-    virtual void FillVideoCodecH264(VideoCodecH264* h264_settings) const;
-   private:
-    ~EncoderSpecificSettings() override {}
-    friend class VideoEncoderConfig;
-  };
-
-  class H264EncoderSpecificSettings : public EncoderSpecificSettings {
-   public:
-    explicit H264EncoderSpecificSettings(const VideoCodecH264& specifics);
-    void FillVideoCodecH264(VideoCodecH264* h264_settings) const override;
-
-   private:
-    VideoCodecH264 specifics_;
-  };
-
-  class Vp8EncoderSpecificSettings : public EncoderSpecificSettings {
-   public:
-    explicit Vp8EncoderSpecificSettings(const VideoCodecVP8& specifics);
-    void FillVideoCodecVp8(VideoCodecVP8* vp8_settings) const override;
-
-   private:
-    VideoCodecVP8 specifics_;
-  };
-
-  class Vp9EncoderSpecificSettings : public EncoderSpecificSettings {
-   public:
-    explicit Vp9EncoderSpecificSettings(const VideoCodecVP9& specifics);
-    void FillVideoCodecVp9(VideoCodecVP9* vp9_settings) const override;
-
-   private:
-    VideoCodecVP9 specifics_;
-  };
-
+struct VideoEncoderConfig {
   enum class ContentType {
     kRealtimeVideo,
     kScreen,
   };
 
-  class VideoStreamFactoryInterface : public rtc::RefCountInterface {
-   public:
-    // An implementation should return a std::vector<VideoStream> with the
-    // wanted VideoStream settings for the given video resolution.
-    // The size of the vector may not be larger than
-    // |encoder_config.number_of_streams|.
-    virtual std::vector<VideoStream> CreateEncoderStreams(
-        int width,
-        int height,
-        const VideoEncoderConfig& encoder_config) = 0;
-
-   protected:
-    ~VideoStreamFactoryInterface() override {}
-  };
-
-  VideoEncoderConfig& operator=(VideoEncoderConfig&&) = default;
-  VideoEncoderConfig& operator=(const VideoEncoderConfig&) = delete;
-
-  // Mostly used by tests.  Avoid creating copies if you can.
-  VideoEncoderConfig Copy() const { return VideoEncoderConfig(*this); }
-
   VideoEncoderConfig();
-  VideoEncoderConfig(VideoEncoderConfig&&);
   ~VideoEncoderConfig();
   std::string ToString() const;
 
-  rtc::scoped_refptr<VideoStreamFactoryInterface> video_stream_factory;
+  std::vector<VideoStream> streams;
   std::vector<SpatialLayer> spatial_layers;
   ContentType content_type;
-  rtc::scoped_refptr<const EncoderSpecificSettings> encoder_specific_settings;
+  void* encoder_specific_settings;
 
   // Padding will be used up to this bitrate regardless of the bitrate produced
   // by the encoder. Padding above what's actually produced by the encoder helps
   // maintaining a higher bitrate estimate. Padding will however not be sent
   // unless the estimated bandwidth indicates that the link can handle it.
   int min_transmit_bitrate_bps;
-  int max_bitrate_bps;
+  bool expect_encode_from_texture;
+};
 
-  // Max number of encoded VideoStreams to produce.
-  size_t number_of_streams;
+// Controls the capacity of the packet buffer in NetEq. The capacity is the
+// maximum number of packets that the buffer can contain. If the limit is
+// exceeded, the buffer will be flushed. The capacity does not affect the actual
+// audio delay in the general case, since this is governed by the target buffer
+// level (calculated from the jitter profile). It is only in the rare case of
+// severe network freezes that a higher capacity will lead to a (transient)
+// increase in audio delay.
+struct NetEqCapacityConfig {
+  NetEqCapacityConfig() : enabled(false), capacity(0) {}
+  explicit NetEqCapacityConfig(int value) : enabled(true), capacity(value) {}
+  static const ConfigOptionID identifier = ConfigOptionID::kNetEqCapacityConfig;
+  bool enabled;
+  int capacity;
+};
 
- private:
-  // Access to the copy constructor is private to force use of the Copy()
-  // method for those exceptional cases where we do use it.
-  VideoEncoderConfig(const VideoEncoderConfig&);
+struct NetEqFastAccelerate {
+  NetEqFastAccelerate() : enabled(false) {}
+  explicit NetEqFastAccelerate(bool value) : enabled(value) {}
+  static const ConfigOptionID identifier = ConfigOptionID::kNetEqFastAccelerate;
+  bool enabled;
+};
+
+struct VoicePacing {
+  VoicePacing() : enabled(false) {}
+  explicit VoicePacing(bool value) : enabled(value) {}
+  static const ConfigOptionID identifier = ConfigOptionID::kVoicePacing;
+  bool enabled;
 };
 
 }  // namespace webrtc

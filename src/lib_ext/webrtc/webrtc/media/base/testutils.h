@@ -29,10 +29,6 @@ class ByteBufferWriter;
 class StreamInterface;
 }
 
-namespace webrtc {
-class VideoFrame;
-}
-
 namespace cricket {
 
 // Returns size of 420 image with rounding on chroma for odd sizes.
@@ -47,6 +43,7 @@ template <class T> inline std::vector<T> MakeVector(const T a[], size_t s) {
 
 struct RtpDumpPacket;
 class RtpDumpWriter;
+class VideoFrame;
 
 struct RawRtpPacket {
   void WriteToByteBuffer(uint32_t in_ssrc, rtc::ByteBufferWriter* buf) const;
@@ -79,30 +76,81 @@ struct RawRtcpPacket {
   char payload[16];
 };
 
+class RtpTestUtility {
+ public:
+  static size_t GetTestPacketCount();
+
+  // Write the first count number of kTestRawRtcpPackets or kTestRawRtpPackets,
+  // depending on the flag rtcp. If it is RTP, use the specified SSRC. Return
+  // true if successful.
+  static bool WriteTestPackets(size_t count,
+                               bool rtcp,
+                               uint32_t rtp_ssrc,
+                               RtpDumpWriter* writer);
+
+  // Loop read the first count number of packets from the specified stream.
+  // Verify the elapsed time of the dump packets increase monotonically. If the
+  // stream is a RTP stream, verify the RTP sequence number, timestamp, and
+  // payload. If the stream is a RTCP stream, verify the RTCP header and
+  // payload.
+  static bool VerifyTestPacketsFromStream(size_t count,
+                                          rtc::StreamInterface* stream,
+                                          uint32_t ssrc);
+
+  // Verify the dump packet is the same as the raw RTP packet.
+  static bool VerifyPacket(const RtpDumpPacket* dump,
+                           const RawRtpPacket* raw,
+                           bool header_only);
+
+  static const uint32_t kDefaultSsrc = 1;
+  static const uint32_t kRtpTimestampIncrease = 90;
+  static const uint32_t kDefaultTimeIncrease = 30;
+  static const uint32_t kElapsedTimeInterval = 10;
+  static const RawRtpPacket kTestRawRtpPackets[];
+  static const RawRtcpPacket kTestRawRtcpPackets[];
+
+ private:
+  RtpTestUtility() {}
+};
+
 // Test helper for testing VideoCapturer implementations.
-class VideoCapturerListener
-    : public sigslot::has_slots<>,
-      public rtc::VideoSinkInterface<webrtc::VideoFrame> {
+class VideoCapturerListener : public sigslot::has_slots<> {
  public:
   explicit VideoCapturerListener(VideoCapturer* cap);
-  ~VideoCapturerListener();
 
   CaptureState last_capture_state() const { return last_capture_state_; }
   int frame_count() const { return frame_count_; }
+  uint32_t frame_fourcc() const { return frame_fourcc_; }
   int frame_width() const { return frame_width_; }
   int frame_height() const { return frame_height_; }
+  uint32_t frame_size() const { return frame_size_; }
   bool resolution_changed() const { return resolution_changed_; }
 
   void OnStateChange(VideoCapturer* capturer, CaptureState state);
-  void OnFrame(const webrtc::VideoFrame& frame) override;
+  void OnFrameCaptured(VideoCapturer* capturer, const CapturedFrame* frame);
 
  private:
-  VideoCapturer* capturer_;
   CaptureState last_capture_state_;
   int frame_count_;
+  uint32_t frame_fourcc_;
   int frame_width_;
   int frame_height_;
+  uint32_t frame_size_;
   bool resolution_changed_;
+};
+
+class ScreencastEventCatcher : public sigslot::has_slots<> {
+ public:
+  ScreencastEventCatcher() : ssrc_(0), ev_(rtc::WE_RESIZE) { }
+  uint32_t ssrc() const { return ssrc_; }
+  rtc::WindowEvent event() const { return ev_; }
+  void OnEvent(uint32_t ssrc, rtc::WindowEvent ev) {
+    ssrc_ = ssrc;
+    ev_ = ev;
+  }
+ private:
+  uint32_t ssrc_;
+  rtc::WindowEvent ev_;
 };
 
 class VideoMediaErrorCatcher : public sigslot::has_slots<> {
@@ -140,12 +188,6 @@ cricket::StreamParams CreateSimWithRtxStreamParams(
     const std::string& cname,
     const std::vector<uint32_t>& ssrcs,
     const std::vector<uint32_t>& rtx_ssrcs);
-
-// Create StreamParams with single primary SSRC and corresponding FlexFEC SSRC.
-cricket::StreamParams CreatePrimaryWithFecFrStreamParams(
-    const std::string& cname,
-    uint32_t primary_ssrc,
-    uint32_t flexfec_ssrc);
 
 }  // namespace cricket
 

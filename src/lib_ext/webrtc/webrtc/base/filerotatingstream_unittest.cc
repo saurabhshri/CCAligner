@@ -16,29 +16,10 @@
 #include "webrtc/base/fileutils.h"
 #include "webrtc/base/gunit.h"
 #include "webrtc/base/pathutils.h"
-#include "webrtc/test/testsupport/fileutils.h"
 
 namespace rtc {
 
-namespace {
-
-void CleanupLogDirectory(const FileRotatingStream& stream) {
-  for (size_t i = 0; i < stream.GetNumFiles(); ++i) {
-    // Ignore return value, not all files are expected to exist.
-    webrtc::test::RemoveFile(stream.GetFilePath(i));
-  }
-}
-
-}  // namespace
-
-#if defined (WEBRTC_ANDROID)
-// Fails on Android: https://bugs.chromium.org/p/webrtc/issues/detail?id=4364.
-#define MAYBE_FileRotatingStreamTest DISABLED_FileRotatingStreamTest
-#else
-#define MAYBE_FileRotatingStreamTest FileRotatingStreamTest
-#endif
-
-class MAYBE_FileRotatingStreamTest : public ::testing::Test {
+class FileRotatingStreamTest : public ::testing::Test {
  protected:
   static const char* kFilePrefix;
   static const size_t kMaxFileSize;
@@ -47,23 +28,23 @@ class MAYBE_FileRotatingStreamTest : public ::testing::Test {
             const std::string& file_prefix,
             size_t max_file_size,
             size_t num_log_files) {
-    dir_path_ = webrtc::test::OutputPath();
-
+    Pathname test_path;
+    ASSERT_TRUE(Filesystem::GetAppTempFolder(&test_path));
     // Append per-test output path in order to run within gtest parallel.
-    dir_path_.append(dir_name);
-    dir_path_.push_back(Pathname::DefaultFolderDelimiter());
-    ASSERT_TRUE(webrtc::test::CreateDir(dir_path_));
+    test_path.AppendFolder(dir_name);
+    ASSERT_TRUE(Filesystem::CreateFolder(test_path));
+    dir_path_ = test_path.pathname();
+    ASSERT_TRUE(dir_path_.size());
     stream_.reset(new FileRotatingStream(dir_path_, file_prefix, max_file_size,
                                          num_log_files));
   }
 
   void TearDown() override {
-    // On windows, open files can't be removed.
-    stream_->Close();
-    CleanupLogDirectory(*stream_);
-    EXPECT_TRUE(webrtc::test::RemoveDir(dir_path_));
-
     stream_.reset();
+    if (dir_path_.size() && Filesystem::IsFolder(dir_path_) &&
+        Filesystem::IsTemporaryPath(dir_path_)) {
+      Filesystem::DeleteFolderAndContents(dir_path_);
+    }
   }
 
   // Writes the data to the stream and flushes it.
@@ -96,13 +77,16 @@ class MAYBE_FileRotatingStreamTest : public ::testing::Test {
                           const size_t expected_length,
                           const std::string& file_path) {
     std::unique_ptr<uint8_t[]> buffer(new uint8_t[expected_length]);
-    FileStream stream;
-    ASSERT_TRUE(stream.Open(file_path, "r", nullptr));
+    std::unique_ptr<FileStream> stream(Filesystem::OpenFile(file_path, "r"));
+    EXPECT_TRUE(stream);
+    if (!stream) {
+      return;
+    }
     EXPECT_EQ(rtc::SR_SUCCESS,
-              stream.ReadAll(buffer.get(), expected_length, nullptr, nullptr));
+              stream->ReadAll(buffer.get(), expected_length, nullptr, nullptr));
     EXPECT_EQ(0, memcmp(expected_contents, buffer.get(), expected_length));
     size_t file_size = 0;
-    EXPECT_TRUE(stream.GetSize(&file_size));
+    EXPECT_TRUE(stream->GetSize(&file_size));
     EXPECT_EQ(file_size, expected_length);
   }
 
@@ -110,12 +94,11 @@ class MAYBE_FileRotatingStreamTest : public ::testing::Test {
   std::string dir_path_;
 };
 
-const char* MAYBE_FileRotatingStreamTest::kFilePrefix =
-    "FileRotatingStreamTest";
-const size_t MAYBE_FileRotatingStreamTest::kMaxFileSize = 2;
+const char* FileRotatingStreamTest::kFilePrefix = "FileRotatingStreamTest";
+const size_t FileRotatingStreamTest::kMaxFileSize = 2;
 
 // Tests that stream state is correct before and after Open / Close.
-TEST_F(MAYBE_FileRotatingStreamTest, State) {
+TEST_F(FileRotatingStreamTest, State) {
   Init("FileRotatingStreamTestState", kFilePrefix, kMaxFileSize, 3);
 
   EXPECT_EQ(SS_CLOSED, stream_->GetState());
@@ -126,23 +109,22 @@ TEST_F(MAYBE_FileRotatingStreamTest, State) {
 }
 
 // Tests that nothing is written to file when data of length zero is written.
-TEST_F(MAYBE_FileRotatingStreamTest, EmptyWrite) {
+TEST_F(FileRotatingStreamTest, EmptyWrite) {
   Init("FileRotatingStreamTestEmptyWrite", kFilePrefix, kMaxFileSize, 3);
 
   ASSERT_TRUE(stream_->Open());
   WriteAndFlush("a", 0);
 
   std::string logfile_path = stream_->GetFilePath(0);
-  FileStream stream;
-  ASSERT_TRUE(stream.Open(logfile_path, "r", nullptr));
+  std::unique_ptr<FileStream> stream(Filesystem::OpenFile(logfile_path, "r"));
   size_t file_size = 0;
-  EXPECT_TRUE(stream.GetSize(&file_size));
+  EXPECT_TRUE(stream->GetSize(&file_size));
   EXPECT_EQ(0u, file_size);
 }
 
 // Tests that a write operation followed by a read returns the expected data
 // and writes to the expected files.
-TEST_F(MAYBE_FileRotatingStreamTest, WriteAndRead) {
+TEST_F(FileRotatingStreamTest, WriteAndRead) {
   Init("FileRotatingStreamTestWriteAndRead", kFilePrefix, kMaxFileSize, 3);
 
   ASSERT_TRUE(stream_->Open());
@@ -176,7 +158,7 @@ TEST_F(MAYBE_FileRotatingStreamTest, WriteAndRead) {
 
 // Tests that writing data greater than the total capacity of the files
 // overwrites the files correctly and is read correctly after.
-TEST_F(MAYBE_FileRotatingStreamTest, WriteOverflowAndRead) {
+TEST_F(FileRotatingStreamTest, WriteOverflowAndRead) {
   Init("FileRotatingStreamTestWriteOverflowAndRead", kFilePrefix, kMaxFileSize,
        3);
   ASSERT_TRUE(stream_->Open());
@@ -193,7 +175,7 @@ TEST_F(MAYBE_FileRotatingStreamTest, WriteOverflowAndRead) {
 }
 
 // Tests that the returned file paths have the right folder and prefix.
-TEST_F(MAYBE_FileRotatingStreamTest, GetFilePath) {
+TEST_F(FileRotatingStreamTest, GetFilePath) {
   Init("FileRotatingStreamTestGetFilePath", kFilePrefix, kMaxFileSize, 20);
   for (auto i = 0; i < 20; ++i) {
     Pathname path(stream_->GetFilePath(i));
@@ -202,35 +184,26 @@ TEST_F(MAYBE_FileRotatingStreamTest, GetFilePath) {
   }
 }
 
-#if defined (WEBRTC_ANDROID)
-// Fails on Android: https://bugs.chromium.org/p/webrtc/issues/detail?id=4364.
-#define MAYBE_CallSessionFileRotatingStreamTest \
-    DISABLED_CallSessionFileRotatingStreamTest
-#else
-#define MAYBE_CallSessionFileRotatingStreamTest \
-    CallSessionFileRotatingStreamTest
-#endif
-
-class MAYBE_CallSessionFileRotatingStreamTest : public ::testing::Test {
+class CallSessionFileRotatingStreamTest : public ::testing::Test {
  protected:
   void Init(const std::string& dir_name, size_t max_total_log_size) {
-    dir_path_ = webrtc::test::OutputPath();
-
+    Pathname test_path;
+    ASSERT_TRUE(Filesystem::GetAppTempFolder(&test_path));
     // Append per-test output path in order to run within gtest parallel.
-    dir_path_.append(dir_name);
-    dir_path_.push_back(Pathname::DefaultFolderDelimiter());
-    ASSERT_TRUE(webrtc::test::CreateDir(dir_path_));
+    test_path.AppendFolder(dir_name);
+    ASSERT_TRUE(Filesystem::CreateFolder(test_path));
+    dir_path_ = test_path.pathname();
+    ASSERT_TRUE(dir_path_.size());
     stream_.reset(
         new CallSessionFileRotatingStream(dir_path_, max_total_log_size));
   }
 
   virtual void TearDown() {
-    // On windows, open files can't be removed.
-    stream_->Close();
-    CleanupLogDirectory(*stream_);
-    EXPECT_TRUE(webrtc::test::RemoveDir(dir_path_));
-
     stream_.reset();
+    if (dir_path_.size() && Filesystem::IsFolder(dir_path_) &&
+        Filesystem::IsTemporaryPath(dir_path_)) {
+      Filesystem::DeleteFolderAndContents(dir_path_);
+    }
   }
 
   // Writes the data to the stream and flushes it.
@@ -264,7 +237,7 @@ class MAYBE_CallSessionFileRotatingStreamTest : public ::testing::Test {
 
 // Tests that writing and reading to a stream with the smallest possible
 // capacity works.
-TEST_F(MAYBE_CallSessionFileRotatingStreamTest, WriteAndReadSmallest) {
+TEST_F(CallSessionFileRotatingStreamTest, WriteAndReadSmallest) {
   Init("CallSessionFileRotatingStreamTestWriteAndReadSmallest", 4);
 
   ASSERT_TRUE(stream_->Open());
@@ -277,7 +250,7 @@ TEST_F(MAYBE_CallSessionFileRotatingStreamTest, WriteAndReadSmallest) {
 
 // Tests that writing and reading to a stream with capacity lesser than 4MB
 // behaves correctly.
-TEST_F(MAYBE_CallSessionFileRotatingStreamTest, WriteAndReadSmall) {
+TEST_F(CallSessionFileRotatingStreamTest, WriteAndReadSmall) {
   Init("CallSessionFileRotatingStreamTestWriteAndReadSmall", 8);
 
   ASSERT_TRUE(stream_->Open());
@@ -290,7 +263,7 @@ TEST_F(MAYBE_CallSessionFileRotatingStreamTest, WriteAndReadSmall) {
 
 // Tests that writing and reading to a stream with capacity greater than 4MB
 // behaves correctly.
-TEST_F(MAYBE_CallSessionFileRotatingStreamTest, WriteAndReadLarge) {
+TEST_F(CallSessionFileRotatingStreamTest, WriteAndReadLarge) {
   Init("CallSessionFileRotatingStreamTestWriteAndReadLarge", 6 * 1024 * 1024);
 
   ASSERT_TRUE(stream_->Open());
@@ -317,7 +290,7 @@ TEST_F(MAYBE_CallSessionFileRotatingStreamTest, WriteAndReadLarge) {
 
 // Tests that writing and reading to a stream where only the first file is
 // written to behaves correctly.
-TEST_F(MAYBE_CallSessionFileRotatingStreamTest, WriteAndReadFirstHalf) {
+TEST_F(CallSessionFileRotatingStreamTest, WriteAndReadFirstHalf) {
   Init("CallSessionFileRotatingStreamTestWriteAndReadFirstHalf",
        6 * 1024 * 1024);
   ASSERT_TRUE(stream_->Open());
