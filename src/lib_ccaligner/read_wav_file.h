@@ -14,13 +14,13 @@
 #include <iterator>
 #include <algorithm>
 
-int findIndex(std::vector<char>& fileData, std::vector<char>& searchString);
+int findIndex(std::vector<unsigned char>& fileData, std::string chunk);
 
 class WaveFileData
 {
     std::string _fileName;
     std::vector<unsigned char> _fileData;
-    std::vector<std::vector<double>> _samples;
+    std::vector<int16_t> _samples;
 
     bool checkValidWave (std::vector<unsigned char>& fileData);
     bool parse();
@@ -32,6 +32,7 @@ class WaveFileData
 public:
     WaveFileData(std::string fileName);
     bool openFile();
+    std::vector<int16_t> getSamples();
     ~WaveFileData();
 };
 

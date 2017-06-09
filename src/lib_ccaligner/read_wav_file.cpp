@@ -213,18 +213,14 @@ bool WaveFileData::parse()
 
     int numSamples = subChunk2Size * 8 / ( numChannels * bitRate);
 
-    _samples.resize (numChannels);
-
     for (int i = 0; i < numSamples; i++)
     {
-        for (int channel = 0; channel < numChannels; channel++)
-        {
-            int sampleIndex = dataIndex + 8 + (blockAlign * i) + channel * bitRate / 8;
+            int sampleIndex = dataIndex + 8 + (blockAlign * i) + bitRate / 8;
+            // dataIndex = index of beginning of "data" subChunk
+            // dataIndex + 8 is usually 44 as per the specs
 
-            int sampleValue = twoBytesToInt(_fileData, sampleIndex);
-            double sample = twoBytesToDouble(sampleValue);
-            _samples[channel].push_back(sample);
-        }
+            int16_t sample = twoBytesToInt(_fileData, sampleIndex);
+            _samples.push_back(sample);
     }
 
     return true;
@@ -250,4 +246,9 @@ int WaveFileData::twoBytesToInt (std::vector<unsigned char>& fileData, int index
 double WaveFileData::twoBytesToDouble (int value)
 {
     return (double)value / (double) 32768.0;
+}
+
+std::vector<int16_t> WaveFileData::getSamples()
+{
+    return _samples;
 }
