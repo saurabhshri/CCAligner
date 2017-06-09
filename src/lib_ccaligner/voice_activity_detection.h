@@ -8,4 +8,6 @@
 #include <webrtc/common_audio/vad/include/webrtc_vad.h>
 #include "common_header_files.h"
 
+void performVAD(std::vector<int16_t>& sample);
+
 #endif //VOICE_ACTIVITY_DETECTION_H
