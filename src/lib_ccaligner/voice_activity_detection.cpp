@@ -29,7 +29,7 @@ void performVAD(std::vector<int16_t>& sample)
     }
     std::cout<<sample.size()<<"\n\n";
     const int16_t * temp = sample.data();
-    for(int i=0, ms =0;i<sample.size();i+=160, ms++)
+    for(int i=0, ms =0;i<sample.size();i+=160, ms+=10)
     {
         int isActive = WebRtcVad_Process(vad, 16000, temp, 160);
         std::cout<<ms<<" ms : "<<isActive<<std::endl;
