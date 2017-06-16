@@ -22,6 +22,7 @@ public:
     double getWordWeight (std::string word);
     currentSub(SubtitleItem *sub);
     void run();
+    void printToSrt(std::string fileName);
     void assignTime(long int &wordDuration, const std::string &word );
     ~currentSub();
 };

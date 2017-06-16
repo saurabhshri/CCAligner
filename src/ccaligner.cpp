@@ -4,18 +4,21 @@
 
 int main(int argc, char *argv[])
 {
-	if(argc<2)
-	{
-		std::cout<<"Usage : ccaligner input.srt\n";
-		return 1;
-	}
+    if(argc<2)
+    {
+        std::cout<<"Usage : ccaligner input.srt\n";
+        return 1;
+    }
 
     std::string filename(argv[1]);
 
-    WaveFileData * file = new WaveFileData(filename);
-    file->openFile();
-    std::vector<int16_t> samples = file->getSamples();
-    performVAD(samples);
+//    WaveFileData * file = new WaveFileData(filename);
+//    file->openFile();
+//    std::vector<int16_t> samples = file->getSamples();
+//    performVAD(samples);
+
+    ApproxAligner * aligner = new ApproxAligner(filename);
+    aligner->align();
 
     return 0;
 }

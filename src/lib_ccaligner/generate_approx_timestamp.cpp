@@ -5,6 +5,22 @@
 */
 
 #include "generate_approx_timestamp.h"
+#include <fstream>
+
+
+void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds)
+{
+    *milliseconds = (int)(ms % 1000);
+    ms = (ms - *milliseconds) / 1000;
+
+    *seconds = (int)(ms % 60);
+    ms = (ms - *seconds) / 60;
+
+    *minutes = (int)(ms % 60);
+    ms = (ms - *minutes) / 60;
+
+    *hours = (int)ms;
+}
 
 int currentSub::wordNumber;
 
@@ -44,29 +60,59 @@ void currentSub::assignTime(long int &wordDuration, const std::string &word )
 
     double wordWeight = getWordWeight(word);
     wordDuration = wordWeight * dialogueDuration;
-    //dialogueDuration -= wordDuration;
     wordNumber++;
 
+}
+
+void currentSub::printToSrt(std::string fileName)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::app);
+
+    for(int i=0;i<_sub->getWordCount();i++)
+    {
+        int hh1,mm1,ss1,ms1;
+        int hh2,mm2,ss2,ms2;
+        char timeline[128];
+
+        ms_to_srt_time(_sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
+        ms_to_srt_time(_sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
+
+        sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
+
+        out<<timeline;
+        out<<_sub->getWordByIndex(i)<<"\n\n";
+    }
 }
 
 
 void currentSub::run()
 {
     std::vector<std::string> words = _sub->getIndividualWords();
-    std::vector<long int> wordDuration(wordCount);
-    int time = 0;
+    std::vector<long int> wordDuration(wordCount), wordStartTime(wordCount), wordEndTime(wordCount);
+    int totalWordDuration = 0;
 
     for(int i = 0; i < wordCount; i++)
     {
         assignTime(wordDuration[i], words[i]);
-        std::cout<<"Word = "<<words[i]<<std::endl;
-        std::cout<<"Total Sentence Duration = "<<dialogueDuration<<std::endl;
-        std::cout<<"Estimated Time Duration of Word = "<<wordDuration[i]<<std::endl<<std::endl;
-        time+=wordDuration[i];
-
+        totalWordDuration+=wordDuration[i];
     }
 
-    std::cout<<"Are they equal ? "<<dialogueDuration<< " == "<<time<<std::endl;
+    int silenceDuration = (wordCount!=1)?((dialogueDuration - totalWordDuration) / (wordCount - 1)):0;
+    long int prevTime = _sub->getStartTime();
+
+
+    for(int i = 0; i < wordCount; i++)
+    {
+        if(i == wordCount - 1)
+            silenceDuration = 0;
+
+        wordStartTime[i] = prevTime;
+        wordEndTime[i] = prevTime + silenceDuration + wordDuration[i];
+        prevTime = wordEndTime[i];
+    }
+
+    _sub->setWordTimes(wordStartTime, wordEndTime, wordDuration);
 }
 
 currentSub::~currentSub()
@@ -93,6 +139,7 @@ void ApproxAligner::align()
     {
         currentSub * currSub = new currentSub(sub);
         currSub->run();
+        currSub->printToSrt("ElonMusk.srt");
         delete currSub;
     }
 
