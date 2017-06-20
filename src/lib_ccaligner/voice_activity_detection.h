@@ -5,6 +5,7 @@
 #ifndef VOICE_ACTIVITY_DETECTION_H
 #define VOICE_ACTIVITY_DETECTION_H
 
+#include "read_wav_file.h"
 #include <webrtc/common_audio/vad/include/webrtc_vad.h>
 #include "common_header_files.h"
 

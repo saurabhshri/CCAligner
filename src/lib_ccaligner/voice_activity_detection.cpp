@@ -21,7 +21,7 @@ void performVAD(std::vector<int16_t>& sample)
         throw std::runtime_error("Can't initialize WebRTC VAD handle.");
     }
 
-    const int aggressiveness = 0;
+    const int aggressiveness = 2;
     error = WebRtcVad_set_mode(vad, aggressiveness);
     if (error)
     {
