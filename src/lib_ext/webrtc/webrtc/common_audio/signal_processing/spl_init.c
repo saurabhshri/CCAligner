@@ -92,7 +92,7 @@ static void InitFunctionPointers(void) {
 #endif  /* WEBRTC_HAS_NEON */
 }
 
-#if defined(WEBRTC_POSIX)
+#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #include <pthread.h>
 
 static void once(void (*func)(void)) {
