@@ -32,6 +32,10 @@ set(webRTCVADFiles
 add_library(webRTC ${webRTCVADFiles})
 set_target_properties(webRTC PROPERTIES FOLDER lib_ext)
 
+if(UNIX)
+    set (EXTRA_FLAGS ${EXTRA_FLAGS} -lpthread)
+endif(UNIX)
+
 #including CCAligner libraries
 include_directories(../../src/lib_ccaligner/)
 
@@ -45,4 +49,4 @@ set(SOURCE_FILES
         )
 
 add_executable(vadDemo ${SOURCE_FILES})
-target_link_libraries(vadDemo webRTC)
+target_link_libraries(vadDemo webRTC ${EXTRA_FLAGS})

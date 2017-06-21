@@ -33,7 +33,7 @@ add_library(webRTC ${webRTCVADFiles})
 set_target_properties(webRTC PROPERTIES FOLDER lib_ext)
 
 if(UNIX)
-    set (EXTRA_FLAFS ${EXTRA_FLAGS} -lpthread)
+    set (EXTRA_FLAGS ${EXTRA_FLAGS} -lpthread)
 endif(UNIX)
 
 #including CCAligner libraries
