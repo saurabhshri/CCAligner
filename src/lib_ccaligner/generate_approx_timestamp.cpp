@@ -107,33 +107,20 @@ void currentSub::printToXML(std::string fileName)
 
 void currentSub::printToJSON(std::string fileName)
 {
-    std::ofstream out;
-    out.open(fileName, std::ofstream::app);
-
-    for(int i=0;i<_sub->getWordCount();i++)
-    {
-        //print json
-    }
+    //make JSON as output
+    std::cout<<"JSON format is yet to be decided :) Try xml/srt!\n";
+    exit(2);
 }
 
 void currentSub::printToConsole(std::string fileName)
 {
-    std::ofstream out;
-    out.open(fileName, std::ofstream::app);
-
     for(int i=0;i<_sub->getWordCount();i++)
     {
-        int hh1,mm1,ss1,ms1;
-        int hh2,mm2,ss2,ms2;
-        char timeline[128];
-
-        ms_to_srt_time(_sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
-        ms_to_srt_time(_sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
-
-        sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
-
-        out<<timeline;
-        out<<_sub->getWordByIndex(i)<<"\n\n";
+        std::cout<<"START\n";
+        std::cout<<"word    : "<<_sub->getWordByIndex(i)<<"\n";
+        std::cout<<"start   : "<<_sub->getWordStartTimeByIndex(i)<<" ms\n";
+        std::cout<<"end     : "<<_sub->getWordEndTimeByIndex(i)<<" ms\n";
+        std::cout<<"END\n\n";
     }
 }
 
