@@ -23,7 +23,7 @@ matrix:
         - mkdir build
         - cd build
         - cmake .. && make
-        - cd ../VAD/
+        - cd ../../VAD/
         - mkdir build
         - cd build
         - cmake .. && make
@@ -41,7 +41,7 @@ matrix:
         - mkdir build
         - cd build
         - cmake .. && make
-        - cd ../VAD/
+        - cd ../../VAD/
         - mkdir build
         - cd build
         - cmake .. && make
