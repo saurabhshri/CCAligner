@@ -27,7 +27,7 @@ void performVAD(std::vector<int16_t>& sample)
     {
         throw std::runtime_error("Can't set WebRTC VAD aggressiveness.");
     }
-    std::cout<<sample.size()<<"\n\n";
+    
     const int16_t * temp = sample.data();
     for(int i=0, ms =0;i<sample.size();i+=160, ms+=10)
     {
@@ -36,10 +36,6 @@ void performVAD(std::vector<int16_t>& sample)
         temp = temp + 160;
 
     }
-
-    bool isActive = WebRtcVad_Process(vad, 16000, sample.data(), sample.size()) == 1;
-    std::cout<<isActive<<std::endl;
-
 
     WebRtcVad_Free(vad);
 
