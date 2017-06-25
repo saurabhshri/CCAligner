@@ -210,7 +210,7 @@ inline void SubRipParser::parse(std::string fileName)      //srt parser
 
     while (std::getline(infile, line))
     {
-        //line.erase(remove(line.begin(), line.end(), '\r'), line.end());
+        line.erase(remove(line.begin(), line.end(), '\r'), line.end());
 
         if (line.compare(""))
         {
