@@ -16,43 +16,47 @@
 
 enum openMode
 {
-    readFile,
-    readStreamDirectly,
-    readStreamIntoBuffer,
+    readFile,               //read from a file located on disk
+    readStreamDirectly,     //read directly from stream/piped data
+    readStreamIntoBuffer,   //read data from stream/pipe into buffer first, then process
 
 };
 
-int findIndex(std::vector<unsigned char>& fileData, std::string chunk);
+int findIndex(std::vector<unsigned char>& fileData, std::string chunk); //returns the index of beginning of the "chunk" string
 
 class WaveFileData
 {
-    std::string _fileName;
-    std::vector<unsigned char> _fileData;
-    std::vector<int16_t> _samples;
-    openMode _openMode;
+    std::string _fileName;                  //name/path of the wave file
+    std::vector<unsigned char> _fileData;   //content of the wave file
+    std::vector<int16_t> _samples;          //the raw samples containing audio data : PCM, 16 bit, Sampled at 16Khz, mono
+    openMode _openMode;                     //mode of reading file
 
-    bool checkValidWave (std::vector<unsigned char>& fileData);
-    bool parse();
+    //when reading from file / buffer
+    bool checkValidWave (std::vector<unsigned char>& fileData); //check if wave file is valid by reading the RIFF header
+    bool decode();  //decode the wave file and fill the _sample vector
 
-    int processStreamHeader();
-    int seekToEndOfSubChunk1ID(int remainingBytes);
-    int validateSubChunk1(int remainingBytes);
-    int seekToEndOfSubChunk2ID(int remainingBytes);
-    int getNumberOfSamples();
-    bool readSamplesFromStream(int numberOfSamples);
+    //when reading from stream/pipe
+    int processStreamHeader();                      //check if stream is valid wave stream
+    int seekToEndOfSubChunk1ID(int remainingBytes); //reach till the end of 'fmt' Chunk ID + skip 1 byte (empty byte)
+    int validateSubChunk1(int remainingBytes);      //check the 'fmt' chunk for required wave file config (16 bit, 16KHz, mono, PCM)
+    int seekToEndOfSubChunk2ID(int remainingBytes); //reach till the end of 'data' Chunk ID
+    int getNumberOfSamples();                       //basically gets size of 'data' Chunk which contains size of samples
+    bool readSamplesFromStream(int numberOfSamples);//read the sample from stream and insert in the _sample vector
 
-    unsigned long fourBytesToInt (std::vector<unsigned char>& fileData, int index);
-    int twoBytesToInt (std::vector<unsigned char>& fileData, int index);
-    double twoBytesToDouble (int sample);
+    unsigned long fourBytesToInt (std::vector<unsigned char>& fileData, int index); //convert 4 bytes into unsigned long int
+    int twoBytesToInt (std::vector<unsigned char>& fileData, int index);            //convert 2 bytes into signed integer
+    double twoBytesToDouble (int sample);                                           //convert 2 bytes to double; not required rn
 
 public:
-    WaveFileData(std::string fileName);
-    WaveFileData(openMode mode = readStreamDirectly);
-    bool openFile();
-    bool readStream();
-    bool readStreamUsingBuffer();
-    bool read();
-    std::vector<int16_t> getSamples();
+    WaveFileData(std::string fileName);                 //initialize wave file for file on disk mode; pass file name
+    WaveFileData(openMode mode = readStreamDirectly);   //initialize wave file for stream mode; optionally store in buffer
+
+    bool openFile();                //open file using file name
+    bool readStream();              //process stream directly
+    bool readStreamUsingBuffer();   //first store stream into buffer, then process
+    bool read();                    //the main function which decides the open method using set mode
+
+    std::vector<int16_t> getSamples();  //returns the sample vector; time based coming soon
     ~WaveFileData();
 };
 

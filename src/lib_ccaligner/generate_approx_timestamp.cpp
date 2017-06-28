@@ -25,19 +25,19 @@ std::string extractFileName(std::string fileName)
     int lastIndex = fileName.find_last_of(".");
 
     if(lastIndex == std::string::npos)
-        return fileName;
+        return fileName;    //if no extension is present, return complete filename
     else
         return fileName.substr(0, lastIndex);
 }
 
-int currentSub::_wordNumber;
+int currentSub::_wordNumber;    //defining static data member
 
 currentSub::currentSub(SubtitleItem *sub)
 {
     _sub = sub;
     _wordNumber = 0;
-    _sentenceLength = _sub->getDialogue().size();
-    _wordCount = _sub->getWordCount();
+    _sentenceLength = _sub->getDialogue().size();   //length of complete dialogue in current subtitle
+    _wordCount = _sub->getWordCount();              //no. of words in current subtitle
     _dialogueDuration = getDuration(_sub->getStartTime(), _sub->getEndTime());
 
 }
@@ -57,6 +57,7 @@ void currentSub::printToSRT(std::string fileName)
         ms_to_srt_time(_sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
         ms_to_srt_time(_sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
 
+        //printing in SRT format
         sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
 
         out<<timeline;
@@ -138,7 +139,7 @@ inline int currentSub::getDuration (long startTime, long endTime)
 
 inline double currentSub::getWordWeight (std::string word)
 {
-    double weight = (double) word.size() / (double) _sentenceLength;
+    double weight = (double) word.size() / (double) _sentenceLength;    //word weight as function of word length : sentence length
     return weight;
 
 }
@@ -166,6 +167,7 @@ void currentSub::run()
         totalWordDuration+=wordDuration[i];
     }
 
+    //compensating silence
     int silenceDuration = (_wordCount!=1)?((_dialogueDuration - totalWordDuration) / (_wordCount - 1)):0;
     long int prevTime = _sub->getStartTime();
 
@@ -176,7 +178,7 @@ void currentSub::run()
             silenceDuration = 0;
 
         wordStartTime[i] = prevTime;
-        wordEndTime[i] = prevTime + silenceDuration + wordDuration[i];
+        wordEndTime[i] = prevTime + silenceDuration + wordDuration[i]; //assigning correct timestamp
         prevTime = wordEndTime[i];
     }
 
@@ -199,7 +201,7 @@ ApproxAligner::ApproxAligner(std::string fileName, outputFormats outputFormat)
     _outputFileName = extractFileName(_fileName);
 
     std::ofstream out;
-    out.open(_outputFileName);
+    out.open(_outputFileName);  //writing empty file; will be edited to incorporate headers
     out.close();
 }
 
@@ -214,7 +216,7 @@ void ApproxAligner::align()
         currentSub * currSub = new currentSub(sub);
         currSub->run();
 
-        switch (_outputFormat)
+        switch (_outputFormat)  //decide on based of set output format
         {
             case srt:   currSub->printToSRT(_outputFileName);
                         break;

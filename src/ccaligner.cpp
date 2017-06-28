@@ -12,7 +12,9 @@ void printUsage()
           "ApproxAligner : ccaligner -a input.srt\n"
           "                ccaligner -a input.srt -of <output_format>"
           "                                       (srt/xml/json)"
-          "           e.g. ccaligner -a input.srt -of xml";
+          "           e.g. ccaligner -a input.srt -of xml"
+          ""
+          "NOTE : This tool is in it's early stage and is constantly evolving; things are likely to change!";
 }
 
 CCAligner::CCAligner()
@@ -28,10 +30,7 @@ void CCAligner::setAligner(alignerType useAligner)
 
 bool CCAligner::alignerAlreadySet()
 {
-    if(_useAligner != none)
-        return true;
-    else
-        return false;
+    return _useAligner != none;
 }
 
 void CCAligner::setOutputFormat(outputFormats outputFormat)
@@ -41,10 +40,7 @@ void CCAligner::setOutputFormat(outputFormats outputFormat)
 
 bool CCAligner::outputFormatAlreadySet()
 {
-    if(_outputFormat != blank)
-        return true;
-    else
-        return false;
+    return _outputFormat != blank;
 }
 
 void CCAligner::setInputFileName(std::string fileName)
@@ -54,13 +50,7 @@ void CCAligner::setInputFileName(std::string fileName)
 
 bool CCAligner::inputFileNameAlreadySet()
 {
-    if(!_filename.empty())
-    {
-        std::cout<<_filename;
-        return true;
-    }
-    else
-        return false;
+    return !_filename.empty();
 }
 
 int CCAligner::initAligner()
@@ -69,7 +59,7 @@ int CCAligner::initAligner()
     {
         if(!outputFormatAlreadySet())
         {
-            _outputFormat = srt;
+            _outputFormat = srt;        //by default output format is SRT
         }
 
         ApproxAligner * aligner = new ApproxAligner(_filename,_outputFormat);
@@ -82,6 +72,8 @@ int CCAligner::initAligner()
         std::cout<<"Support for more robust aligners is coming soon! Stay tuned!\n";
         exit(3);
     }
+
+    return 1;
 }
 
 CCAligner::~CCAligner()
@@ -99,7 +91,7 @@ int main(int argc, char *argv[])
 
     CCAligner *ccaligner = new CCAligner();
 
-    for(int i=1;i<argc;i++)
+    for(int i=1;i<argc;i++)         //parsing arguments ; TODO: Do this separately
     {
         std::string param(argv[i]);
 
@@ -166,7 +158,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    ccaligner->initAligner();
+    ccaligner->initAligner();   //initialise the aligner as per the arguments.
 
     delete ccaligner;
     return 0;

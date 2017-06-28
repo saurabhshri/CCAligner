@@ -9,17 +9,17 @@
 int findIndex(std::vector<unsigned char>& fileData, std::string chunk)
 {
     auto it = std::search(fileData.begin(), fileData.end(), chunk.begin(), chunk.end());
-    return (int)(it-fileData.begin());
+    return (int)(it-fileData.begin());  //returns beginning of the string passed through "chunk" ('fmt' / 'data')
 }
 
-WaveFileData::WaveFileData(std::string fileName)
+WaveFileData::WaveFileData(std::string fileName)    //file is stored on disk
 {
     _fileName = fileName;
     _samples.resize(0);
     _openMode = readFile;
 }
 
-WaveFileData::WaveFileData(openMode mode)
+WaveFileData::WaveFileData(openMode mode)           //data being read from stream;
 {
     _samples.resize(0);
     _openMode = mode;
@@ -35,44 +35,7 @@ bool WaveFileData::checkValidWave (std::vector<unsigned char>& fileData)
 
 }
 
-bool WaveFileData::openFile ()
-{
-    std::ifstream infile (_fileName, std::ios::binary);
-
-    if (!infile)
-    {
-        std::cout<<"\nError opening file : "<<_fileName;
-        return false;
-
-    }
-
-
-    /*
-     * When reading characters, std::istream_iterator skips whitespace by default
-     * (unless disabled with std::noskipws or equivalent)..
-     * http://www.enseignement.polytechnique.fr/informatique/INF478/docs/Cpp/en/cpp/iterator/istream_iterator.html#Notes
-     */
-
-    std::noskipws(infile);
-    std::istream_iterator<unsigned char> begin (infile), end;
-    std::vector<unsigned char> fileData (begin, end);
-
-    if(checkValidWave(fileData))
-    {
-        _fileData = fileData;
-        parse();
-        return true;
-    }
-
-    else
-    {
-        std::cout<<"\nInvalid WAV file!";
-        return false;
-    }
-
-}
-
-bool WaveFileData::parse()
+bool WaveFileData::decode()     //decodes the wave file
 {
     /* Wave file format :
 
@@ -227,14 +190,52 @@ bool WaveFileData::parse()
             _samples.push_back(sample);
     }
 
-    return true;
+    return true;    //successfully decoded
+}
+
+
+bool WaveFileData::openFile ()
+{
+    std::ifstream infile (_fileName, std::ios::binary);
+
+    if (!infile)
+    {
+        std::cout<<"\nError opening file : "<<_fileName;
+        return false;
+
+    }
+
+
+    /*
+     * When reading characters, std::istream_iterator skips whitespace by default
+     * (unless disabled with std::noskipws or equivalent)..
+     * http://www.enseignement.polytechnique.fr/informatique/INF478/docs/Cpp/en/cpp/iterator/istream_iterator.html#Notes
+     */
+
+    std::noskipws(infile);
+    std::istream_iterator<unsigned char> begin (infile), end;
+    std::vector<unsigned char> fileData (begin, end);   //read complete file content
+
+    if(checkValidWave(fileData))
+    {
+        _fileData = fileData;   //wave is valid, store and proceed
+        decode();
+        return true;
+    }
+
+    else
+    {
+        std::cout<<"\nInvalid WAV file!";
+        return false;
+    }
+
 }
 
 int WaveFileData::processStreamHeader()
 {
     unsigned char byteData;
-    char * riff = "RIFF", *wave = "WAVE";
-    bool riffRead = false;
+    char * riff = "RIFF", *wave = "WAVE";       //defined to ease checking the IDs; will shift to better alternative
+    bool riffRead = false;                      //are 'RIFF' bytes read?
     int currentByteCount = -1, chunkSize = 0;
 
     while (std::cin >> std::noskipws >> byteData)
@@ -244,7 +245,7 @@ int WaveFileData::processStreamHeader()
 
         if (!riffRead)
         {
-            if (riff[currentByteCount] != byteData)
+            if (riff[currentByteCount] != byteData)     //checking RIFF header
             {
                 std::cout << "\nInvalid Wave File!";
                 exit(2);
@@ -258,7 +259,7 @@ int WaveFileData::processStreamHeader()
         {
             if (currentByteCount >= 8)
             {
-                if (wave[currentByteCount - 8] != byteData)
+                if (wave[currentByteCount - 8] != byteData) //checking WAVE format
                 {
                     std::cout << "\nInvalid format!";
                     exit(2);
@@ -272,12 +273,12 @@ int WaveFileData::processStreamHeader()
 
             else
             {
-                chunkSize = chunkSize | byteData << (8 * (currentByteCount - 4));
+                chunkSize = chunkSize | byteData << (8 * (currentByteCount - 4));   //calculating chunksize (filesize - 8)
             }
         }
     }
 
-    return -1;
+    return -1;  //some error; more robust exit errors coming soon
 }
 
 int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
@@ -292,15 +293,15 @@ int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
 
         readBytes++;
 
-        if(byteData == fmt[fmtCount])
+        if(byteData == fmt[fmtCount])   //probably 'fmt'
         {
             fmtCount++;
 
-            if(fmtCount == 3)
+            if(fmtCount == 3)           //definitely 'fmt'
             {
                 std::cin>>std::noskipws>>byteData;
                 _fileData.push_back(byteData);
-                return readBytes + 1;
+                return readBytes + 1;   // +1 because the block is 4 bytes 'fmt' + ' ' an empty byte.
             }
 
         }
@@ -312,7 +313,7 @@ int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
 
         if(readBytes > remainingBytes)
         {
-            std::cout<<"\nSubChunk1 ('fmt') not found!";
+            std::cout<<"\nSubChunk1 ('fmt') not found!";    //'fmt' subchunk not found; can not proceed
             exit(2);
         }
     }
@@ -331,7 +332,7 @@ int WaveFileData::validateSubChunk1(int remainingBytes)
     {
         _fileData.push_back(byteData);
         currentByteCount++;
-        fmtBlock.push_back(byteData);
+        fmtBlock.push_back(byteData);       //storing 'fmt' data in a buffer, processing live is dangerous
 
         if(currentByteCount == 19)
         {
@@ -406,12 +407,12 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
 
         readBytes++;
 
-        if(byteData == data[dataCount])
+        if(byteData == data[dataCount]) //probably 'data' subchunk
         {
             dataCount++;
 
-            if(dataCount == 4)
-                return readBytes;
+            if(dataCount == 4)  //definitely 'data' subchunk
+                return readBytes; //return end of 'data' subchunk ID
         }
 
         else
@@ -426,7 +427,7 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
         }
     }
 
-    return -1;
+    return -1; //some error
 }
 
 int WaveFileData::getNumberOfSamples()
@@ -441,7 +442,7 @@ int WaveFileData::getNumberOfSamples()
         subChunk2Size = subChunk2Size | byteData << (8 * i);
     }
 
-    return subChunk2Size / 2;
+    return subChunk2Size / 2; // in our case, wave file are 16 bit. So, 2 bytes = 1 sample. No. of Sample = size/2
 }
 
 bool WaveFileData::readSamplesFromStream(int numberOfSamples)
@@ -455,12 +456,12 @@ bool WaveFileData::readSamplesFromStream(int numberOfSamples)
         _fileData.push_back(byteData);
 
         two++; bytesRead++;
-        twoBytes.push_back(byteData);
+        twoBytes.push_back(byteData);   //processing two bytes at a time
 
         if(two == 2)
         {
-            int16_t sample = twoBytesToInt(twoBytes, 0);
-            _samples.push_back(sample);
+            int16_t sample = twoBytesToInt(twoBytes, 0);    //16 bit PCM, 2 bytes = 1 sample
+            _samples.push_back(sample); //storing sample
             twoBytes.clear();
             two = 0;
         }
@@ -482,19 +483,19 @@ bool WaveFileData::readSamplesFromStream(int numberOfSamples)
 
 bool WaveFileData::readStream()
 {
-    int remainingBytes = processStreamHeader();
-    remainingBytes -= seekToEndOfSubChunk1ID(remainingBytes);
-    remainingBytes -= validateSubChunk1(remainingBytes);
-    remainingBytes -= seekToEndOfSubChunk2ID(remainingBytes);
+    int remainingBytes = processStreamHeader();                 //processing wave header
+    remainingBytes -= seekToEndOfSubChunk1ID(remainingBytes);   //searching 'fmt' subchunk
+    remainingBytes -= validateSubChunk1(remainingBytes);        //processing 'fmt' subchunk
+    remainingBytes -= seekToEndOfSubChunk2ID(remainingBytes);   //searching 'data' subchunk
 
-    int numberOfSamples = getNumberOfSamples();
+    int numberOfSamples = getNumberOfSamples();                 //getting number of samples
 
     if(remainingBytes != 2 * numberOfSamples)
     {
         std::cout<<"\nLooks like there is some error in reading samples from the file. Still proceeding.";
     }
 
-    return readSamplesFromStream(numberOfSamples);
+    return readSamplesFromStream(numberOfSamples);              //reading samples
 
 }
 
@@ -504,12 +505,12 @@ bool WaveFileData::readStreamUsingBuffer()
 
     while(std::cin >> std::noskipws >> byteData)
     {
-        _fileData.push_back(byteData);
+        _fileData.push_back(byteData);  //storing the stream into buffer
     }
 
-    if(checkValidWave(_fileData))
+    if(checkValidWave(_fileData))   //checking if buffer has valid WAVE file data
     {
-        parse();
+        decode();   //decode the buffer
         return true;
     }
 
@@ -521,15 +522,15 @@ bool WaveFileData::readStreamUsingBuffer()
 
 }
 
-bool WaveFileData::read()
+bool WaveFileData::read()   //decided the function based on set mode
 {
     switch (_openMode)
     {
-        case readFile             : openFile();
+        case readFile             : openFile();             //file on disk
                                     break;
-        case readStreamDirectly   : readStream();
+        case readStreamDirectly   : readStream();           //from stream/pipe
                                     break;
-        case readStreamIntoBuffer : readStreamUsingBuffer();
+        case readStreamIntoBuffer : readStreamUsingBuffer();//from stream/pipe into buffer and then processing
                                     break;
         default                   : std::cout<<"\nError deciding reading mode! Please report.";
                                     exit(2);
@@ -560,5 +561,5 @@ double WaveFileData::twoBytesToDouble (int value)
 
 std::vector<int16_t> WaveFileData::getSamples()
 {
-    return _samples;
+    return _samples;    //returning sample vector
 }
