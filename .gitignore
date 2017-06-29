@@ -38,3 +38,4 @@ cmake-build-debug/
 
 #mac
 .DS_Store
+*.wav

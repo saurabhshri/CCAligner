@@ -1,0 +1,132 @@
+# 🗼CCAligner image:https://travis-ci.org/saurabhshri/CCAligner.svg?branch=master["Build Status", link="https://travis-ci.org/saurabhshri/CCAligner"]
+
+Word by word audio subtitle synchronization tool. Being developed under GSoC 2017 with CCExtractor.
+
+_(https://saurabhshri.github.io/)_
+
+---
+
+_There are two major branches in this repository - `master` and `development`._
+
+_The `master` branch is updated at the end of each phase (currently it has code which was written in the first phase) and the `development` branch is regularly updated as the work proceeds. At the end of each phase, the development branch is merged with the `master` branch._
+
+_The project is in it's very early stage and is constantly evolving. The available functions, usage instructions et cetera are expected to refactor over time. It is not production ready but you are welcome to play with it, or better, help improve it :)_
+
+---
+
+== Using CCAligner
+
+CCAligner can be used as both standalone tool or a library in your own project. Please go through the code to find the available functions and and classes. The code is very well documented. With time, I will update this readme with a list as well.
+
+=== Using as a Library ===
+
+1. Clone the repository from Github :
+
+    git clone https://github.com/saurabhshri/CCAligner.git
+
+2. Place the `CCAligner` folder in appropriate directory in your project.
+
+3. In your project, simply include the directories you wish to use. The documentation of the same shall be listed below.
+
+4. Appropriately include the directories andsource file in your CMake list if you are using it.
+
+For example : If you want to use the approximation based alignement in your project
+
+```cpp
+
+//include the header file
+#include "generate_approx_timestamp.h"
+
+//Declare the aligner
+ApproxAligner * aligner = new ApproxAligner(_filename,_outputFormat);
+
+//Align
+aligner->align();
+
+```
+
+Please read the documentation later to find all available functions and options.
+
+Alternatively, and I will recommend this, you can also **browse the `/demo` directory to find working demo examples and `CMakeLists.txt` **.
+
+=== Using as a Tool ===
+
+1. Clone the repository from Github :
+
+    git clone https://github.com/saurabhshri/CCAligner.git
+
+2. Navigate to `CCAligner/src` directory.
+
+    cd CCAligner/src
+
+3. Create a new directory where executable will be stored.
+
+    mkdir build
+    cd build
+
+4. Run `cmake` to generate make files in Linux/Mac or Visual Studio Solution in Windows.
+
+    - Linux/Mac
+    
+    cmake ../src/
+    make
+    
+    - windows
+    
+    cmake ../src/ -G "Visual Studio 14 2015"
+    cmake --build . --config Release --target ccaligner
+    
+5. Use the generated executable as per the documentation.
+   
+    ./ccaligner -a input.srt -of xml
+    
+Here's a quick video showing the output in action, of the above command :
+
+image:https://img.youtube.com/vi/km1iHe_mGuo/0.jpg["Click to watch the video!", link="https://www.youtube.com/watch?v=km1iHe_mGuo"]
+
+### Current Functionalities
+
+- [x] Tool for subtitle processing and basic testing architecture.
+- [x] Sample repository.
+- [x]  Algorithmic and Probability based word - audio matching.
+- [x] VAD implementation.
+
+== Project Details
+
+The usual subtitle files (such as SubRips) have line by line synchronization in them i.e. the subtitles containing the dialogue appear when the person starts talking and disappears when the dialogue finishes. This continues for the whole video. For example :
+
+```bash
+1274
+01:55:48,484 --> 01:55:50,860
+The Force is strong with this one
+```
+In the above example, the dialogue `#1274` - `The Force is strong with this one` appears at `1:55:48` remains in the screen for two seconds and disappears at `1:55:50`.
+
+The aim of the project is to tag the word *as it is spoken*, similar to that in karaoke systems.
+
+E.g.
+```
+The           [6948484:6948500]
+Force         [6948501:6948633]
+is            [6948634:6948710]
+strong        [6948711:6949999]
+with          [6949100:6949313]
+```
+In the above example each word from subtitle is tagged with beginning and ending timestamps based on audio.
+
+### Important Links
+
+- Project link on official GSoC web-app : https://summerofcode.withgoogle.com/projects/#5589068587991040
+
+- Project repository on Github:
+https://github.com/saurabhshri/CCAligner
+
+- Weekly blog : https://saurabhshri.github.io
+
+- Milestones and deilverable checklist : https://saurabhshri.github.io/gsoc/
+
+- Mentors : https://github.com/cfsmp3[@cfsmp3^] and https://github.com/AlexBratosin2001[@AlexBratosin2001^]
+
+### Contributing
+
+Feel free to contribute to the project. Your contribution will be highly appreciated! 🙂
