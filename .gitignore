@@ -31,6 +31,11 @@
 *.out
 *.app
 
-# Cmake Stuff
-demo/ApproxAligner/build/
-src/build/
+# Cmake and IDE Stuff
+.idea/
+build/
+cmake-build-debug/
+
+#mac
+.DS_Store
+*.wav

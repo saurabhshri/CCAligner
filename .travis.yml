@@ -1,7 +1,5 @@
 language: cpp
 
-
-
 matrix:
   include:
 
@@ -20,20 +18,12 @@ matrix:
         - cd build
         - cmake .. && make
 
-      #after_success:
-      #  - cd tests
-
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources:
-            - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
-          packages:
-            - cmake
-            - cmake-data
-      script:
-        - cd demo/ApproxAligner
+      after_success:
+        - cd ../../demo/ApproxAligner
+        - mkdir build
+        - cd build
+        - cmake .. && make
+        - cd ../../VAD/
         - mkdir build
         - cd build
         - cmake .. && make
@@ -46,10 +36,12 @@ matrix:
         - cd build
         - cmake .. && make
 
-    - os: osx
-      osx_image: xcode7.3
-      script:
-        - cd demo/ApproxAligner
+      after_success:
+        - cd ../../demo/ApproxAligner
+        - mkdir build
+        - cd build
+        - cmake .. && make
+        - cd ../../VAD/
         - mkdir build
         - cd build
         - cmake .. && make
