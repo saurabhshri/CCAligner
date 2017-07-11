@@ -65,7 +65,10 @@ set(SOURCE_FILES
         lib_ccaligner/common_header_files.h
         lib_ccaligner/read_wav_file.h
         lib_ccaligner/read_wav_file.cpp
-        lib_ccaligner/try_pocketsphinx.cpp
+        lib_ccaligner/grammar_tools.cpp
+        lib_ccaligner/grammar_tools.h
+        lib_ccaligner/recognize_using_pocketsphinx.cpp
+        lib_ccaligner/recognize_using_pocketsphinx.h
 )
 
 add_executable(ccaligner ${SOURCE_FILES})
