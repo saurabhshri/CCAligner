@@ -17,6 +17,156 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <regex>
+
+const std::vector<std::string> initialNumbers = { "zero", 
+                                           "one", 
+                                           "two", 
+                                           "three", 
+                                           "four", 
+                                           "five", 
+                                           "six", 
+                                           "seven", 
+                                           "eight", 
+                                           "nine", 
+                                           "ten", 
+                                           "eleven", 
+                                           "twelve", 
+                                           "thirteen", 
+                                           "fourteen" 
+};
+
+const std::vector<std::string> numberPrefixes = { "twen", 
+                                            "thir", 
+                                            "for", 
+                                            "fif", 
+                                            "six", 
+                                            "seven", 
+                                            "eigh", 
+                                            "nine" 
+};
+
+inline std::string numberToNumberName(const int number)
+{
+    if (number < 0)
+    {
+        return "minus " + numberToNumberName(-number);
+    }
+
+    if (number <= 14)
+        return initialNumbers.at(number);
+
+    if (number < 20)
+        return numberPrefixes.at(number - 12) + "teen";
+
+    if (number < 100)
+    {
+        unsigned int remainder = number - (static_cast<int>(number / 10) * 10);
+        return numberPrefixes.at(number / 10 - 2) + (0 != remainder ? "ty " + numberToNumberName(remainder) : "ty");
+    }
+
+    if (number < 1000)
+    {
+        unsigned int remainder = number - (static_cast<int>(number / 100) * 100);
+        return initialNumbers.at(number / 100) + (0 != remainder ? " hundred " + numberToNumberName(remainder) : " hundred");
+    }
+
+    if (number < 1000000)
+    {
+        unsigned int thousands = static_cast<int>(number / 1000);
+        unsigned int remainder = number - (thousands * 1000);
+        return numberToNumberName(thousands) + (0 != remainder ? " thousand " + numberToNumberName(remainder) : " thousand");
+    }
+
+    if (number < 1000000000)
+    {
+        unsigned int millions = static_cast<int>(number / 1000000);
+        unsigned int remainder = number - (millions * 1000000);
+        return numberToNumberName(millions) + (0 != remainder ? " million " + numberToNumberName(remainder) : " million");
+    }
+
+    throw std::out_of_range("numberToNumberName() value too large");
+}
+
+inline std::string splitNumberAndAlphabets(const std::string& in)
+{
+    return std::regex_replace(
+        in,
+        std::regex("(?:([a-zA-Z])([0-9]))|(?:([0-9])([a-zA-Z]))"),
+        "\\1\\3 \\2\\4",
+        std::regex_constants::format_sed
+    );
+}
+
+//basic tokenization : TODO : Add complete tokenization and make it efficient.
+inline std::vector<std::string> &splitDialogue(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+
+    while (getline(ss, item, delim)) {
+
+        bool tokenizeDirectly = false, firstSplit = false;
+
+        for(char ch : item)
+        {
+            if(isdigit(ch))
+            {
+                tokenizeDirectly = true;
+            }
+
+            if(tokenizeDirectly && isalpha(ch))
+            {
+                tokenizeDirectly = false;
+                firstSplit = true;
+                break;
+            }
+        }
+
+        if(tokenizeDirectly)
+        {
+            item = numberToNumberName(std::stoi(item));
+            std::stringstream ssss(item);
+            std::string itemIn;
+            while (getline(ssss, itemIn, delim)) {
+
+                elems.push_back(itemIn);
+            }
+        }
+
+        else if(firstSplit)
+        {
+           item =  splitNumberAndAlphabets(item);
+
+            std::stringstream sss(item);
+
+            while (getline(sss, item, delim)) {
+
+                if(isdigit(item[0]))
+                {
+                    item = numberToNumberName(std::stoi(item));
+
+                    std::stringstream ssss(item);
+                    std::string itemIn;
+                    while (getline(ssss, itemIn, delim)) {
+
+                        elems.push_back(itemIn);
+                    }
+                }
+
+
+                else
+                    elems.push_back(item);
+            }
+
+        }
+
+        else
+        {
+            elems.push_back(item);
+        }
+    }
+    return elems;
+}
 
 //function for splitting sentences based on supplied delimiter
 inline std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
@@ -27,6 +177,11 @@ inline std::vector<std::string> &split(const std::string &s, char delim, std::ve
         elems.push_back(item);
     }
     return elems;
+}
+
+inline bool isPunc(char ch)
+{
+    return (ch == '!' || ch == '?' || ch == '.' || ch == ',' || ch == '"' || ch == '-' || ch ==':');
 }
 
 /**** Class definitions ****/
@@ -431,7 +586,7 @@ inline void SubtitleItem::extractInfo(bool keepHTML, bool doNotIgnoreNonDialogue
         int countP = 0;
         for(char& c : output)   // replacing (...) with ~~~~
         {
-            if(c=='(')
+            if(c=='(' || c=='[')
             {
                 countP++;
                 c = '~';
@@ -441,10 +596,10 @@ inline void SubtitleItem::extractInfo(bool keepHTML, bool doNotIgnoreNonDialogue
             {
                 if(countP!=0)
                 {
-                    if(c != ')')
+                    if(c != ')' || c!='[')
                         c = '~';
 
-                    else if(c == ')')
+                    else if(c == ')' || c=='[')
                     {
                         c = '~';
                         countP--;
@@ -558,13 +713,25 @@ inline void SubtitleItem::extractInfo(bool keepHTML, bool doNotIgnoreNonDialogue
     _justDialogue.erase(0, _justDialogue.find_first_not_of(whiteSpaces));
     _justDialogue.erase(_justDialogue.find_last_not_of(whiteSpaces) + 1);
 
+    //removing punctuations
+    _justDialogue.erase(remove_if(_justDialogue.begin(), _justDialogue.end(), isPunc), _justDialogue.end());
+
     if(_justDialogue.empty() || _justDialogue == " ")
         _ignore = true;
 
     else
     {
-        _word = split(_justDialogue, ' ', _word); //extracting individual words
+        _word = splitDialogue(_justDialogue, ' ', _word); //extracting individual words
         _wordCount = _word.size();
+
+        //recreating justDialogue using tokenized words.
+        _justDialogue.clear();
+        _justDialogue = _word[0];
+
+        for(int i=1; i<_wordCount; i++)
+        {
+            _justDialogue += " " + _word[i];
+        }
     }
 }
 
