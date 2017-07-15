@@ -219,7 +219,8 @@ private:
     std::vector<std::string> _word;         //list of words in dialogue
     std::vector<long int> _wordStartTime;   //start time of each word in dialogue
     std::vector<long int> _wordEndTime;     //end time of each word in dialogue
-    std::vector<long int> _wordDuration;   //actual duration of each word without silence
+    std::vector<long int> _wordDuration;    //actual duration of each word without silence
+    std::vector<bool> _isWordRecognised;    //is word recognised by ASR or not
     int _styleTagCount;                     //count of style tags in a single subtitle
     std::vector<std::string> _styleTag;     //list of style tags in that subtitle
     void extractInfo(bool keepHTML = 0, bool doNotIgnoreNonDialogues = 0,  bool doNotRemoveSpeakerNames = 0);   //process subtitle
@@ -241,8 +242,10 @@ public:
     std::string getWordByIndex(int index);       //return word stored at 'index'
     std::vector<long int> getWordStartTimes();   //return long int vector of start time of individual words
     std::vector<long int> getWordEndTimes();     //return long int vector of end time of individual words
+    std::vector<bool> getWordRecognisedStatus(); //return boolean vector containing status of each word if it's recognised or not
     long int getWordStartTimeByIndex(int index); //return the start time of a word based on index
     long int getWordEndTimeByIndex (int index);  //return the end time of a word based on index
+    bool getWordRecognisedStatusByIndex(int index); //return the status as true/false whether the word was recognised or not
     std::vector<std::string> getSpeakerNames();  //return string vector of speaker names
     std::vector<std::string> getNonDialogueWords(); //return string vector of non dialogue words
     std::vector<std::string> getStyleTags();    //return string vector of style tags
@@ -252,6 +255,9 @@ public:
     void setEndTime(long int endTime);      //set ending time
     void setText(std::string text);         //set subtitle text
     void setWordTimes(std::vector<long int> wordStartTime, std::vector<long int> wordEndTime, std::vector<long int> wordDuration);  //assign time to individual words
+    void setWordTimesByIndex(long int startTime, long int endTime, int index);
+    void setWordRecognisedStatusByIndex(bool status, int index); //return boolean vector containing status of each word if it's recognised or not
+
 
     SubtitleItem(void);
     SubtitleItem(int subNo, std::string startTime,std::string endTime, std::string text, bool ignore = false,
@@ -506,6 +512,16 @@ inline void SubtitleItem::setWordTimes(std::vector<long int> wordStartTime, std:
     _wordEndTime = wordEndTime;
     _wordDuration = wordDuration;
 }
+inline void SubtitleItem::setWordTimesByIndex(long int startTime, long int endTime, int index)
+{
+    _wordStartTime[index] = startTime;
+    _wordEndTime[index] = endTime;
+    _wordDuration[index] = endTime - startTime;
+}
+inline void SubtitleItem::setWordRecognisedStatusByIndex(bool status, int index)
+{
+    _isWordRecognised[index] = status;
+}
 inline int SubtitleItem::getSubNo() const
 {
     return _subNo;
@@ -723,6 +739,7 @@ inline void SubtitleItem::extractInfo(bool keepHTML, bool doNotIgnoreNonDialogue
     {
         _word = splitDialogue(_justDialogue, ' ', _word); //extracting individual words
         _wordCount = _word.size();
+        _isWordRecognised.resize(_wordCount, false);
 
         //recreating justDialogue using tokenized words.
         _justDialogue.clear();
@@ -782,6 +799,10 @@ inline std::vector<long int> SubtitleItem::getWordEndTimes()
 {
     return _wordEndTime;
 }
+inline std::vector<bool> SubtitleItem::getWordRecognisedStatus()
+{
+    return _isWordRecognised;
+}
 inline long int SubtitleItem::getWordStartTimeByIndex(int index)
 {
     return _wordStartTime[index];
@@ -789,6 +810,10 @@ inline long int SubtitleItem::getWordStartTimeByIndex(int index)
 inline long int SubtitleItem::getWordEndTimeByIndex(int index)
 {
     return _wordEndTime[index];
+}
+inline bool SubtitleItem::getWordRecognisedStatusByIndex(int index)
+{
+    return _isWordRecognised[index];
 }
 inline std::vector<std::string> SubtitleItem::getStyleTags()
 {
