@@ -73,12 +73,11 @@
 # ifndef _WIN32_WCE
 #  include <time.h>
 # endif
-#endif
-//#elif defined(HAVE_UNISTD_H) /* I know this, this is Unix... */
+#elif defined(HAVE_UNISTD_H) /* I know this, this is Unix... */
 # include <unistd.h>
 # include <sys/time.h>
 # include <sys/resource.h>
-//#endif
+#endif
 
 #ifdef _MSC_VER
 #pragma warning (disable: 4996)

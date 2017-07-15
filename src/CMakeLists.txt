@@ -72,4 +72,7 @@ set(SOURCE_FILES
 )
 
 add_executable(ccaligner ${SOURCE_FILES})
+if(UNIX)
+    target_compile_definitions(ccaligner PRIVATE HAVE_UNISTD_H=1)
+endif(UNIX)
 target_link_libraries(ccaligner webRTC  pocketsphinx sphinxbase ${EXTRA_FLAGS})
