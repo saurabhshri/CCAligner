@@ -105,21 +105,36 @@ inline std::vector<std::string> &splitDialogue(const std::string &s, char delim,
 
     while (getline(ss, item, delim)) {
 
-        bool tokenizeDirectly = false, firstSplit = false;
+        bool tokenizeDirectly = false, firstSplit = false, wordHasAlpha = false, wordHasDigit = false;
 
         for(char ch : item)
         {
             if(isdigit(ch))
             {
-                tokenizeDirectly = true;
+                wordHasDigit = true;
+            }
+            else
+            {
+                wordHasAlpha = true;
             }
 
-            if(tokenizeDirectly && isalpha(ch))
+            if(wordHasDigit)
             {
-                tokenizeDirectly = false;
-                firstSplit = true;
-                break;
+                if(wordHasAlpha)
+                {
+                    tokenizeDirectly = false;
+                    firstSplit = true;
+                    break;
+                }
+
+                else
+                {
+                    tokenizeDirectly = true;
+                    firstSplit = false;
+                }
+
             }
+
         }
 
         if(tokenizeDirectly)
