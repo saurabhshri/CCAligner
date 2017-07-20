@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(ccaligner)
 
-set(CMAKE_CXX_STANDARD 11)
+if (CMAKE_VERSION VERSION_LESS "3.1")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set (CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}")
+    endif ()
+else ()
+    set (CMAKE_CXX_STANDARD 11)
+endif ()
 
 ######## INCLUDING LIBRARIES ########
 
@@ -50,6 +56,10 @@ FILE(GLOB_RECURSE SPHINXBASE_FILES "lib_ext/sphinxbase/src/libsphinxbase/*.c")
 add_library(sphinxbase ${SPHINXBASE_FILES})
 set_target_properties(sphinxbase PROPERTIES FOLDER lib)
 
+if(UNIX)
+    add_definitions(-DHAVE_UNISTD_H)
+endif(UNIX)
+
 target_link_libraries(pocketsphinx sphinxbase)
 
 #including CCAligner libraries
@@ -72,7 +82,4 @@ set(SOURCE_FILES
 )
 
 add_executable(ccaligner ${SOURCE_FILES})
-if(UNIX)
-    target_compile_definitions(ccaligner PRIVATE HAVE_UNISTD_H=1)
-endif(UNIX)
 target_link_libraries(ccaligner webRTC  pocketsphinx sphinxbase ${EXTRA_FLAGS})
