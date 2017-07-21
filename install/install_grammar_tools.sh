@@ -15,6 +15,7 @@ cd cmuclmtk-0.7
 ./configure
 make
 sudo make install
+sudo ldconfig
 if [ $? -ne 0 ]; then
     exit
 echo "Installing Tensorflow : "
