@@ -34,8 +34,8 @@ public:
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
-    bool generateGrammar();
-    bool align();
+    bool generateGrammar(grammarName name);
+    bool align(int printSubtitle);
     bool alignWithFSG();
     ~Aligner();
 

@@ -31,7 +31,9 @@ public:
     double getWordWeight (std::string word);        //returns the approximate weight of word
     currentSub(SubtitleItem *sub);
     void run();                                     //run the alignment
-    void printToSRT(std::string fileName);          //prints the aligned result in SRT format
+    void alignNonRecognised(recognisedBlock currBlock);                      //run the approx alignment on unrecognised words
+    void printRecognisedToSRT(std::string filename);//prints the recognised words in SRT format
+    void printToSRT(std::string fileName, int printSubtitle);          //prints the aligned result in SRT format
     void printToJSON(std::string fileName);         //prints the aligned result in JSON format
     void printToXML(std::string fileName);          //prints the aligned information in XML format
     void printToConsole(std::string fileName);      //prints the output to console/stdout
@@ -46,7 +48,7 @@ private:
     outputFormats _outputFormat;                    //output format (xml/json/srt/stdout)
 public:
     ApproxAligner(std::string fileName, outputFormats outputFormat = srt);  //default output is in SRT format
-    void align();   //begin alignment
+    std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> align();   //begin alignment
     ~ApproxAligner();
 };
 

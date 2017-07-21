@@ -43,13 +43,19 @@ currentSub::currentSub(SubtitleItem *sub)
 }
 
 
-void currentSub::printToSRT(std::string fileName)
+void currentSub::printToSRT(std::string fileName, int printSubtitle)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);
 
     for(int i=0;i<_sub->getWordCount();i++)
     {
+        if(printSubtitle == 2)
+        {
+            if(!_sub->getWordRecognisedStatusByIndex(i))
+                continue;
+
+        }
         int hh1,mm1,ss1,ms1;
         int hh2,mm2,ss2,ms2;
         char timeline[128];
@@ -61,7 +67,16 @@ void currentSub::printToSRT(std::string fileName)
         sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
 
         out<<timeline;
-        out<<_sub->getWordByIndex(i)<<"\n\n";
+
+        if(printSubtitle == 3)
+        {
+            if(!_sub->getWordRecognisedStatusByIndex(i))
+                out<<"<font color='#FF0000'>"<<_sub->getWordByIndex(i)<<"</font>"<<"\n\n";
+            else
+                out<<_sub->getWordByIndex(i)<<"\n\n";
+        }
+        else
+            out<<_sub->getWordByIndex(i)<<"\n\n";
     }
 }
 
@@ -117,6 +132,7 @@ void currentSub::printToConsole(std::string fileName)
 {
     for(int i=0;i<_sub->getWordCount();i++)
     {
+        //std::cout<<_sub->getWordByIndex(i)<<"\n";
         std::cout<<"START\n";
         std::cout<<"word    : "<<_sub->getWordByIndex(i)<<"\n";
         std::cout<<"start   : "<<_sub->getWordStartTimeByIndex(i)<<" ms\n";
@@ -205,7 +221,7 @@ ApproxAligner::ApproxAligner(std::string fileName, outputFormats outputFormat)
     out.close();
 }
 
-void ApproxAligner::align()
+std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align()
 {
     SubtitleParserFactory *subParserFactory = new SubtitleParserFactory(_fileName);
     SubtitleParser *parser = subParserFactory->getParser();
@@ -218,7 +234,7 @@ void ApproxAligner::align()
 
         switch (_outputFormat)  //decide on based of set output format
         {
-            case srt:   currSub->printToSRT(_outputFileName);
+            case srt:   currSub->printToSRT(_outputFileName, 1);
                         break;
 
             case xml:   currSub->printToXML(_outputFileName);
@@ -234,15 +250,12 @@ void ApproxAligner::align()
                         exit(2);
         }
 
-        delete currSub;
     }
 
-    delete parser;
-    delete subParserFactory;
+    return subtitles;
 }
 
 ApproxAligner::~ApproxAligner()
 {
-
 
 }

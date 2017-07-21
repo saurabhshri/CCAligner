@@ -20,9 +20,13 @@ Aligner::Aligner(std::string inputAudioFileName, std::string inputSubtitleFileNa
     _subtitles = parser->getSubtitles();
 }
 
-bool Aligner::generateGrammar()
+bool Aligner::generateGrammar(grammarName name)
 {
-    generate(_subtitles, all);
+    if(name == all)
+        generate(_subtitles, all);
+
+    else if(name == corpus)
+        generate(_subtitles, corpus);
 }
 
 bool Aligner::initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath)
@@ -243,7 +247,7 @@ bool Aligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
     }
 }
 
-bool Aligner::align()
+bool Aligner::align(int printSubtitle)
 {
     for(SubtitleItem *sub : _subtitles)
     {
@@ -295,7 +299,9 @@ bool Aligner::align()
 //        currSub->alignNonRecognised(currBlock);
 //        printWordTimes(_config, _ps);
 
-        currSub->printToSRT("output.srt");
+
+         currSub->printToSRT("output.srt", printSubtitle);
+
         delete currSub;
     }
 }
