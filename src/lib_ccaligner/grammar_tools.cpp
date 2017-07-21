@@ -64,6 +64,9 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
                 fsgDump<<"TRANSITION "<<i<<" "<<numberOfWords * 2 + 1<<" 0.0909\n";
             }
 
+            fsgDump<<"TRANSITION "<<numberOfWords * 2 + 1<<" 0 0.0909\n";
+
+
             fsgDump<<"FSG_END\n";
             fsgDump.close();
         }
