@@ -68,7 +68,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == dict || name == all)
     {
-        auto rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model /Users/saurabhshri/work/g2p-seq2seq-cmudict > tempFiles/dict/complete.dict");
+        auto rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 
     }
 
