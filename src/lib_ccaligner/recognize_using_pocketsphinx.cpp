@@ -327,7 +327,7 @@ bool Aligner::alignWithFSG()
         subConfig = cmd_ln_init(NULL,
                                 ps_args(),TRUE,
                                 "-hmm", _modelPath.c_str(),
-                                //"-lm", _lmPath.c_str(),
+//                                "-lm", _lmPath.c_str(),
                                 "-dict",_dictPath.c_str(),
                                 "-logfn", _logPath.c_str(),
                                 "-fsg", fsgname.c_str(),

@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
     std::string modelPath ("model"), lmPath ("tempFiles/lm/complete.lm"), dictPath ("tempFiles/dict/complete.dict"), fsgPath ("tempFiles/fsg/"), logPath ("tempFiles/log.log");
     int generateGrammar = 1;    //1 = print, 0 = don't print, 2 = print corpus for web tool
     int printSubtile = 1;       //1 = print both, 2 = print only aligned, 3 = show colour diff
+    bool useFSG = false;
 
 
     std::string audioFileName, subtitleFileName;
@@ -236,6 +237,22 @@ int main(int argc, char *argv[])
             i++;
         }
 
+        if(param == "--use-fsg")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            std::string subParam (argv[i+1]);
+
+            if(subParam == "yes")
+                useFSG = true;
+
+            i++;
+        }
+
     }
 
 
@@ -257,7 +274,12 @@ int main(int argc, char *argv[])
     }
 
     aligner->initDecoder(modelPath, lmPath, dictPath, fsgPath, logPath);
-    aligner->align(printSubtile);
+
+    if(useFSG)
+        aligner->alignWithFSG();
+    else
+        aligner->align(printSubtile);
+
     delete(aligner);
 
     /*
