@@ -314,6 +314,11 @@ bool Aligner::alignWithFSG()
         if(sub->getDialogue().empty())
             continue;
 
+
+        //first assigning approx timestamps
+        currentSub * currSub = new currentSub(sub);
+        currSub->run();
+
         long int dialogueStartsAt = sub->getStartTime();
         std::string fsgname(_fsgPath + std::to_string(dialogueStartsAt));
         fsgname += ".fsg";
@@ -322,7 +327,7 @@ bool Aligner::alignWithFSG()
         subConfig = cmd_ln_init(NULL,
                                 ps_args(),TRUE,
                                 "-hmm", _modelPath.c_str(),
-                                "-lm", _lmPath.c_str(),
+                                //"-lm", _lmPath.c_str(),
                                 "-dict",_dictPath.c_str(),
                                 "-logfn", _logPath.c_str(),
                                 "-fsg", fsgname.c_str(),
@@ -332,18 +337,18 @@ bool Aligner::alignWithFSG()
 //                          "-pbeam", "1e-80",
                                 NULL);
 
-            if (subConfig == NULL) {
-                fprintf(stderr, "Failed to create config object, see log for  details\n");
-                return -1;
-            }
+        if (subConfig == NULL) {
+            fprintf(stderr, "Failed to create config object, see log for  details\n");
+            return -1;
+        }
 
 
-            ps_reinit(_ps,subConfig);
+        ps_reinit(_ps,subConfig);
 
-            if (_ps == NULL) {
-                fprintf(stderr, "Failed to create recognizer, see log for  details\n");
-                return -1;
-            }
+        if (_ps == NULL) {
+            fprintf(stderr, "Failed to create recognizer, see log for  details\n");
+            return -1;
+        }
 
 
         long int dialogueLastsFor = (sub->getEndTime() - dialogueStartsAt);
@@ -364,12 +369,15 @@ bool Aligner::alignWithFSG()
         std::cout<<"End time of dialogue   : "<<sub->getEndTime()<<"\n\n";
         std::cout<<"Recognised  : "<<_hyp<<"\n";
         std::cout<<"Actual      : "<<sub->getDialogue()<<"\n\n";
-
-        printWordTimes(subConfig, _ps);
+        recognisedBlock currBlock = findAndSetWordTimes(subConfig, _ps, sub);
+//        printWordTimes(subConfig, _ps);
         std::cout<<"\n\n-----------------------------------------\n\n";
 
 
         cmd_ln_free_r(subConfig);
+        currSub->printToSRT("output_fsg.srt", 3);
+
+        delete currSub;
 
     }
 }
