@@ -6,7 +6,6 @@
 
 #include "recognize_using_pocketsphinx.h"
 
-
 Aligner::Aligner(std::string inputAudioFileName, std::string inputSubtitleFileName)
 {
     _audioFileName = inputAudioFileName;
@@ -19,10 +18,6 @@ Aligner::Aligner(std::string inputAudioFileName, std::string inputSubtitleFileNa
     SubtitleParserFactory *subParserFactory = new SubtitleParserFactory(_subtitleFileName);
     SubtitleParser *parser = subParserFactory->getParser();
     _subtitles = parser->getSubtitles();
-
-    //delete file;
-//    delete parser;
-//    delete subParserFactory;
 }
 
 bool Aligner::generateGrammar()
@@ -54,8 +49,8 @@ bool Aligner::initDecoder(std::string modelPath, std::string lmPath, std::string
                           "-hmm", modelPath.c_str(),
                           "-lm", lmPath.c_str(),
                           "-dict",dictPath.c_str(),
-                          "-cmn", "batch",
                           "-logfn", logPath.c_str(),
+//                          "-cmn", "batch",
 //                          "-lw", "1.0",
 //                          "-beam", "1e-80",
 //                          "-wbeam", "1e-60",
@@ -73,6 +68,161 @@ bool Aligner::initDecoder(std::string modelPath, std::string lmPath, std::string
         fprintf(stderr, "Failed to create recognizer, see log for  details\n");
         return -1;
     }
+}
+
+int levenshtein_distance(const std::string& firstWord, const std::string& secondWord)
+{
+    const int length1 = firstWord.size();
+    const int length2 = secondWord.size();
+
+    std::vector<int> currentColumn(length2 + 1);
+    std::vector<int> previousColumn(length2 + 1);
+
+    for (int index2 = 0; index2 < length2 + 1; ++index2)
+    {
+        previousColumn[index2] = index2;
+    }
+
+    for (int index1 = 0; index1 < length1; ++index1)
+    {
+        currentColumn[0] = index1 + 1;
+
+        for (int index2 = 0; index2 < length2; ++index2)
+        {
+            const int compare = firstWord[index1] == secondWord[index2] ? 0 : 1;
+
+            currentColumn[index2 + 1] = std::min(std::min(currentColumn[index2] + 1, previousColumn[index2 + 1] + 1), previousColumn[index2] + compare);
+        }
+
+        currentColumn.swap(previousColumn);
+    }
+
+    return previousColumn[length2];
+}
+
+recognisedBlock Aligner::findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
+{
+    ps_start_stream(ps);
+    int frame_rate = cmd_ln_int32_r(config, "-frate");
+    ps_seg_t *iter = ps_seg_iter(ps);
+
+    std::vector<std::string> words = sub->getIndividualWords();
+
+    //converting locally stored words into lowercase - as the recognised words are in lowercase
+
+    for(std::string &eachWord : words)
+    {
+        std::transform(eachWord.begin(), eachWord.end(), eachWord.begin(), ::tolower);
+    }
+
+    int lastWordFoundAtIndex = -1;
+
+    recognisedBlock currentBlock; //storing recognised words and their timing information
+
+    while (iter != NULL)
+    {
+        int32 sf, ef, pprob;
+        float conf;
+
+        ps_seg_frames(iter, &sf, &ef);
+        pprob = ps_seg_prob(iter, NULL, NULL, NULL);
+        conf = logmath_exp(ps_get_logmath(ps), pprob);
+
+        std::string recognisedWord(ps_seg_word(iter));
+
+        //the time when utterance was marked, the times are w.r.t. to this
+        long int startTime = sub->getStartTime();
+        long int endTime = startTime;
+
+        /*
+         * Finding start time and end time of each word.
+         *
+         * 1 sec = 1000 ms, thus time in second = 1000 / frame rate.
+         *
+         */
+
+        startTime += sf * 1000 / frame_rate;
+        endTime += ef * 1000 / frame_rate;
+
+        //storing recognised words and their timing information
+        currentBlock.recognisedString.push_back(recognisedWord);
+        currentBlock.recognisedWordStartTimes.push_back(startTime);
+        currentBlock.recognisedWordEndTimes.push_back(endTime);
+
+
+        /*
+         * Suppose this is the case :
+         *
+         * Actual      : [Why] would you use tomato just why
+         * Recognised  : would you use tomato just [why]
+         *
+         * So, if we search whole recognised sentence for actual words one by one, then Why[1] of Actual will get associated
+         * with why[7] of recognised. Thus limiting the number of words it can look ahead.
+         *
+         */
+
+        int searchWindowSize = 3;
+
+        /*
+            Recognised  : so have you can you've brought seven
+                               |
+                        ---------------
+                        |               |
+            Actual      : I think you've brought with you
+
+            Recognised  : so have you can you've brought seven
+                                    |
+                            -------------------
+                            |                  |
+            Actual      : I think you've brought with you
+
+         */
+
+        //Do not try to search silence and words like [BREATH] et cetera..
+        if(recognisedWord == "<s>" || recognisedWord == "</s>" || recognisedWord[0] == '[' || recognisedWord == "<sil>")
+            goto skipSearchingThisWord;
+
+        for(int wordIndex = lastWordFoundAtIndex + 1; wordIndex < words.size(); wordIndex++)
+        {
+            if(wordIndex > (int)currentBlock.recognisedString.size() + searchWindowSize)
+                break;
+
+            int distance = levenshtein_distance(words[wordIndex],recognisedWord);
+            int largerLength = words[wordIndex].size() > recognisedWord.size() ? words[wordIndex].size() : recognisedWord.size();
+
+            if(distance < largerLength * 0.25)   //at least 75% must match
+            {
+                std::cout<<"Possible Match : "<<words[wordIndex];
+
+
+//                std::cout<<"OLD: \t\t";
+//                std::cout<<"Word : \t"<<sub->getWordByIndex(wordIndex);
+//                std::cout<<"\tStart : \t"<<sub->getWordStartTimeByIndex(wordIndex);
+//                std::cout<<"\tEnd : \t"<<sub->getWordEndTimeByIndex(wordIndex);
+//                std::cout<<std::endl;
+
+
+                lastWordFoundAtIndex = wordIndex;
+                sub->setWordRecognisedStatusByIndex(true, wordIndex);
+                sub->setWordTimesByIndex(startTime,endTime,wordIndex);
+//
+//                std::cout<<"NEW: \t\t";
+//                std::cout<<"Word : \t"<<sub->getWordByIndex(wordIndex);
+
+                std::cout<<"\t\tStart : \t"<<sub->getWordStartTimeByIndex(wordIndex);
+                std::cout<<"\tEnd : \t"<<sub->getWordEndTimeByIndex(wordIndex);
+                std::cout<<std::endl;
+
+                break;
+            }
+
+        }
+
+skipSearchingThisWord:
+        iter = ps_seg_next(iter);
+    }
+
+    return currentBlock;
 }
 
 bool Aligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
@@ -97,7 +247,15 @@ bool Aligner::align()
 {
     for(SubtitleItem *sub : _subtitles)
     {
+        if(sub->getDialogue().empty())
+            continue;
 
+
+        //first assigning approx timestamps
+        currentSub * currSub = new currentSub(sub);
+        currSub->run();
+
+        //let's correct the timestamps :)
 
         long int dialogueStartsAt = sub->getStartTime();
         long int dialogueLastsFor = (sub->getEndTime() - dialogueStartsAt);
@@ -132,9 +290,13 @@ bool Aligner::align()
         std::cout<<"Recognised  : "<<_hyp<<"\n";
         std::cout<<"Actual      : "<<sub->getDialogue()<<"\n\n";
 
-        printWordTimes(_config, _ps);
-        std::cout<<"\n\n-----------------------------------------\n\n";
+        recognisedBlock currBlock = findAndSetWordTimes(_config, _ps, sub);
 
+//        currSub->alignNonRecognised(currBlock);
+//        printWordTimes(_config, _ps);
+
+        currSub->printToSRT("output.srt");
+        delete currSub;
     }
 }
 
