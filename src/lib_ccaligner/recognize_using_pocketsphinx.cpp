@@ -22,11 +22,7 @@ Aligner::Aligner(std::string inputAudioFileName, std::string inputSubtitleFileNa
 
 bool Aligner::generateGrammar(grammarName name)
 {
-    if(name == all)
-        generate(_subtitles, all);
-
-    else if(name == corpus)
-        generate(_subtitles, corpus);
+    generate(_subtitles, name);
 }
 
 bool Aligner::initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath)

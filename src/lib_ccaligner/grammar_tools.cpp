@@ -24,6 +24,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     if(name == corpus || name == all)
     {
         corpusDump.open("tempFiles/corpus/corpus.txt",std::ios::binary);
+        corpusDump.close();
     }
 
     for(SubtitleItem *sub : subtitles)
@@ -45,14 +46,22 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
             int numberOfWords = sub->getWordCount();
 
             fsgDump<<"FSG_BEGIN CUSTOM_FSG\n";
-            fsgDump<<"NUM_STATES "<<numberOfWords + 1<<"\n";
+            fsgDump<<"NUM_STATES "<<(numberOfWords * 2) + 2<<"\n";
             fsgDump<<"START_STATE 0\n";
-            fsgDump<<"FINAL_STATE "<<numberOfWords<<"\n\n";
+            fsgDump<<"FINAL_STATE "<<(numberOfWords * 2) + 1<<"\n\n";
             fsgDump<<"# Transitions\n";
 
             for(int i=0;i<numberOfWords;i++)
             {
-                fsgDump<<"TRANSITION "<<i<<" "<<i+1<<" 1.0 "<<StringToLower(sub->getWordByIndex(i))<<"\n";
+                fsgDump<<"TRANSITION "<<"0 "<<i+1<<" 0.0909\n";
+            }
+            for(int i=numberOfWords, counter = 1;counter<=numberOfWords;i++,counter++)
+            {
+                fsgDump<<"TRANSITION "<<counter<<" "<<i+1<<" 1.0 "<<StringToLower(sub->getWordByIndex(counter-1))<<"\n";
+            }
+            for(int i=numberOfWords + 1;i<numberOfWords * 2 + 1;i++)
+            {
+                fsgDump<<"TRANSITION "<<i<<" "<<numberOfWords * 2 + 1<<" 0.0909\n";
             }
 
             fsgDump<<"FSG_END\n";
