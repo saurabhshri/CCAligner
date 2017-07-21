@@ -19,6 +19,14 @@
 #include <iterator>
 #include <regex>
 
+class recognisedBlock
+{
+public:
+    std::vector<std::string> recognisedString;
+    std::vector<long int> recognisedWordStartTimes;
+    std::vector<long int> recognisedWordEndTimes;
+};
+
 const std::vector<std::string> initialNumbers = { "zero", 
                                            "one", 
                                            "two", 
