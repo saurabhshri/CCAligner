@@ -27,6 +27,6 @@ cd ../g2p-seq2seq-master/
 sudo python setup.py install
 if [ $? -ne 0 ]; then
     exit
-cd ../../
+cd ../
 cp -rf ../src/lib_ext/model .
 cp -rf ../src/lib_ext/g2p-seq2seq-cmudict .
