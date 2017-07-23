@@ -25,6 +25,8 @@ To automatically generate language models, dictionaries and grammars, following 
 1. CMUCLMTK     (to generate LM)
 2. g2p-seq2seq  (to generate dictionary)
 
+They are stored in `install/dependencied`.
+
 *Steps :*
 
 To install cmuclmtk :
@@ -48,7 +50,7 @@ To install g2p-seq2seq :
 
     sudo pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0-cp27-none-linux_x86_64.whl 
 
-2. Uncompress `unzip g2p-seq2seq-master.zip` while preserving the permissions :   
+2. Uncompress `g2p-seq2seq-master.zip` while preserving the permissions :   
 
     unzip g2p-seq2seq-master.zip
 

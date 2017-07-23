@@ -264,16 +264,18 @@ int main(int argc, char *argv[])
 
     Aligner * aligner = new Aligner(audioFileName, subtitleFileName);
 
-    if(generateGrammar == 1)
-        aligner->generateGrammar(all);
-
-    else if(generateGrammar == 2)
-    {
-        aligner->generateGrammar(corpus);
-        exit(0);
-    }
+//    if(generateGrammar == 1)
+//        aligner->generateGrammar(all);
+//
+//    else if(generateGrammar == 2)
+//    {
+//        aligner->generateGrammar(corpus);
+//        exit(0);
+//    }
 
     aligner->initDecoder(modelPath, lmPath, dictPath, fsgPath, logPath);
+
+    aligner->transcribe();
 
     if(useFSG)
         aligner->alignWithFSG();

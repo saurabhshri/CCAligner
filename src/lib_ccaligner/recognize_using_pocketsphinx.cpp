@@ -305,6 +305,29 @@ bool Aligner::align(int printSubtitle)
     }
 }
 
+bool Aligner::transcribe()
+{
+    const int16_t * sample = _samples.data();
+
+    _rv = ps_start_utt(_ps);
+
+    for(int i = 0; i< _samples.size(); i= i +2048)
+    {
+        ps_process_raw(_ps, sample, 2048, FALSE, FALSE);
+        _hyp = ps_get_hyp(_ps, &_score);
+
+        if(_hyp != NULL)
+            std::cout<<"Recognised  : "<<_hyp<<"\n";
+
+
+        sample += 2048;
+
+    }
+
+    _rv = ps_end_utt(_ps);
+
+}
+
 bool Aligner::reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps)
 {
     ps_reinit(_ps, _config);

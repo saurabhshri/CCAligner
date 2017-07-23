@@ -37,6 +37,7 @@ public:
     bool generateGrammar(grammarName name);
     bool align(int printSubtitle);
     bool alignWithFSG();
+    bool transcribe();
     ~Aligner();
 
 };
