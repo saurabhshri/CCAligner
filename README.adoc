@@ -18,6 +18,91 @@ _The project is in it's very early stage and is constantly evolving. The availab
 
 CCAligner can be used as both standalone tool or a library in your own project. Please go through the code to find the available functions and and classes. The code is very well documented. With time, I will update this readme with a list as well.
 
+=== Installing Dependencies ===
+
+To automatically generate language models, dictionaries and grammars, following dependencies need to be met.
+
+1. CMUCLMTK     (to generate LM)
+2. g2p-seq2seq  (to generate dictionary)
+
+*Steps :*
+
+To install cmuclmtk :
+
+1. Uncompress `cmuclmtk-0.7.tar.gz` while preserving the permissions :   
+
+    tar xvpzf cmuclmtk-0.7.tar.gz
+
+2. Navigate to `install/dependecies/cmumltk-0.7` directory and run :    
+
+    cd cmuclmtk-0.7
+    ./configure
+    make
+    sudo make install/  
+
+You may have to run `sudo ldconfig` to fix errors such as missing shared library.
+
+To install g2p-seq2seq :
+
+1. Install Tensorflow by your preferred choice of method. If you are on Linux, you may directly run the following :
+
+    sudo pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0-cp27-none-linux_x86_64.whl 
+
+2. Uncompress `unzip g2p-seq2seq-master.zip` while preserving the permissions :   
+
+    unzip g2p-seq2seq-master.zip
+
+3. Navigate to `install/dependecies/unzip g2p-seq2seq-master` directory and run :    
+
+    sudo python setup.py install  
+
+
+### I have incorporated above steps into a bash script that you may simply call using :
+
+    `./install_grammar_tools.sh`
+
+
+_Alternatively, you may use web-service to generate all the relevant files using text corpus._
+
+1. Generate text corpus in relevant format by doing :
+
+    ./ccaligner -in input.wav -srt input.srt --generate-grammar printCorpus
+
+Courpus can be found at : `tempFiles/corpus/corpus.txt`
+
+2. Goto http://www.speech.cs.cmu.edu/tools/lmtool-new.html and upload the generated `courpus.txt`.
+
+3. Download all the generated files and supply them to ccaligner with respective argument.
+
+=== Before you run ===
+
+1. Please make sure you have all the dependencies installed in case you want to use grammar tools. To disable generating grammar by ccaligner, issue `--generate-grammar false`.
+
+2. Please copy the `model` folder and `g2p-seq2seq-cmudict` to the directory where you are installing ccaligner. The bash script does that by calling 
+
+    cp -rf ../src/lib_ext/model .
+    cp -rf ../src/lib_ext/g2p-seq2seq-cmudict .
+
+3. Make sure the subtitles are clean and are in propar SRT format.
+
+4. The wav file should be 16 bit PCM mono sampled at 16KHz. To generate the wavefile using a video through ffmpeg, you may :
+
+    ./ffmpeg -i input.video -bits_per_raw_sample 16 -ar 16000 -ac 1 output.wav
+
+=== Installing ===
+
+1. Navigate to `install` directory and run `build.sh`.
+
+2. Use `./ccaligner`.
+
+=== Quick Demo ====
+
+To generate output as SRT with coloured differences in recognised and non recognised words, do : 
+
+    ./ccaligner --print-aligned color -in input.wav -srt input.srt
+
+Output is in `output.srt`.
+
 === Using as a Library ===
 
 1. Clone the repository from Github :
