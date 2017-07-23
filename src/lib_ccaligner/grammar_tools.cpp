@@ -23,10 +23,12 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == corpus || name == all)
     {
+        std::cout<<"Creating Corpus : tempFiles/corpus/corpus.txt\n";
         corpusDump.open("tempFiles/corpus/corpus.txt",std::ios::binary);
         corpusDump.close();
     }
 
+    std::cout<<"Creating FSG : tempFiles/fsg/\n";
     for(SubtitleItem *sub : subtitles)
     {
         if(name == corpus || name == all)
@@ -80,12 +82,16 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == dict || name == all)
     {
+        std::cout<<"Creating Dictionary, this might take a little time depending"
+            "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
         auto rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 
     }
 
     if(name == lm || name == all )
     {
+        std::cout<<"Creating Biased Language Model : tempFiles/lm/complete.lm\n";
+
         auto rv = std::system("text2idngram -vocab tempFiles/vocab/complete.vocab -idngram tempFiles/lm/lm.idngram <  tempFiles/corpus/corpus.txt");
         rv = std::system("idngram2lm -vocab_type 0 -idngram tempFiles/lm/lm.idngram -vocab tempFiles/vocab/complete.vocab  -arpa tempFiles/lm/complete.lm");
     }

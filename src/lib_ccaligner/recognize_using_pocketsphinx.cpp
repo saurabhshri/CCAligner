@@ -11,10 +11,12 @@ Aligner::Aligner(std::string inputAudioFileName, std::string inputSubtitleFileNa
     _audioFileName = inputAudioFileName;
     _subtitleFileName = inputSubtitleFileName;
 
+    std::cout<<"Reading and processing audio samples..\n";
     WaveFileData * file = new WaveFileData(_audioFileName);
     file->read();
     _samples = file->getSamples();
 
+    std::cout<<"Reading and processing subtitles..\n";
     SubtitleParserFactory *subParserFactory = new SubtitleParserFactory(_subtitleFileName);
     SubtitleParser *parser = subParserFactory->getParser();
     _subtitles = parser->getSubtitles();
@@ -22,6 +24,7 @@ Aligner::Aligner(std::string inputAudioFileName, std::string inputSubtitleFileNa
 
 bool Aligner::generateGrammar(grammarName name)
 {
+    std::cout<<"Generating Grammar based on subtitles..\n";
     generate(_subtitles, name);
 }
 
