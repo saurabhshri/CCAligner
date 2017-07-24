@@ -4,21 +4,20 @@ matrix:
   include:
 
     - os: linux
-      compiler: gcc4.9
       addons:
         apt:
           sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.6
             - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
           packages:
             - cmake
             - cmake-data
+            - g++-4.9
+
+      env: COMPILER=g++-4.9
+      
       script:
-        - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y;
-        - sudo apt-get update -qq
-        - sudo apt-get install g++-4.9
-        - sudo update-alternatives --remove-all gcc
-        - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 20
-        - sudo update-alternatives --config gcc
         - cd src
         - mkdir build
         - cd build
