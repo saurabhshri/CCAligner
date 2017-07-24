@@ -249,7 +249,7 @@ bool Aligner::printRecognisedWordAsSRT(cmd_ln_t *config, ps_decoder_t *ps)
         long startTime = sf * 1000 / frame_rate, endTime = ef * 1000 / frame_rate;
 
         std::string outputString;
-        if(conf < 0.6)
+        if(conf < 0.7)
         {
             outputString = "<font color='#FF0000'>";
             outputString += recognisedWord;

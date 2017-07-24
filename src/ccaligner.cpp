@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     std::string modelPath ("model"), lmPath ("tempFiles/lm/complete.lm"), dictPath ("tempFiles/dict/complete.dict"), fsgPath ("tempFiles/fsg/"), logPath ("tempFiles/log.log");
     int generateGrammar = 1;    //1 = print, 0 = don't print, 2 = print corpus for web tool
     int printSubtile = 1;       //1 = print both, 2 = print only aligned, 3 = show colour diff
-    bool useFSG = false;
+    bool useFSG = false, transcribe = false;
 
 
     std::string audioFileName, subtitleFileName;
@@ -253,6 +253,11 @@ int main(int argc, char *argv[])
             i++;
         }
 
+        if(param == "-transcribe")
+        {
+            transcribe = true;
+        }
+
     }
 
 
@@ -275,12 +280,19 @@ int main(int argc, char *argv[])
 
     aligner->initDecoder(modelPath, lmPath, dictPath, fsgPath, logPath);
 
-//    aligner->transcribe();
+    if(transcribe)
+    {
+        aligner->transcribe();
+    }
 
-    if(useFSG)
-        aligner->alignWithFSG();
     else
-        aligner->align(printSubtile);
+    {
+        if(useFSG)
+            aligner->alignWithFSG();
+        else
+            aligner->align(printSubtile);
+    }
+
 
     delete(aligner);
 
