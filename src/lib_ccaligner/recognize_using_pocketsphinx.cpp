@@ -316,24 +316,64 @@ bool Aligner::align(int printSubtitle)
 
 bool Aligner::transcribe()
 {
+    //pointer to samples
     const int16_t * sample = _samples.data();
 
+    bool utt_started, in_speech;
+
+    //creating partition of 2048 bytes
+
+    int numberOfPartitions = _samples.size() / 2048, remainingSamples = _samples.size() % 2048;
+
+
     _rv = ps_start_utt(_ps);
+    utt_started = FALSE;
 
-    for(int i = 0; i< _samples.size(); i= i +2048)
+    for(int i = 0; i<= numberOfPartitions; i++)
     {
-        ps_process_raw(_ps, sample, 2048, FALSE, FALSE);
-        _hyp = ps_get_hyp(_ps, &_score);
+        if(i == numberOfPartitions)
+            ps_process_raw(_ps, sample, remainingSamples, FALSE, FALSE);
 
-        if(_hyp != NULL)
-            std::cout<<"Recognised  : "<<_hyp<<"\n";
+        else
+            ps_process_raw(_ps, sample, 2048, FALSE, FALSE);
 
+        in_speech = ps_get_in_speech(_ps);
+
+        if (in_speech && !utt_started)
+        {
+            utt_started = TRUE;
+        }
+
+        if (!in_speech && utt_started)
+        {
+            ps_end_utt(_ps);
+            _hyp = ps_get_hyp(_ps, NULL);
+
+            if (_hyp != NULL)
+            {
+                std::cout<<"Recognised  : "<<_hyp<<"\n";
+                printWordTimes(_config, _ps);
+            }
+
+            ps_start_utt(_ps);
+            utt_started = FALSE;
+        }
 
         sample += 2048;
 
     }
 
     _rv = ps_end_utt(_ps);
+
+    if (utt_started)
+    {
+        _hyp = ps_get_hyp(_ps, NULL);
+        if (_hyp != NULL)
+        {
+            std::cout<<"Recognised  : "<<_hyp<<"\n";
+            printWordTimes(_config, _ps);
+        }
+    }
 
 }
 

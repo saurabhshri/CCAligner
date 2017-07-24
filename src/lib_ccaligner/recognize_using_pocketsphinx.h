@@ -13,6 +13,8 @@
 #include "grammar_tools.h"
 #include "generate_approx_timestamp.h"
 
+int levenshtein_distance(const std::string& firstWord, const std::string& secondWord);
+
 class Aligner
 {
 private:
@@ -28,12 +30,13 @@ private:
     int _rv;
     int32 _score;
 
-public:
-    Aligner(std::string inputAudioFileName, std::string inputSubtitleFileName);
-    bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
+
+public:
+    Aligner(std::string inputAudioFileName, std::string inputSubtitleFileName);
+    bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
     bool generateGrammar(grammarName name);
     bool align(int printSubtitle);
     bool alignWithFSG();
