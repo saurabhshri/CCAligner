@@ -78,6 +78,8 @@ void currentSub::printToSRT(std::string fileName, int printSubtitle)
         else
             out<<_sub->getWordByIndex(i)<<"\n\n";
     }
+
+    out.close();
 }
 
 void currentSub::printToXML(std::string fileName)
