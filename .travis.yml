@@ -4,7 +4,7 @@ matrix:
   include:
 
     - os: linux
-      compiler:gcc4.9
+      compiler: gcc4.9
       addons:
         apt:
           sources:
