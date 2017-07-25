@@ -498,6 +498,17 @@ bool Aligner::alignWithFSG()
 
         _hyp = ps_get_hyp(_ps, &_score);
 
+
+        if(_hyp == NULL)
+        {
+            _hyp = "NULL";
+            std::cout<<"\n\n-----------------------------------------\n\n";
+            std::cout<<"Recognised  : "<<_hyp<<"\n";
+            continue;
+
+        }
+
+        
         std::cout<<"\n\n-----------------------------------------\n\n";
         std::cout<<"Start time of dialogue : "<<dialogueStartsAt<<"\n";
         std::cout<<"End time of dialogue   : "<<sub->getEndTime()<<"\n\n";
