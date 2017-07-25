@@ -39,7 +39,7 @@ public:
     Aligner(std::string inputAudioFileName, std::string inputSubtitleFileName);
     bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
     bool generateGrammar(grammarName name);
-    bool align(int printSubtitle);
+    bool align(srtOptions printOption);
     bool alignWithFSG();
     bool transcribe();
     ~Aligner();

@@ -18,6 +18,16 @@ enum outputFormats      //various possible output formats
     blank               //means no output format is specified
 };
 
+enum srtOptions
+{
+    printOnlyRecognised,
+    printBothWihoutColors,
+    printBothWithDistinctColors,
+    printAsKaraoke,
+    printAsKaraokeWithDistinctColors,
+
+};
+
 class currentSub    //processing one subtitle at a time
 {
     int _sentenceLength, _wordCount;    //length of the dialogue, number of words in that dialogue
@@ -32,8 +42,8 @@ public:
     currentSub(SubtitleItem *sub);
     void run();                                     //run the alignment
     void alignNonRecognised(recognisedBlock currBlock);                      //run the approx alignment on unrecognised words
-    void printRecognisedToSRT(std::string filename);//prints the recognised words in SRT format
-    void printToSRT(std::string fileName, int printSubtitle);          //prints the aligned result in SRT format
+    void printAsKaraoke(std::string fileName, srtOptions printOption);
+    void printToSRT(std::string fileName, srtOptions printOption);          //prints the aligned result in SRT format
     void printToJSON(std::string fileName);         //prints the aligned result in JSON format
     void printToXML(std::string fileName);          //prints the aligned information in XML format
     void printToConsole(std::string fileName);      //prints the output to console/stdout

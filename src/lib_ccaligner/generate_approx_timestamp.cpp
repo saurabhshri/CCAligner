@@ -42,15 +42,71 @@ currentSub::currentSub(SubtitleItem *sub)
 
 }
 
-
-void currentSub::printToSRT(std::string fileName, int printSubtitle)
+void currentSub::printAsKaraoke(std::string fileName, srtOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);
 
     for(int i=0;i<_sub->getWordCount();i++)
     {
-        if(printSubtitle == 2)
+        int hh1,mm1,ss1,ms1;
+        int hh2,mm2,ss2,ms2;
+        char timeline[128];
+
+        ms_to_srt_time(_sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
+        ms_to_srt_time(_sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
+
+        //printing in SRT format
+        sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
+
+        out<<timeline;
+
+        std::string outputLine = "";
+
+        for(int j=0;j<_sub->getWordCount();j++)
+        {
+            if(j == i)
+            {
+                if(printOption == printAsKaraokeWithDistinctColors)
+                {
+                    if(_sub->getWordRecognisedStatusByIndex(j))
+                        outputLine += " <font color='#0000FF'> ";
+
+                    else
+                        outputLine += " <font color='#A1E4D3'> ";
+
+                }
+
+                else
+                {
+                    outputLine += " <font color='#0000FF'> ";
+                }
+            }
+
+            else
+                outputLine += " <font color='#FFFFFF'> ";
+
+            outputLine += _sub->getWordByIndex(j);
+            outputLine += " </font>";
+        }
+
+        outputLine += "\n\n";
+
+        out<<outputLine;
+    }
+
+    out.close();
+}
+
+
+void currentSub::printToSRT(std::string fileName, srtOptions printOption)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::app);
+
+    for(int i=0;i<_sub->getWordCount();i++)
+    {
+        if(printOption == printOnlyRecognised)
         {
             if(!_sub->getWordRecognisedStatusByIndex(i))
                 continue;
@@ -68,7 +124,7 @@ void currentSub::printToSRT(std::string fileName, int printSubtitle)
 
         out<<timeline;
 
-        if(printSubtitle == 3)
+        if(printOption == printBothWithDistinctColors)
         {
             if(!_sub->getWordRecognisedStatusByIndex(i))
                 out<<"<font color='#FF0000'>"<<_sub->getWordByIndex(i)<<"</font>"<<"\n\n";
@@ -289,7 +345,7 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
 
         switch (_outputFormat)  //decide on based of set output format
         {
-            case srt:   currSub->printToSRT(_outputFileName, 1);
+            case srt:   currSub->printToSRT(_outputFileName, printBothWihoutColors);
                         break;
 
             case xml:   currSub->printToXML(_outputFileName);

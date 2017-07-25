@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
     std::string modelPath ("model"), lmPath ("tempFiles/lm/complete.lm"), dictPath ("tempFiles/dict/complete.dict"), fsgPath ("tempFiles/fsg/"), logPath ("tempFiles/log.log");
     int generateGrammar = 1;    //1 = print, 0 = don't print, 2 = print corpus for web tool
-    int printSubtile = 1;       //1 = print both, 2 = print only aligned, 3 = show colour diff
+    srtOptions printOptions = printBothWithDistinctColors;
     bool useFSG = false, transcribe = false;
 
 
@@ -223,10 +223,35 @@ int main(int argc, char *argv[])
             std::string subParam (argv[i+1]);
 
             if(subParam == "color")
-                printSubtile = 3;
+                printOptions = printBothWithDistinctColors;
 
             else if(subParam == "true")
-                printSubtile = 2;
+                printOptions = printOnlyRecognised;
+
+            else
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            i++;
+        }
+
+        if(param == "--print-as-karaoke")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            std::string subParam (argv[i+1]);
+
+            if(subParam == "color")
+                printOptions = printAsKaraokeWithDistinctColors;
+
+            else if(subParam == "true")
+                printOptions = printAsKaraoke;
 
             else
             {
@@ -290,7 +315,7 @@ int main(int argc, char *argv[])
         if(useFSG)
             aligner->alignWithFSG();
         else
-            aligner->align(printSubtile);
+            aligner->align(printOptions);
     }
 
 

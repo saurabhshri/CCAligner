@@ -301,7 +301,7 @@ bool Aligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
     }
 }
 
-bool Aligner::align(int printSubtitle)
+bool Aligner::align(srtOptions printOption)
 {
     for(SubtitleItem *sub : _subtitles)
     {
@@ -363,7 +363,11 @@ bool Aligner::align(int printSubtitle)
 //        printWordTimes(_config, _ps);
 
 
-         currSub->printToSRT("output.srt", printSubtitle);
+        if(printOption == printAsKaraoke || printOption == printAsKaraokeWithDistinctColors)
+            currSub->printAsKaraoke("karaoke.srt", printOption);
+
+        else
+            currSub->printToSRT("output.srt", printOption);
 
         delete currSub;
     }
@@ -505,7 +509,7 @@ bool Aligner::alignWithFSG()
 
 
         cmd_ln_free_r(subConfig);
-        currSub->printToSRT("output_fsg.srt", 3);
+        currSub->printToSRT("output_fsg.srt", printBothWithDistinctColors);
 
         delete currSub;
 
