@@ -8,7 +8,6 @@
 #define CCALIGNER_PARAMS_H
 
 #include "commons.h"
-#include <stdlib.h>
 
 class Params
 {

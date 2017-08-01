@@ -246,7 +246,7 @@ void Params::inputParams(int argc, char *argv[])
                 exit(2);
             }
 
-            searchWindow = strtoull( subParam.c_str(), NULL, 10 );
+            searchWindow = std::strtoul( subParam.c_str(), NULL, 10 );
 
             if ( errno )
             {
@@ -264,7 +264,7 @@ void Params::inputParams(int argc, char *argv[])
                 exit(2);
             }
 
-            sampleWindow = strtoull( subParam.c_str(), NULL, 10 );
+            sampleWindow = std::strtoul( subParam.c_str(), NULL, 10 );
 
             if ( errno )
             {
@@ -282,7 +282,7 @@ void Params::inputParams(int argc, char *argv[])
                 exit(2);
             }
 
-            audioWindow = strtoull( subParam.c_str(), NULL, 10 );
+            audioWindow = std::strtoul( subParam.c_str(), NULL, 10 );
 
             if ( errno )
             {
