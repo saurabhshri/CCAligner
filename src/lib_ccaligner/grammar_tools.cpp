@@ -6,45 +6,80 @@
 
 #include "grammar_tools.h"
 
-
-std::string StringToLower(std::string strToConvert)
-{
-    std::transform(strToConvert.begin(), strToConvert.end(), strToConvert.begin(), ::tolower);
-
-    return strToConvert;
-}
-
 bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 {
-    std::system("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
+    //create temporary directories in case it doesn't exist
+    LOG("Creating temp directories at tempFiles/");
+
+    int rv = std::system("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
+
+    if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+    {
+        FATAL(EXIT_FAILURE, "Unable to create directory tempFiles/ : %s", strerror(errno));
+    }
+
+    LOG("Directories created successfully!");
 
     std::ofstream corpusDump, fsgDump, vocabDump, dictDump;
 
+    //setting exceptions to be thrown on failure
+    corpusDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    fsgDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    vocabDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    dictDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-    if(name == corpus || name == all)
+
+    if(name == corpus || name == complete_grammar)
     {
         std::cout<<"Creating Corpus : tempFiles/corpus/corpus.txt\n";
-        corpusDump.open("tempFiles/corpus/corpus.txt",std::ios::binary);
+
+        try
+        {
+            corpusDump.open("tempFiles/corpus/corpus.txt",std::ios::binary);
+        }
+
+        catch(std::system_error& e)
+        {
+            FATAL(EXIT_FAILURE, e.code().message().c_str());
+        }
+
         corpusDump.close();
     }
 
-    std::cout<<"Creating FSG : tempFiles/fsg/\n";
     for(SubtitleItem *sub : subtitles)
     {
-        if(name == corpus || name == all)
+        if(name == corpus || name == complete_grammar)
         {
-            corpusDump.open("tempFiles/corpus/corpus.txt", std::ios::binary | std::ios::app);
+            try
+            {
+                corpusDump.open("tempFiles/corpus/corpus.txt", std::ios::binary | std::ios::app);
+            }
+
+            catch(std::system_error& e)
+            {
+                FATAL(EXIT_FAILURE, e.code().message().c_str());
+            }
+
             corpusDump << "<s> " << StringToLower(sub->getDialogue()) << " </s>\n";
             corpusDump.close();
         }
 
-        if(name == fsg || name == all)
+        if(name == fsg || name == complete_grammar)
         {
             long int startTime = sub->getStartTime();
             std::string fsgFileName("tempFiles/fsg/" + std::to_string(startTime));
             fsgFileName += ".fsg";
 
-            fsgDump.open(fsgFileName, std::ios::binary);
+            try
+            {
+                fsgDump.open(fsgFileName, std::ios::binary);
+            }
+
+            catch(std::system_error& e)
+            {
+                FATAL(EXIT_FAILURE, e.code().message().c_str());
+            }
+
             int numberOfWords = sub->getWordCount();
 
             fsgDump<<"FSG_BEGIN CUSTOM_FSG\n";
@@ -75,25 +110,49 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     }
 
-    if(name == vocab || name == all)
+    if(name == vocab || name == complete_grammar)
     {
-        auto rv = std::system("text2wfreq < tempFiles/corpus/corpus.txt | wfreq2vocab > tempFiles/vocab/complete.vocab");
+        rv = std::system("text2wfreq < tempFiles/corpus/corpus.txt | wfreq2vocab > tempFiles/vocab/complete.vocab");
+
+        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        {
+            FATAL(EXIT_FAILURE, "Something went wrong while creating vocabulary!");
+        }
     }
 
-    if(name == dict || name == all)
+    if(name == dict || name == complete_grammar)
     {
         std::cout<<"Creating Dictionary, this might take a little time depending"
             "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
-        auto rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
+        rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 
+        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        {
+            FATAL(EXIT_FAILURE, "Something went wrong while creating dictionary!");
+        }
     }
 
-    if(name == lm || name == all )
+    if(name == lm || name == complete_grammar )
     {
         std::cout<<"Creating Biased Language Model : tempFiles/lm/complete.lm\n";
 
-        auto rv = std::system("text2idngram -vocab tempFiles/vocab/complete.vocab -idngram tempFiles/lm/lm.idngram <  tempFiles/corpus/corpus.txt");
+        rv = std::system("text2idngram -vocab tempFiles/vocab/complete.vocab -idngram tempFiles/lm/lm.idngram <  tempFiles/corpus/corpus.txt");
+
+        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        {
+            FATAL(EXIT_FAILURE, "Something went wrong while creating idngram file!");
+        }
+
         rv = std::system("idngram2lm -vocab_type 0 -idngram tempFiles/lm/lm.idngram -vocab tempFiles/vocab/complete.vocab  -arpa tempFiles/lm/complete.lm");
+
+        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        {
+            FATAL(EXIT_FAILURE, "Something went wrong while creating biased language model!");
+        }
     }
+
+    LOG("Grammar files created!");
+
+    return true;
 
 }

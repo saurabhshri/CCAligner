@@ -30,6 +30,8 @@ bool WaveFileData::checkValidWave (std::vector<unsigned char>& fileData)
     /*Offset  Size  Name             Description
      * 0         4   ChunkID          Contains the letters "RIFF" in ASCII form
      */
+
+    LOG("Checking chunkID, should be RIFF");
     std::string chunkID (fileData.begin(), fileData.begin() + 4);
     return chunkID == "RIFF";
 
@@ -92,63 +94,81 @@ bool WaveFileData::decode()     //decodes the wave file
         NOTE : I later found out that the subChunks may be located at different offsets
                in presence of metadata like LIST INFO etc..
 
+               See : L#108
+
      */
 
     std::string format(_fileData.begin() + 8, _fileData.begin() + 12);
 
     if(format != "WAVE")
     {
-        std::cout<<"\nInvalid Format : "<<format;
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Invalid WAV file format : %s ", format.c_str());
     }
+
+    LOG("File format is identified as WAV");
 
     /*
      * Apparently, this is just not it. The `fmt ` and `data`  chunk may not necessarily be in continuation.
      * There may occur inclusion of metadata. So, we'll need to find the location of these chunks.
      */
 
+    LOG("Finding FMT and DATA subchunks");
+
     int fmtIndex = findIndex(_fileData, "fmt ");
     int dataIndex = findIndex(_fileData, "data");
+
+    if(fmtIndex < 0)
+    {
+        FATAL(EXIT_INVALID_FILE, "FMT subchunk not found!");
+    }
+
+    if(dataIndex < 0)
+    {
+        FATAL(EXIT_INVALID_FILE, "Data subchunk not found!");
+    }
+
+    LOG("FMT index : %d , DATA index :%d", fmtIndex, dataIndex);
 
     std::string subChunk1ID(_fileData.begin() + fmtIndex, _fileData.begin() + fmtIndex + 4);
 
     if(subChunk1ID != "fmt ")
     {
-        std::cout<<"\nInvalid SubChunk1ID : "<<subChunk1ID;
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Invalid SubChunk1ID : %s", subChunk1ID.c_str());
     }
 
     unsigned long subChunk1Size = fourBytesToInt(_fileData, fmtIndex + 4);
 
     if(subChunk1Size != 16)
     {
-        std::cout<<"\nNot PCM, SubChunk1Size : "<<subChunk1Size;
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Not PCM, SubChunk1Size : %lu", subChunk1Size);
     }
 
     int audioFormat = twoBytesToInt(_fileData, fmtIndex + 8);
 
     if(audioFormat != 1)
     {
-        std::cout<<"\nNot PCM, AudioFormat : "<<audioFormat;
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Not PCM, AudioFormat : %d", audioFormat);
     }
+
+    LOG("PCM : True");
 
     int numChannels = twoBytesToInt(_fileData, fmtIndex + 10);
 
     if(numChannels != 1)
     {
-        std::cout<<"\nNot Mono, NumChannels : "<<numChannels;
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Not Mono, NumChannels : %d", numChannels);
     }
+
+    LOG("MONO : True");
 
     unsigned long sampleRate = fourBytesToInt(_fileData, fmtIndex + 12);
 
     if(sampleRate != 16000)
     {
-        std::cout<<"\nNot 16000Hz SampleRate, SampleRate : "<<sampleRate;
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Not 16000Hz SampleRate, SampleRate : %lu", sampleRate);
     }
+
+    LOG("Sample Rate 16KHz : True");
 
     unsigned long byteRate = fourBytesToInt(_fileData, fmtIndex + 16);
 
@@ -158,27 +178,29 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(bitRate != 16)
     {
-        std::cout<<"\nNot 16 bits/sec, BitRate : "<<bitRate;
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Not 16 bits/sec, BitRate : %d", bitRate);
     }
+
+    LOG("BitRate 16 bits/sec : True");
 
     if((byteRate != sampleRate * numChannels * bitRate/8) || (blockAlign != numChannels * bitRate/8))
     {
-        std::cout<<"\nIncorrect header, ByteRate and/or BlockAlign values do not match!";
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Incorrect header, ByteRate and/or BlockAlign values do not match!");
     }
 
     std::string subChunk2ID (_fileData.begin() + dataIndex, _fileData.begin() + dataIndex + 4);
 
     if(subChunk2ID != "data")
     {
-        std::cout<<"\nInvalid SubChunk2ID : "<<subChunk2ID;
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Invalid SubChunk2ID : %s", subChunk2ID.c_str());
     }
 
     unsigned long subChunk2Size = fourBytesToInt(_fileData, dataIndex + 4);
 
     unsigned long int numSamples = subChunk2Size * 8 / ( numChannels * bitRate);
+
+    LOG("Number of samples : %lu", numSamples);
+    LOG("Reading samples");
 
     for (unsigned long int i = 0; i < numSamples; i++)
     {
@@ -198,11 +220,11 @@ bool WaveFileData::openFile ()
 {
     std::ifstream infile (_fileName, std::ios::binary);
 
+    LOG("Trying to read from file : %s", _fileName.c_str());
+
     if (!infile)
     {
-        std::cout<<"\nError opening file : "<<_fileName;
-        return false;
-
+        FATAL(EXIT_FILE_NOT_FOUND, "Unable to open file : %s", _fileName.c_str());
     }
 
 
@@ -214,19 +236,32 @@ bool WaveFileData::openFile ()
 
     std::noskipws(infile);
     std::istream_iterator<unsigned char> begin (infile), end;
+
+    LOG("Reading file data");
+
     std::vector<unsigned char> fileData (begin, end);   //read complete file content
+
+    LOG("File data read and stored in buffer");
+    LOG("Processing data and extracting samples");
 
     if(checkValidWave(fileData))
     {
+        LOG("Wave File chunkID verification successful");
+
         _fileData = fileData;   //wave is valid, store and proceed
+
+        LOG("Begin decoding wave file");
+
         decode();
+
+        LOG("File decoded successfully");
+
         return true;
     }
 
     else
     {
-        std::cout<<"\nInvalid WAV file!";
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Invalid WAV file!");
     }
 
 }
@@ -234,7 +269,7 @@ bool WaveFileData::openFile ()
 int WaveFileData::processStreamHeader()
 {
     unsigned char byteData;
-    char * riff = "RIFF", *wave = "WAVE";       //defined to ease checking the IDs; will shift to better alternative
+    std::string riff ("RIFF"), wave ("WAVE");
     bool riffRead = false;                      //are 'RIFF' bytes read?
     int currentByteCount = -1, chunkSize = 0;
 
@@ -247,8 +282,7 @@ int WaveFileData::processStreamHeader()
         {
             if (riff[currentByteCount] != byteData)     //checking RIFF header
             {
-                std::cout << "\nInvalid Wave File!";
-                exit(2);
+                FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Incorrect subChunk1ID!");
             }
 
             if (currentByteCount == 3)
@@ -261,8 +295,7 @@ int WaveFileData::processStreamHeader()
             {
                 if (wave[currentByteCount - 8] != byteData) //checking WAVE format
                 {
-                    std::cout << "\nInvalid format!";
-                    exit(2);
+                    FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Incorrect Header!");
                 }
 
                 if (currentByteCount == 11)
@@ -284,7 +317,8 @@ int WaveFileData::processStreamHeader()
 int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
 {
     unsigned char byteData;
-    char *fmt = "fmt";
+    //char *fmt = "fmt";
+    std::string fmt ("fmt");
     int fmtCount = 0, readBytes = 0;
 
     while(std::cin>>std::noskipws>>byteData)
@@ -313,8 +347,7 @@ int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
 
         if(readBytes > remainingBytes)
         {
-            std::cout<<"\nSubChunk1 ('fmt') not found!";    //'fmt' subchunk not found; can not proceed
-            exit(2);
+            FATAL(EXIT_INVALID_FILE, "Invalid WAV file : SubChunk1 ('fmt') not found!");
         }
     }
 
@@ -345,32 +378,28 @@ int WaveFileData::validateSubChunk1(int remainingBytes)
 
     if(subChunk1Size != 16)
     {
-        std::cout<<"\nNot PCM, SubChunk1Size : "<<subChunk1Size;
-        exit(2);
+        FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Not PCM, SubChunk1Size : %lu", subChunk1Size);
     }
 
     int audioFormat = twoBytesToInt(fmtBlock, 4);
 
     if(audioFormat != 1)
     {
-        std::cout<<"\nNot PCM, AudioFormat : "<<audioFormat;
-        exit(2);
+        FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Not PCM, AudioFormat : %d", audioFormat);
     }
 
     int numChannels = twoBytesToInt(fmtBlock, 6);
 
     if(numChannels != 1)
     {
-        std::cout<<"\nNot Mono, NumChannels : "<<numChannels;
-        exit(2);
+        FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Not Mono, NumChannels : %d", numChannels);
     }
 
     unsigned long sampleRate = fourBytesToInt(fmtBlock, 8);
 
     if(sampleRate != 16000)
     {
-        std::cout<<"\nNot 16000Hz SampleRate, SampleRate : "<<sampleRate;
-        exit(2);
+        FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Not 16000Hz SampleRate, SampleRate : %lu", sampleRate);
     }
 
     unsigned long byteRate = fourBytesToInt(fmtBlock, 12);
@@ -381,14 +410,12 @@ int WaveFileData::validateSubChunk1(int remainingBytes)
 
     if(bitRate != 16)
     {
-        std::cout<<"\nNot 16 bits/sec, BitRate : "<<bitRate;
-        exit(2);
+        FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Not 16 bits/sec, BitRate : %d", bitRate);
     }
 
     if((byteRate != sampleRate * numChannels * bitRate/8) || (blockAlign != numChannels * bitRate/8))
     {
-        std::cout<<"\nIncorrect header, ByteRate and/or BlockAlign values do not match!";
-        exit(2);
+        FATAL(EXIT_INVALID_FILE, "Incorrect header, ByteRate and/or BlockAlign values do not match!");
     }
 
     return currentByteCount + 1;
@@ -398,7 +425,8 @@ int WaveFileData::validateSubChunk1(int remainingBytes)
 int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
 {
     unsigned char byteData;
-    char *data = "data";
+    //char *data = "data";
+    std::string data ("data");
     int dataCount = 0, readBytes = 0;
 
     while(std::cin>>std::noskipws>>byteData)
@@ -422,8 +450,7 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
 
         if(readBytes > remainingBytes)
         {
-            std::cout<<"\nSubChunk2 ('data') not found!";
-            exit(2);
+            FATAL(EXIT_INVALID_FILE, "SubChunk2 ('data') not found!");
         }
     }
 
@@ -483,6 +510,8 @@ bool WaveFileData::readSamplesFromStream(int numberOfSamples)
 
 bool WaveFileData::readStream()
 {
+    LOG("Reading WAV file from stream");
+
     int remainingBytes = processStreamHeader();                 //processing wave header
     remainingBytes -= seekToEndOfSubChunk1ID(remainingBytes);   //searching 'fmt' subchunk
     remainingBytes -= validateSubChunk1(remainingBytes);        //processing 'fmt' subchunk
@@ -516,14 +545,15 @@ bool WaveFileData::readStreamUsingBuffer()
 
     else
     {
-        std::cout<<"\nInvalid WAV file!";
-        return false;
+        FATAL(EXIT_INVALID_FILE, "Invalid WAV file : SubChunk2 ('data') not found!");
     }
 
 }
 
 bool WaveFileData::read()   //decided the function based on set mode
 {
+    LOG("Begin reading WAV file");
+
     switch (_openMode)
     {
         case readFile             : openFile();             //file on disk
@@ -532,12 +562,13 @@ bool WaveFileData::read()   //decided the function based on set mode
                                     break;
         case readStreamIntoBuffer : readStreamUsingBuffer();//from stream/pipe into buffer and then processing
                                     break;
-        default                   : std::cout<<"\nError deciding reading mode! Please report.";
-                                    exit(2);
+        default                   : FATAL(EXIT_INVALID_FILE, "Error choosing opening mode, please report!");
+
     }
 }
 
 /* Convert 4 bytes to int
+ * Reference :
  * https://stackoverflow.com/a/2386134/6487831
  */
 
@@ -549,14 +580,6 @@ unsigned long WaveFileData::fourBytesToInt (std::vector<unsigned char>& fileData
 int WaveFileData::twoBytesToInt (std::vector<unsigned char>& fileData, int index)
 {
     return ((fileData[index + 1] << 8) | fileData[index]);
-}
-
-/* Convert signed int (2bytes, 16 bits) in double format
- * https://stackoverflow.com/a/4619787/6487831
- */
-double WaveFileData::twoBytesToDouble (int value)
-{
-    return (double)value / (double) 32768.0;
 }
 
 std::vector<int16_t> WaveFileData::getSamples()
