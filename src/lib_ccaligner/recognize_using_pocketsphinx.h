@@ -39,6 +39,7 @@ private:
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
 
 public:
+    PocketsphinxAligner(Params * parameters);
     PocketsphinxAligner(std::string inputAudioFileName, std::string inputSubtitleFileName);
     bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
     bool generateGrammar(grammarName name);

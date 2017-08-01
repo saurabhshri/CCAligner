@@ -6,6 +6,25 @@
 
 #include "recognize_using_pocketsphinx.h"
 
+PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
+{
+    _parameters = parameters;
+    generateGrammar(_parameters->grammarType);
+    initDecoder(_parameters->modelPath, _parameters->lmPath, _parameters->dictPath, _parameters->fsgPath, _parameters->logPath);
+    if(_parameters->transcribe)
+    {
+        transcribe();
+    }
+
+    else
+    {
+        if(_parameters->useFSG)
+            alignWithFSG();
+        else
+            align(_parameters->printOption);
+    }
+}
+
 PocketsphinxAligner::PocketsphinxAligner(std::string inputAudioFileName, std::string inputSubtitleFileName)
 {
     _audioFileName = inputAudioFileName;
