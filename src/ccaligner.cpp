@@ -19,34 +19,34 @@ void printUsage()
 
 CCAligner::CCAligner(Params * paramters)
 {
-    _paramters = paramters;
+    _parameters = paramters;
 }
 
 int CCAligner::initAligner()
 {
-    if(_paramters->chosenAlignerType == approxAligner)
+    if(_parameters->chosenAlignerType == approxAligner)
     {
-        ApproxAligner * aligner = new ApproxAligner(_paramters->audioFileName,srt);
+        ApproxAligner * aligner = new ApproxAligner(_parameters->audioFileName,srt);
         aligner->align();
         delete aligner;
     }
 
-    else if(_paramters->chosenAlignerType == asrAligner)
+    else if(_parameters->chosenAlignerType == asrAligner)
     {
-        PocketsphinxAligner * aligner = new PocketsphinxAligner(_paramters->audioFileName, _paramters->subtitleFileName);
-        aligner->generateGrammar(_paramters->grammarType);
-        aligner->initDecoder(_paramters->modelPath, _paramters->lmPath, _paramters->dictPath, _paramters->fsgPath, _paramters->logPath);
-        if(_paramters->transcribe)
+        PocketsphinxAligner * aligner = new PocketsphinxAligner(_parameters->audioFileName, _parameters->subtitleFileName);
+        aligner->generateGrammar(_parameters->grammarType);
+        aligner->initDecoder(_parameters->modelPath, _parameters->lmPath, _parameters->dictPath, _parameters->fsgPath, _parameters->logPath);
+        if(_parameters->transcribe)
         {
             aligner->transcribe();
         }
 
         else
         {
-            if(_paramters->useFSG)
+            if(_parameters->useFSG)
                 aligner->alignWithFSG();
             else
-                aligner->align(_paramters->printOption);
+                aligner->align(_parameters->printOption);
         }
 
 

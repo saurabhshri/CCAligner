@@ -12,7 +12,7 @@
 
 class CCAligner
 {
-    Params * _paramters;
+    Params * _parameters;
 
 public:
 
