@@ -337,3 +337,8 @@ void Params::inputParams(int argc, char *argv[])
     }
 
 }
+
+Params::~Params()
+{
+
+}

@@ -20,6 +20,7 @@ void printUsage()
 CCAligner::CCAligner(Params * paramters)
 {
     _parameters = paramters;
+    should_log = _parameters->verbosity ;
 }
 
 int CCAligner::initAligner()

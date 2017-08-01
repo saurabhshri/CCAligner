@@ -22,6 +22,9 @@ void fatal(int exit_code, const char *fileName, const int lineNumber, const char
 /* Shorten some debug output code. */
 void log(const char *fileName, const int lineNumber, const char *format, ...)
 {
+    if(should_log == false)
+        return;
+
     va_list args;
     va_start(args, format);
     fprintf(stdout, "[INFO] %s : %d | ", fileName, lineNumber);

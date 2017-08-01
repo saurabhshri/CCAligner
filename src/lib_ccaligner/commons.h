@@ -14,6 +14,8 @@
 #include <iterator>
 #include <algorithm>
 
+static bool should_log;
+
 enum alignerType
 {
     approxAligner,          //approximation based alignment
