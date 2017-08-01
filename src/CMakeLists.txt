@@ -80,6 +80,8 @@ set(SOURCE_FILES
         lib_ccaligner/grammar_tools.h
         lib_ccaligner/recognize_using_pocketsphinx.cpp
         lib_ccaligner/recognize_using_pocketsphinx.h
+        lib_ccaligner/params.cpp
+        lib_ccaligner/params.h
 )
 
 add_executable(ccaligner ${SOURCE_FILES})
