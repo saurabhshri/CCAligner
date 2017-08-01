@@ -6,30 +6,6 @@
 
 #include "generate_approx_timestamp.h"
 
-void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds)
-{
-    *milliseconds = (int)(ms % 1000);
-    ms = (ms - *milliseconds) / 1000;
-
-    *seconds = (int)(ms % 60);
-    ms = (ms - *seconds) / 60;
-
-    *minutes = (int)(ms % 60);
-    ms = (ms - *minutes) / 60;
-
-    *hours = (int)ms;
-}
-
-std::string extractFileName(std::string fileName)
-{
-    int lastIndex = fileName.find_last_of(".");
-
-    if(lastIndex == std::string::npos)
-        return fileName;    //if no extension is present, return complete filename
-    else
-        return fileName.substr(0, lastIndex);
-}
-
 int currentSub::_wordNumber;    //defining static data member
 
 currentSub::currentSub(SubtitleItem *sub)
@@ -42,7 +18,7 @@ currentSub::currentSub(SubtitleItem *sub)
 
 }
 
-void currentSub::printAsKaraoke(std::string fileName, srtOptions printOption)
+void currentSub::printAsKaraoke(std::string fileName, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);
@@ -99,7 +75,7 @@ void currentSub::printAsKaraoke(std::string fileName, srtOptions printOption)
 }
 
 
-void currentSub::printToSRT(std::string fileName, srtOptions printOption)
+void currentSub::printToSRT(std::string fileName, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);

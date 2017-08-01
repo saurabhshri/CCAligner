@@ -8,25 +8,7 @@
 #define GENERATE_APPROX_TIMESTAMP_H
 
 #include "srtparser.h"
-
-enum outputFormats      //various possible output formats
-{
-    srt,
-    xml,
-    json,
-    console,
-    blank               //means no output format is specified
-};
-
-enum srtOptions
-{
-    printOnlyRecognised,
-    printBothWihoutColors,
-    printBothWithDistinctColors,
-    printAsKaraoke,
-    printAsKaraokeWithDistinctColors,
-
-};
+#include "commons.h"
 
 class currentSub    //processing one subtitle at a time
 {
@@ -42,8 +24,8 @@ public:
     currentSub(SubtitleItem *sub);
     void run();                                     //run the alignment
     void alignNonRecognised(recognisedBlock currBlock);                      //run the approx alignment on unrecognised words
-    void printAsKaraoke(std::string fileName, srtOptions printOption);
-    void printToSRT(std::string fileName, srtOptions printOption);          //prints the aligned result in SRT format
+    void printAsKaraoke(std::string fileName, outputOptions printOption);
+    void printToSRT(std::string fileName, outputOptions printOption);          //prints the aligned result in SRT format
     void printToJSON(std::string fileName);         //prints the aligned result in JSON format
     void printToXML(std::string fileName);          //prints the aligned information in XML format
     void printToConsole(std::string fileName);      //prints the output to console/stdout
@@ -61,8 +43,5 @@ public:
     std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> align();   //begin alignment
     ~ApproxAligner();
 };
-
-void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds); //converts ms to SRT time
-std::string extractFileName(std::string fileName);  //extract path/to/filename from path/to/filename.extension
 
 #endif //GENERATE_APPROX_TIMESTAMP_H

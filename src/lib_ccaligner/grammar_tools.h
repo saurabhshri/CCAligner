@@ -8,19 +8,9 @@
 #define CCALIGNER_GRAMMAR_TOOLS_H
 
 #include "srtparser.h"
+#include "commons.h"
 
-enum grammarName      //various possible output formats
-{
-    corpus,
-    fsg,
-    lm,
-    dict,
-    vocab,
-    all              //means no output format is specified
-};
-
-std::string StringToLower(std::string strToConvert);
-bool generate(std::vector <SubtitleItem*> subtitles, grammarName name = all);
+bool generate(std::vector <SubtitleItem*> subtitles, grammarName name = complete_grammar);
 
 
 #endif //CCALIGNER_GRAMMAR_TOOLS_H

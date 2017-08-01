@@ -68,11 +68,12 @@ include_directories(lib_ccaligner/)
 set(SOURCE_FILES
         ccaligner.cpp
         ccaligner.h
+        lib_ccaligner/commons.cpp
+        lib_ccaligner/commons.h
         lib_ccaligner/generate_approx_timestamp.cpp
         lib_ccaligner/generate_approx_timestamp.h
         lib_ccaligner/voice_activity_detection.h
         lib_ccaligner/voice_activity_detection.cpp
-        lib_ccaligner/common_header_files.h
         lib_ccaligner/read_wav_file.h
         lib_ccaligner/read_wav_file.cpp
         lib_ccaligner/grammar_tools.cpp

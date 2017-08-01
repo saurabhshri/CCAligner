@@ -12,13 +12,14 @@
 #include "pocketsphinx.h"
 #include "grammar_tools.h"
 #include "generate_approx_timestamp.h"
+#include "commons.h"
 
 int levenshtein_distance(const std::string& firstWord, const std::string& secondWord);
 
-class Aligner
+class PocketsphinxAligner
 {
 private:
-    std::string _audioFileName,_subtitleFileName;          //input and output filenames
+    std::string _audioFileName, _subtitleFileName;          //input and output filenames
     std::vector<int16_t> _samples;
     std::vector <SubtitleItem*> _subtitles;
 
@@ -36,13 +37,13 @@ private:
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
 
 public:
-    Aligner(std::string inputAudioFileName, std::string inputSubtitleFileName);
+    PocketsphinxAligner(std::string inputAudioFileName, std::string inputSubtitleFileName);
     bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
     bool generateGrammar(grammarName name);
-    bool align(srtOptions printOption);
+    bool align(outputOptions printOption);
     bool alignWithFSG();
     bool transcribe();
-    ~Aligner();
+    ~PocketsphinxAligner();
 
 };
 
