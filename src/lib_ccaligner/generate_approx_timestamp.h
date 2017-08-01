@@ -9,6 +9,7 @@
 
 #include "srtparser.h"
 #include "commons.h"
+#include "params.h"
 
 class currentSub    //processing one subtitle at a time
 {

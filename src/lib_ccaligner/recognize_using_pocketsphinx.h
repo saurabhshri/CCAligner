@@ -13,6 +13,7 @@
 #include "grammar_tools.h"
 #include "generate_approx_timestamp.h"
 #include "commons.h"
+#include "params.h"
 
 int levenshtein_distance(const std::string& firstWord, const std::string& secondWord);
 
@@ -22,6 +23,7 @@ private:
     std::string _audioFileName, _subtitleFileName;          //input and output filenames
     std::vector<int16_t> _samples;
     std::vector <SubtitleItem*> _subtitles;
+    Params * _parameters;
 
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath;
 

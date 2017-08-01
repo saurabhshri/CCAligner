@@ -8,6 +8,7 @@
 #define CCALIGNER_READ_WAV_FILE_H
 
 #include "commons.h"
+#include "params.h"
 
 enum openMode
 {

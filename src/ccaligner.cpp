@@ -71,8 +71,11 @@ int main(int argc, char *argv[])
 {
     Params *paramters = new Params();
     paramters->inputParams(argc,argv);
+
     CCAligner *ccaligner = new CCAligner(paramters);
     ccaligner->initAligner();
+
+    delete(paramters);
     delete(ccaligner);
 
     return 0;
