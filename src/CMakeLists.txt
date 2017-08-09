@@ -82,7 +82,7 @@ set(SOURCE_FILES
         lib_ccaligner/recognize_using_pocketsphinx.h
         lib_ccaligner/params.cpp
         lib_ccaligner/params.h
-)
+        )
 
 add_executable(ccaligner ${SOURCE_FILES})
 target_link_libraries(ccaligner webRTC  pocketsphinx sphinxbase ${EXTRA_FLAGS})

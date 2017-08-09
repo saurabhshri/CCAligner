@@ -26,6 +26,7 @@ private:
     Params * _parameters;
 
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath;
+    long int _audioWindow, _sampleWindow, _searchWindow;
 
     ps_decoder_t * _ps;
     cmd_ln_t * _config;

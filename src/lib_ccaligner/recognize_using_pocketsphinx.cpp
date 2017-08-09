@@ -328,6 +328,18 @@ bool PocketsphinxAligner::align(outputOptions printOption)
         long int samplesAlreadyRead = dialogueStartsAt * 16;
         long int samplesToBeRead = dialogueLastsFor * 16;
 
+        long int recognitionWindow = 0;
+
+        if(!_audioWindow)
+        {
+            recognitionWindow = _audioWindow * 16;
+        }
+
+        else if(!_sampleWindow)
+        {
+            recognitionWindow = _sampleWindow;
+        }
+
         /*
          * 00:00:19,320 --> 00:00:21,056
          * Why are you boring?
@@ -344,7 +356,7 @@ bool PocketsphinxAligner::align(outputOptions printOption)
         const int16_t *sample = _samples.data();
 
         _rv = ps_start_utt(_ps);
-        _rv = ps_process_raw(_ps, sample + samplesAlreadyRead, samplesToBeRead, FALSE, FALSE);
+        _rv = ps_process_raw(_ps, sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow, FALSE, FALSE);
         _rv = ps_end_utt(_ps);
 
         _hyp = ps_get_hyp(_ps, &_score);
