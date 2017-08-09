@@ -373,6 +373,7 @@ bool PocketsphinxAligner::align(outputOptions printOption)
         std::cout << "\n\n-----------------------------------------\n\n";
         std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
         std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
+        phoneme(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow);
         std::cout << "Recognised  : " << _hyp << "\n";
         std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
 
@@ -534,6 +535,53 @@ bool PocketsphinxAligner::alignWithFSG()
         delete currSub;
 
     }
+}
+
+bool PocketsphinxAligner::phoneme(const int16_t *sample, int readLimit)
+{
+    cmd_ln_t *config = cmd_ln_init(NULL,
+                          ps_args(), TRUE,
+                          "-hmm", _modelPath.c_str(),
+                          "-lm", _lmPath.c_str(),
+                          "-logfn", _logPath.c_str(),
+                          "-allphone", "tempFiles/en-us-phone.lm.bin",
+                          "-beam", "1e-20", "-pbeam", "1e-10", "-allphone_ci", "no", "-lw", "2.0",
+                          NULL);
+
+    if (config == NULL)
+    {
+        fprintf(stderr, "Failed to create config object, see log for  details\n");
+        return -1;
+    }
+
+    ps_decoder_t * ps;
+    ps = ps_init(config);
+
+    if (ps == NULL)
+    {
+        fprintf(stderr, "Failed to create recognizer, see log for  details\n");
+        return -1;
+    }
+
+
+
+    int rv;
+    rv = ps_start_utt(ps);
+    rv = ps_process_raw(ps, sample, readLimit, FALSE, FALSE);
+    rv = ps_end_utt(ps);
+
+    char const * hyp; int32 score;
+    hyp = ps_get_hyp(ps, &score);
+
+    if (hyp == NULL)
+    {
+        hyp = "NULL";
+        std::cout << "Phonemes  : " << hyp << "\n";
+
+    }
+    std::cout << "Phonemes  : " << hyp << "\n";
+
+
 }
 
 PocketsphinxAligner::~PocketsphinxAligner()

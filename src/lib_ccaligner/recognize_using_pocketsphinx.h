@@ -46,6 +46,7 @@ public:
     bool generateGrammar(grammarName name);
     bool align(outputOptions printOption);
     bool alignWithFSG();
+    bool phoneme(const int16_t *sample, int readLimit);
     bool transcribe();
     ~PocketsphinxAligner();
 
