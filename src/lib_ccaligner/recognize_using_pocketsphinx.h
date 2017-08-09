@@ -25,14 +25,14 @@ private:
     std::vector <SubtitleItem*> _subtitles;
     Params * _parameters;
 
-    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath;
+    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath;
     long int _audioWindow, _sampleWindow, _searchWindow;
 
-    ps_decoder_t * _psWordDecoder;
-    cmd_ln_t * _configWord;
-    char const * _hypWord;
-    int _rvWord;
-    int32 _scoreWord;
+    ps_decoder_t * _psWordDecoder, * _psPhonemeDecoder;
+    cmd_ln_t * _configWord, * _configPhoneme;
+    char const * _hypWord, * _hypPhoneme;
+    int _rvWord, _rvPhoneme;
+    int32 _scoreWord, _scorePhoneme;
 
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     bool printRecognisedWordAsSRT(cmd_ln_t *config, ps_decoder_t *ps);
