@@ -64,7 +64,7 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
     LOG("Configuration : \n\tmodelPath = %s \n\tlmPath = %s \n\tdictPath = %s \n\tfsgPath = %s \n\tlogPath = %s ",
         _modelPath.c_str(), _lmPath.c_str(), _dictPath.c_str(), _fsgPath.c_str(), _logPath.c_str());
 
-    _config = cmd_ln_init(NULL,
+    _configWord = cmd_ln_init(NULL,
                           ps_args(), TRUE,
                           "-hmm", modelPath.c_str(),
                           "-lm", lmPath.c_str(),
@@ -77,15 +77,15 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
 //                          "-pbeam", "1e-80",
                           NULL);
 
-    if (_config == NULL)
+    if (_configWord == NULL)
     {
         fprintf(stderr, "Failed to create config object, see log for  details\n");
         return -1;
     }
 
-    _ps = ps_init(_config);
+    _psWordDecoder = ps_init(_configWord);
 
-    if (_ps == NULL)
+    if (_psWordDecoder == NULL)
     {
         fprintf(stderr, "Failed to create recognizer, see log for  details\n");
         return -1;
@@ -355,17 +355,17 @@ bool PocketsphinxAligner::align(outputOptions printOption)
 
         const int16_t *sample = _samples.data();
 
-        _rv = ps_start_utt(_ps);
-        _rv = ps_process_raw(_ps, sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow, FALSE, FALSE);
-        _rv = ps_end_utt(_ps);
+        _rvWord = ps_start_utt(_psWordDecoder);
+        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow, FALSE, FALSE);
+        _rvWord = ps_end_utt(_psWordDecoder);
 
-        _hyp = ps_get_hyp(_ps, &_score);
+        _hypWord = ps_get_hyp(_psWordDecoder, &_scoreWord);
 
-        if (_hyp == NULL)
+        if (_hypWord == NULL)
         {
-            _hyp = "NULL";
+            _hypWord = "NULL";
             std::cout << "\n\n-----------------------------------------\n\n";
-            std::cout << "Recognised  : " << _hyp << "\n";
+            std::cout << "Recognised  : " << _hypWord << "\n";
             continue;
 
         }
@@ -374,10 +374,10 @@ bool PocketsphinxAligner::align(outputOptions printOption)
         std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
         std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
         phoneme(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow);
-        std::cout << "Recognised  : " << _hyp << "\n";
+        std::cout << "Recognised  : " << _hypWord << "\n";
         std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
 
-        recognisedBlock currBlock = findAndSetWordTimes(_config, _ps, sub);
+        recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
         if (printOption == printAsKaraoke || printOption == printAsKaraokeWithDistinctColors)
             currSub->printAsKaraoke("karaoke.srt", printOption);
@@ -400,18 +400,18 @@ bool PocketsphinxAligner::transcribe()
 
     int numberOfPartitions = _samples.size() / 2048, remainingSamples = _samples.size() % 2048;
 
-    _rv = ps_start_utt(_ps);
+    _rvWord = ps_start_utt(_psWordDecoder);
     utt_started = FALSE;
 
     for (int i = 0; i <= numberOfPartitions; i++)
     {
         if (i == numberOfPartitions)
-            ps_process_raw(_ps, sample, remainingSamples, FALSE, FALSE);
+            ps_process_raw(_psWordDecoder, sample, remainingSamples, FALSE, FALSE);
 
         else
-            ps_process_raw(_ps, sample, 2048, FALSE, FALSE);
+            ps_process_raw(_psWordDecoder, sample, 2048, FALSE, FALSE);
 
-        in_speech = ps_get_in_speech(_ps);
+        in_speech = ps_get_in_speech(_psWordDecoder);
 
         if (in_speech && !utt_started)
         {
@@ -420,16 +420,16 @@ bool PocketsphinxAligner::transcribe()
 
         if (!in_speech && utt_started)
         {
-            ps_end_utt(_ps);
-            _hyp = ps_get_hyp(_ps, NULL);
+            ps_end_utt(_psWordDecoder);
+            _hypWord = ps_get_hyp(_psWordDecoder, NULL);
 
-            if (_hyp != NULL)
+            if (_hypWord != NULL)
             {
-                std::cout << "Recognised  : " << _hyp << "\n";
-                printRecognisedWordAsSRT(_config, _ps);
+                std::cout << "Recognised  : " << _hypWord << "\n";
+                printRecognisedWordAsSRT(_configWord, _psWordDecoder);
             }
 
-            ps_start_utt(_ps);
+            ps_start_utt(_psWordDecoder);
             utt_started = FALSE;
         }
 
@@ -437,15 +437,15 @@ bool PocketsphinxAligner::transcribe()
 
     }
 
-    _rv = ps_end_utt(_ps);
+    _rvWord = ps_end_utt(_psWordDecoder);
 
     if (utt_started)
     {
-        _hyp = ps_get_hyp(_ps, NULL);
-        if (_hyp != NULL)
+        _hypWord = ps_get_hyp(_psWordDecoder, NULL);
+        if (_hypWord != NULL)
         {
-            std::cout << "Recognised  : " << _hyp << "\n";
-            printRecognisedWordAsSRT(_config, _ps);
+            std::cout << "Recognised  : " << _hypWord << "\n";
+            printRecognisedWordAsSRT(_configWord, _psWordDecoder);
         }
     }
 
@@ -453,7 +453,7 @@ bool PocketsphinxAligner::transcribe()
 
 bool PocketsphinxAligner::reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps)
 {
-    ps_reinit(_ps, _config);
+    ps_reinit(_psWordDecoder, _configWord);
 }
 
 bool PocketsphinxAligner::alignWithFSG()
@@ -492,9 +492,9 @@ bool PocketsphinxAligner::alignWithFSG()
             return -1;
         }
 
-        ps_reinit(_ps, subConfig);
+        ps_reinit(_psWordDecoder, subConfig);
 
-        if (_ps == NULL)
+        if (_psWordDecoder == NULL)
         {
             fprintf(stderr, "Failed to create recognizer, see log for  details\n");
             return -1;
@@ -507,17 +507,17 @@ bool PocketsphinxAligner::alignWithFSG()
 
         const int16_t *sample = _samples.data();
 
-        _rv = ps_start_utt(_ps);
-        _rv = ps_process_raw(_ps, sample + samplesAlreadyRead, samplesToBeRead, FALSE, FALSE);
-        _rv = ps_end_utt(_ps);
+        _rvWord = ps_start_utt(_psWordDecoder);
+        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead, samplesToBeRead, FALSE, FALSE);
+        _rvWord = ps_end_utt(_psWordDecoder);
 
-        _hyp = ps_get_hyp(_ps, &_score);
+        _hypWord = ps_get_hyp(_psWordDecoder, &_scoreWord);
 
-        if (_hyp == NULL)
+        if (_hypWord == NULL)
         {
-            _hyp = "NULL";
+            _hypWord = "NULL";
             std::cout << "\n\n-----------------------------------------\n\n";
-            std::cout << "Recognised  : " << _hyp << "\n";
+            std::cout << "Recognised  : " << _hypWord << "\n";
             continue;
 
         }
@@ -525,9 +525,9 @@ bool PocketsphinxAligner::alignWithFSG()
         std::cout << "\n\n-----------------------------------------\n\n";
         std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
         std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
-        std::cout << "Recognised  : " << _hyp << "\n";
+        std::cout << "Recognised  : " << _hypWord << "\n";
         std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
-        recognisedBlock currBlock = findAndSetWordTimes(subConfig, _ps, sub);
+        recognisedBlock currBlock = findAndSetWordTimes(subConfig, _psWordDecoder, sub);
 
         cmd_ln_free_r(subConfig);
         currSub->printToSRT("output_fsg.srt", printBothWithDistinctColors);
@@ -587,6 +587,6 @@ bool PocketsphinxAligner::phoneme(const int16_t *sample, int readLimit)
 PocketsphinxAligner::~PocketsphinxAligner()
 {
     //std::system("rm -rf tempFiles/");
-    ps_free(_ps);
-    cmd_ln_free_r(_config);
+    ps_free(_psWordDecoder);
+    cmd_ln_free_r(_configWord);
 }

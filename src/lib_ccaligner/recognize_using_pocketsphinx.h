@@ -28,11 +28,11 @@ private:
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath;
     long int _audioWindow, _sampleWindow, _searchWindow;
 
-    ps_decoder_t * _ps;
-    cmd_ln_t * _config;
-    char const * _hyp;
-    int _rv;
-    int32 _score;
+    ps_decoder_t * _psWordDecoder;
+    cmd_ln_t * _configWord;
+    char const * _hypWord;
+    int _rvWord;
+    int32 _scoreWord;
 
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     bool printRecognisedWordAsSRT(cmd_ln_t *config, ps_decoder_t *ps);
