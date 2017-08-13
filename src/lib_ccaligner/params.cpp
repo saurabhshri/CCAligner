@@ -16,6 +16,8 @@ Params::Params()
     dictPath = "tempFiles/dict/complete.dict";
     fsgPath = "tempFiles/fsg/";
 
+    phoneticlmPath = "model/en-us-phone.lm.bin";
+
     //using date and time for log file name
     std::time_t t = std::time(NULL);
     std::tm * lt = std::localtime(&t);
@@ -23,6 +25,7 @@ Params::Params()
     std::strftime(buffer, 15, "%d-%m-%Y_%H%M", lt);
     std::string localTime(buffer);
     logPath = "tempFiles/" + localTime + ".log";
+    phonemeLogPath = "tempFiles/phoneme-" + localTime + ".log";
 
     searchWindow = 0;
     sampleWindow = 0;
@@ -39,13 +42,20 @@ Params::Params()
     transcribe = false;
     useBatchMode = false;
     useExperimentalParams = false;
+    searchPhonemes = false;
 }
 
 void Params::inputParams(int argc, char *argv[])
 {
     for(int i=1;i<argc;i++)         //parsing arguments
     {
-        std::string paramPrefix(argv[i]), subParam(argv[i+1]);
+        std::string subParam, paramPrefix(argv[i]);
+
+        if(i+1 < argc)
+            subParam = argv[i+1];
+
+        else
+            subParam = "";
 
         if(paramPrefix== "-in")
         {
@@ -131,6 +141,44 @@ void Params::inputParams(int argc, char *argv[])
             }
 
             logPath = subParam;
+            i++;
+        }
+
+        else if(paramPrefix == "-phoneLM")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            phoneticlmPath = subParam;
+            i++;
+        }
+
+        else if(paramPrefix == "-phoneLog")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            phonemeLogPath = subParam;
+            i++;
+        }
+
+        else if(paramPrefix == "--enable-phonemes")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            if(subParam == "yes")
+                searchPhonemes = true;
+
             i++;
         }
 
@@ -335,6 +383,8 @@ void Params::inputParams(int argc, char *argv[])
         }
 
     }
+
+    validateParams();
 
 }
 
