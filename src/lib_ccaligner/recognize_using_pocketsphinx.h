@@ -38,6 +38,7 @@ private:
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     bool printRecognisedWordAsSRT(cmd_ln_t *config, ps_decoder_t *ps);
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
+    recognisedBlock findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
     bool initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath);
 
@@ -48,7 +49,7 @@ public:
     bool recognise(outputOptions printOption);
     bool alignWithFSG();
     bool align();
-    bool recognisePhonemes(const int16_t *sample, int readLimit);
+    bool recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);
     bool transcribe();
     ~PocketsphinxAligner();
 

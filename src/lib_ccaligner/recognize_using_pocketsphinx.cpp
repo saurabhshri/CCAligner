@@ -152,6 +152,52 @@ int levenshtein_distance(const std::string &firstWord, const std::string &second
     return previousColumn[length2];
 }
 
+recognisedBlock PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
+{
+    ps_start_stream(ps);
+    int frame_rate = cmd_ln_int32_r(config, "-frate");
+    ps_seg_t *iter = ps_seg_iter(ps);
+
+    recognisedBlock currentBlock; //storing recognised words and their timing information
+
+    while (iter != NULL)
+    {
+        int32 sf, ef, pprob;
+        float conf;
+
+        ps_seg_frames(iter, &sf, &ef);
+        pprob = ps_seg_prob(iter, NULL, NULL, NULL);
+        conf = logmath_exp(ps_get_logmath(ps), pprob);
+
+        std::string recognisedPhoneme(ps_seg_word(iter));
+        if (recognisedPhoneme == "<s>" || recognisedPhoneme == "</s>" || recognisedPhoneme[0] == '[' || recognisedPhoneme == "<sil>")
+            goto skipSearchingThisPhoneme;
+
+        //the time when utterance was marked, the times are w.r.t. to this
+        long int startTime = sub->getStartTime();
+        long int endTime = startTime;
+
+        /*
+         * Finding start time and end time of each word.
+         *
+         * 1 sec = 1000 ms, thus time in second = 1000 / frame rate.
+         *
+         */
+
+        startTime += sf * 1000 / frame_rate;
+        endTime += ef * 1000 / frame_rate;
+
+        //storing recognised words and their timing information
+        currentBlock.recognisedString.push_back(recognisedPhoneme);
+        currentBlock.recognisedWordStartTimes.push_back(startTime);
+        currentBlock.recognisedWordEndTimes.push_back(endTime);
+
+        sub->addPhoneme(recognisedPhoneme,startTime,endTime);
+    skipSearchingThisPhoneme:
+        iter = ps_seg_next(iter);
+    }
+}
+
 recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
 {
     ps_start_stream(ps);
@@ -408,13 +454,13 @@ bool PocketsphinxAligner::recognise(outputOptions printOption)
 
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
+        //recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow , sub);
+
         if (printOption == printAsKaraoke || printOption == printAsKaraokeWithDistinctColors)
             currSub->printAsKaraoke("karaoke.srt", printOption);
 
         else
             currSub->printToSRT("output.srt", printOption);
-
-        //recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow);
 
         delete currSub;
     }
@@ -437,6 +483,24 @@ bool PocketsphinxAligner::align()
             recognise(_parameters->printOption);
     }
 
+}
+
+bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub)
+{
+    _rvPhoneme = ps_start_utt(_psPhonemeDecoder);
+    _rvPhoneme = ps_process_raw(_psPhonemeDecoder, sample, readLimit, FALSE, FALSE);
+    _rvPhoneme = ps_end_utt(_psPhonemeDecoder);
+
+    _hypPhoneme = ps_get_hyp(_psPhonemeDecoder, &_scorePhoneme);
+
+    if (_hypPhoneme == NULL)
+    {
+        _hypPhoneme = "NULL";
+        std::cout << "Phonemes  : " << _hypPhoneme << "\n";
+
+    }
+
+    findAndSetPhonemeTimes(_configPhoneme,_psPhonemeDecoder, sub);
 }
 
 bool PocketsphinxAligner::transcribe()
@@ -585,25 +649,6 @@ bool PocketsphinxAligner::alignWithFSG()
         delete currSub;
 
     }
-}
-
-bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit)
-{
-    _rvPhoneme = ps_start_utt(_psPhonemeDecoder);
-    _rvPhoneme = ps_process_raw(_psPhonemeDecoder, sample, readLimit, FALSE, FALSE);
-    _rvPhoneme = ps_end_utt(_psPhonemeDecoder);
-
-    _hypPhoneme = ps_get_hyp(_psPhonemeDecoder, &_scorePhoneme);
-
-    if (_hypPhoneme == NULL)
-    {
-        _hypPhoneme = "NULL";
-        std::cout << "Phonemes  : " << _hypPhoneme << "\n";
-
-    }
-    std::cout << "Phonemes  : " << _hypPhoneme << "\n";
-
-
 }
 
 PocketsphinxAligner::~PocketsphinxAligner()
