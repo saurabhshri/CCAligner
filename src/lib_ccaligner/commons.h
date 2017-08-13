@@ -13,8 +13,9 @@
 #include <fstream>
 #include <iterator>
 #include <algorithm>
+#include <regex>
 
-static bool should_log;
+extern bool should_log;
 
 enum alignerType
 {

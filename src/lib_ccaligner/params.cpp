@@ -342,3 +342,10 @@ Params::~Params()
 {
 
 }
+
+void Params::validateParams()
+{
+    if(verbosity)
+        should_log = true;
+
+}

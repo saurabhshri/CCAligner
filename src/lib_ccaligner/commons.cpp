@@ -6,6 +6,8 @@
 
 #include "commons.h"
 
+bool should_log;
+
 /* Write formatted message to stderr and then exit. */
 void fatal(int exit_code, const char *fileName, const int lineNumber, const char *format, ...)
 {
