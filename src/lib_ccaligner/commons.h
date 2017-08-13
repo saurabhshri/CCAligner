@@ -38,6 +38,7 @@ enum grammarName      //various possible output formats
     corpus,
     fsg,
     lm,
+    phone_lm,
     dict,
     vocab,
     complete_grammar,

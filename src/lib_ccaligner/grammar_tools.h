@@ -9,6 +9,7 @@
 
 #include "srtparser.h"
 #include "commons.h"
+#include "phoneme_utils.h"
 
 bool generate(std::vector <SubtitleItem*> subtitles, grammarName name = complete_grammar);
 

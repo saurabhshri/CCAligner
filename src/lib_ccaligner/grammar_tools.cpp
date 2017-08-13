@@ -20,14 +20,14 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     LOG("Directories created successfully!");
 
-    std::ofstream corpusDump, fsgDump, vocabDump, dictDump;
+    std::ofstream corpusDump, phoneticCorpusDump, fsgDump, vocabDump, dictDump;
 
     //setting exceptions to be thrown on failure
     corpusDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     fsgDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     vocabDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     dictDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
+    phoneticCorpusDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
     if(name == corpus || name == complete_grammar)
     {
@@ -36,6 +36,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
         try
         {
             corpusDump.open("tempFiles/corpus/corpus.txt",std::ios::binary);
+            corpusDump.close();
         }
 
         catch(std::system_error& e)
@@ -43,7 +44,23 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
             FATAL(EXIT_FAILURE, e.code().message().c_str());
         }
 
-        corpusDump.close();
+    }
+
+    if(name == phone_lm || name == complete_grammar)
+    {
+        std::cout<<"Creating Phonetic Corpus : tempFiles/corpus/phoneticCorpus.txt\n";
+
+        try
+        {
+            phoneticCorpusDump.open("tempFiles/corpus/phoneticCorpus.txt",std::ios::binary);
+            phoneticCorpusDump.close();
+        }
+
+        catch(std::system_error& e)
+        {
+            FATAL(EXIT_FAILURE, e.code().message().c_str());
+        }
+
     }
 
     for(SubtitleItem *sub : subtitles)
@@ -62,6 +79,35 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             corpusDump << "<s> " << StringToLower(sub->getDialogue()) << " </s>\n";
             corpusDump.close();
+        }
+
+        if(name == phone_lm || name == complete_grammar)
+        {
+            try
+            {
+                phoneticCorpusDump.open("tempFiles/corpus/phoneticCorpus.txt", std::ios::binary | std::ios::app);
+            }
+
+            catch(std::system_error& e)
+            {
+                FATAL(EXIT_FAILURE, e.code().message().c_str());
+            }
+
+            int numberOfWords = sub->getWordCount();
+            std::string printPhoneticCourpus = "SIL ";
+
+            for(int i=0;i<numberOfWords;i++)
+            {
+                std::vector<Phoneme> phones = stringToPhoneme(StringToLower(sub->getWordByIndex(i)));
+
+                for(Phoneme ph : phones)
+                    printPhoneticCourpus += ph + " ";
+            }
+
+            printPhoneticCourpus += "SIL\n";
+
+            phoneticCorpusDump << printPhoneticCourpus;
+            phoneticCorpusDump.close();
         }
 
         if(name == fsg || name == complete_grammar)
@@ -122,7 +168,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == dict || name == complete_grammar)
     {
-        std::cout<<"Creating Dictionary, this might take a little time depending"
+        std::cout<<"Creating Dictionary, this might take a little time depending "
             "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
         rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 
@@ -148,6 +194,24 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
         if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
         {
             FATAL(EXIT_FAILURE, "Something went wrong while creating biased language model!");
+        }
+    }
+
+    if(name == phone_lm  || name == complete_grammar )
+    {
+        std::cout<<"Creating Phonetic Language Model : tempFiles/lm/phone.lm\n";
+
+        rv = std::system("perl quick_lm.pl -s tempFiles/corpus/phoneticCorpus.txt");
+        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        {
+            FATAL(EXIT_FAILURE, "Something went wrong while creating Phonetic Language Model!");
+        }
+
+        rv = std::system("mv tempFiles/corpus/phoneticCorpus.txt.arpabo tempFiles/lm/");
+
+        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        {
+            FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!s");
         }
     }
 
