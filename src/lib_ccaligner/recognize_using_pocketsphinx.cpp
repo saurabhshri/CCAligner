@@ -152,7 +152,7 @@ int levenshtein_distance(const std::string &firstWord, const std::string &second
     return previousColumn[length2];
 }
 
-recognisedBlock PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
+bool PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
 {
     ps_start_stream(ps);
     int frame_rate = cmd_ln_int32_r(config, "-frate");
@@ -170,12 +170,12 @@ recognisedBlock PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps
         conf = logmath_exp(ps_get_logmath(ps), pprob);
 
         std::string recognisedPhoneme(ps_seg_word(iter));
-        if (recognisedPhoneme == "<s>" || recognisedPhoneme == "</s>" || recognisedPhoneme[0] == '[' || recognisedPhoneme == "<sil>")
-            goto skipSearchingThisPhoneme;
-
         //the time when utterance was marked, the times are w.r.t. to this
         long int startTime = sub->getStartTime();
         long int endTime = startTime;
+
+        if (recognisedPhoneme == "SIL" || recognisedPhoneme == "BREATH" || recognisedPhoneme == "SMACK" || recognisedPhoneme == "NOISE" || recognisedPhoneme[0] == '+' || recognisedPhoneme[0] == '[')
+            goto skipSearchingThisPhoneme;
 
         /*
          * Finding start time and end time of each word.
@@ -187,13 +187,8 @@ recognisedBlock PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps
         startTime += sf * 1000 / frame_rate;
         endTime += ef * 1000 / frame_rate;
 
-        //storing recognised words and their timing information
-        currentBlock.recognisedString.push_back(recognisedPhoneme);
-        currentBlock.recognisedWordStartTimes.push_back(startTime);
-        currentBlock.recognisedWordEndTimes.push_back(endTime);
-
         sub->addPhoneme(recognisedPhoneme,startTime,endTime);
-    skipSearchingThisPhoneme:
+     skipSearchingThisPhoneme:
         iter = ps_seg_next(iter);
     }
 }
@@ -454,7 +449,7 @@ bool PocketsphinxAligner::recognise(outputOptions printOption)
 
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
-        //recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow , sub);
+        recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow , sub);
 
         if (printOption == printAsKaraoke || printOption == printAsKaraokeWithDistinctColors)
             currSub->printAsKaraoke("karaoke.srt", printOption);
