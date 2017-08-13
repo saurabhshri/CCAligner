@@ -25,7 +25,7 @@ private:
     std::vector <SubtitleItem*> _subtitles;
     Params * _parameters;
 
-    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath;
+    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;
     long int _audioWindow, _sampleWindow, _searchWindow;
 
     ps_decoder_t * _psWordDecoder, * _psPhonemeDecoder;
@@ -34,19 +34,21 @@ private:
     int _rvWord, _rvPhoneme;
     int32 _scoreWord, _scorePhoneme;
 
+    bool processFiles();
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     bool printRecognisedWordAsSRT(cmd_ln_t *config, ps_decoder_t *ps);
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
+    bool initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath);
 
 public:
     PocketsphinxAligner(Params * parameters);
-    PocketsphinxAligner(std::string inputAudioFileName, std::string inputSubtitleFileName);
     bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
     bool generateGrammar(grammarName name);
-    bool align(outputOptions printOption);
+    bool recognise(outputOptions printOption);
     bool alignWithFSG();
-    bool phoneme(const int16_t *sample, int readLimit);
+    bool align();
+    bool recognisePhonemes(const int16_t *sample, int readLimit);
     bool transcribe();
     ~PocketsphinxAligner();
 

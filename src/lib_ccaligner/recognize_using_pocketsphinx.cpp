@@ -9,27 +9,13 @@
 PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
 {
     _parameters = parameters;
-    generateGrammar(_parameters->grammarType);
-    initDecoder(_parameters->modelPath, _parameters->lmPath, _parameters->dictPath, _parameters->fsgPath, _parameters->logPath);
-    if(_parameters->transcribe)
-    {
-        transcribe();
-    }
-
-    else
-    {
-        if(_parameters->useFSG)
-            alignWithFSG();
-        else
-            align(_parameters->printOption);
-    }
+    _audioFileName = _parameters->audioFileName;
+    _subtitleFileName = _parameters->subtitleFileName;
+    processFiles();
 }
 
-PocketsphinxAligner::PocketsphinxAligner(std::string inputAudioFileName, std::string inputSubtitleFileName)
+bool PocketsphinxAligner::processFiles()
 {
-    _audioFileName = inputAudioFileName;
-    _subtitleFileName = inputSubtitleFileName;
-
     LOG("Initialising Aligner using PocketSphinx");
     LOG("Audio Filename : %s Subtitle filename : %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
@@ -90,6 +76,50 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
         fprintf(stderr, "Failed to create recognizer, see log for  details\n");
         return -1;
     }
+
+    if(_parameters->searchPhonemes)
+    {
+        initPhonemeDecoder(_parameters->phoneticlmPath, _parameters->phonemeLogPath);
+    }
+}
+
+
+bool PocketsphinxAligner::initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath)
+{
+    LOG("Initialising PocketSphinx phoneme decoder");
+
+    _phoneticlmPath = phoneticlmPath;
+    _phonemeLogPath = phonemeLogPath;
+
+    LOG("Configuration : \n\tphoneticlmPath = %s \n\tphonemeLogPath = %s", _phoneticlmPath.c_str(), _phonemeLogPath.c_str());
+
+    _configPhoneme = cmd_ln_init(NULL,
+                             ps_args(), TRUE,
+                             "-hmm", _modelPath.c_str(),
+                             "-lm", _lmPath.c_str(),
+                             "-logfn", _phonemeLogPath.c_str(),
+                             "-allphone", _phoneticlmPath.c_str(),
+                             "-beam", "1e-20",
+                             "-pbeam", "1e-10",
+                             "-allphone_ci", "no",
+                             "-backtrace", "yes",
+                             "-lw", "2.0",
+                             NULL);
+
+    if (_configPhoneme == NULL)
+    {
+        fprintf(stderr, "Failed to create config object, see log for  details\n");
+        return -1;
+    }
+
+    _psPhonemeDecoder = ps_init(_configPhoneme);
+
+    if (_psPhonemeDecoder == NULL)
+    {
+        fprintf(stderr, "Failed to create recognizer, see log for  details\n");
+        return -1;
+    }
+
 }
 
 int levenshtein_distance(const std::string &firstWord, const std::string &secondWord)
@@ -308,7 +338,7 @@ bool PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
     }
 }
 
-bool PocketsphinxAligner::align(outputOptions printOption)
+bool PocketsphinxAligner::recognise(outputOptions printOption)
 {
     for (SubtitleItem *sub : _subtitles)
     {
@@ -373,7 +403,6 @@ bool PocketsphinxAligner::align(outputOptions printOption)
         std::cout << "\n\n-----------------------------------------\n\n";
         std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
         std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
-        phoneme(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow);
         std::cout << "Recognised  : " << _hypWord << "\n";
         std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
 
@@ -385,8 +414,29 @@ bool PocketsphinxAligner::align(outputOptions printOption)
         else
             currSub->printToSRT("output.srt", printOption);
 
+        //recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow);
+
         delete currSub;
     }
+}
+
+bool PocketsphinxAligner::align()
+{
+    generateGrammar(_parameters->grammarType);
+    initDecoder(_parameters->modelPath, _parameters->lmPath, _parameters->dictPath, _parameters->fsgPath, _parameters->logPath);
+    if(_parameters->transcribe)
+    {
+        transcribe();
+    }
+
+    else
+    {
+        if(_parameters->useFSG)
+            alignWithFSG();
+        else
+            recognise(_parameters->printOption);
+    }
+
 }
 
 bool PocketsphinxAligner::transcribe()
@@ -537,49 +587,21 @@ bool PocketsphinxAligner::alignWithFSG()
     }
 }
 
-bool PocketsphinxAligner::phoneme(const int16_t *sample, int readLimit)
+bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit)
 {
-    cmd_ln_t *config = cmd_ln_init(NULL,
-                          ps_args(), TRUE,
-                          "-hmm", _modelPath.c_str(),
-                          "-lm", _lmPath.c_str(),
-                          "-logfn", _logPath.c_str(),
-                          "-allphone", "tempFiles/en-us-phone.lm.bin",
-                          "-beam", "1e-20", "-pbeam", "1e-10", "-allphone_ci", "no", "-lw", "2.0",
-                          NULL);
+    _rvPhoneme = ps_start_utt(_psPhonemeDecoder);
+    _rvPhoneme = ps_process_raw(_psPhonemeDecoder, sample, readLimit, FALSE, FALSE);
+    _rvPhoneme = ps_end_utt(_psPhonemeDecoder);
 
-    if (config == NULL)
+    _hypPhoneme = ps_get_hyp(_psPhonemeDecoder, &_scorePhoneme);
+
+    if (_hypPhoneme == NULL)
     {
-        fprintf(stderr, "Failed to create config object, see log for  details\n");
-        return -1;
-    }
-
-    ps_decoder_t * ps;
-    ps = ps_init(config);
-
-    if (ps == NULL)
-    {
-        fprintf(stderr, "Failed to create recognizer, see log for  details\n");
-        return -1;
-    }
-
-
-
-    int rv;
-    rv = ps_start_utt(ps);
-    rv = ps_process_raw(ps, sample, readLimit, FALSE, FALSE);
-    rv = ps_end_utt(ps);
-
-    char const * hyp; int32 score;
-    hyp = ps_get_hyp(ps, &score);
-
-    if (hyp == NULL)
-    {
-        hyp = "NULL";
-        std::cout << "Phonemes  : " << hyp << "\n";
+        _hypPhoneme = "NULL";
+        std::cout << "Phonemes  : " << _hypPhoneme << "\n";
 
     }
-    std::cout << "Phonemes  : " << hyp << "\n";
+    std::cout << "Phonemes  : " << _hypPhoneme << "\n";
 
 
 }
@@ -590,3 +612,4 @@ PocketsphinxAligner::~PocketsphinxAligner()
     ps_free(_psWordDecoder);
     cmd_ln_free_r(_configWord);
 }
+

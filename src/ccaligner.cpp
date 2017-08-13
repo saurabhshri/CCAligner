@@ -34,23 +34,8 @@ int CCAligner::initAligner()
 
     else if(_parameters->chosenAlignerType == asrAligner)
     {
-        PocketsphinxAligner * aligner = new PocketsphinxAligner(_parameters->audioFileName, _parameters->subtitleFileName);
-        aligner->generateGrammar(_parameters->grammarType);
-        aligner->initDecoder(_parameters->modelPath, _parameters->lmPath, _parameters->dictPath, _parameters->fsgPath, _parameters->logPath);
-        if(_parameters->transcribe)
-        {
-            aligner->transcribe();
-        }
-
-        else
-        {
-            if(_parameters->useFSG)
-                aligner->alignWithFSG();
-            else
-                aligner->align(_parameters->printOption);
-        }
-
-
+        PocketsphinxAligner * aligner = new PocketsphinxAligner(_parameters);
+        aligner->align();
         delete(aligner);
     }
 
@@ -76,7 +61,6 @@ int main(int argc, char *argv[])
     CCAligner *ccaligner = new CCAligner(paramters);
     ccaligner->initAligner();
 
-    delete(paramters);
     delete(ccaligner);
 
     return 0;
