@@ -569,7 +569,7 @@ inline void SubtitleItem::setWordRecognisedStatusByIndex(bool status, int index)
 {
     _isWordRecognised[index] = status;
 }
-void SubtitleItem::addPhoneme(std::string phoneme, long int startTime, long int endTime)
+inline void SubtitleItem::addPhoneme(std::string phoneme, long int startTime, long int endTime)
 {
     _phoneme.push_back(phoneme);
     _phonemeStartTime.push_back(startTime);
