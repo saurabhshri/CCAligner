@@ -235,7 +235,7 @@ void currentSub::run()
     _sub->setWordTimes(wordStartTime, wordEndTime, wordDuration);
 }
 
-void currentSub::alignNonRecognised(recognisedBlock currBlock)
+void currentSub::alignNonRecognised(recognisedBlock currBlock)  //TODO
 {
     long int startTime = _sub->getStartTime(), endTime = _sub->getEndTime(), duration = startTime - endTime;
 

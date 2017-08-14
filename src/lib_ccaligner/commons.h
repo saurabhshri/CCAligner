@@ -9,11 +9,13 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <system_error>
 #include <vector>
 #include <fstream>
 #include <iterator>
 #include <algorithm>
 #include <regex>
+#include <cstdarg>
 
 extern bool should_log;
 
