@@ -125,8 +125,9 @@ bool printJSON(std::string fileName, std::vector<SubtitleItem *> subtitles)
         out<<"\t{\r\n";
 
         out<<"\t\t\"subtitle\" : \""<<sub->getText()<<"\",\r\n";
+        out<<"\t\t\"edited_text\" : \""<<sub->getDialogue()<<"\",\r\n";
         out<<"\t\t\"start\" : \""<<sub->getStartTime()<<"\",\r\n";
-        out<<"\t\t\"end\" : \""<<sub->getDialogue()<<"\",\r\n";
+        out<<"\t\t\"end\" : \""<<sub->getEndTime()<<"\",\r\n";
 
         out<<"\t\t\"words\" : [\r\n";
 
