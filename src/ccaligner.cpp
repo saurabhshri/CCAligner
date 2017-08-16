@@ -27,7 +27,7 @@ int CCAligner::initAligner()
 {
     if(_parameters->chosenAlignerType == approxAligner)
     {
-        ApproxAligner * aligner = new ApproxAligner(_parameters->audioFileName,srt);
+        ApproxAligner * aligner = new ApproxAligner(_parameters->subtitleFileName,srt);
         aligner->align();
         delete aligner;
     }
