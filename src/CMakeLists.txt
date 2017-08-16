@@ -84,7 +84,10 @@ set(SOURCE_FILES
         lib_ccaligner/params.cpp
         lib_ccaligner/params.h
         lib_ccaligner/phoneme_utils.cpp
-        lib_ccaligner/phoneme_utils.h)
+        lib_ccaligner/phoneme_utils.h
+        lib_ccaligner/output_handler.cpp
+        lib_ccaligner/output_handler.h
+        )
 
 add_executable(ccaligner ${SOURCE_FILES})
 target_link_libraries(ccaligner webRTC  pocketsphinx sphinxbase ${EXTRA_FLAGS})

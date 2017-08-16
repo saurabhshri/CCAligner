@@ -98,6 +98,7 @@ void currentSub::printToSRT(std::string fileName, outputOptions printOption)
         //printing in SRT format
         sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
 
+        out<<_sub->getSubNo()<<"\n";
         out<<timeline;
 
         if(printOption == printBothWithDistinctColors)
