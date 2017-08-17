@@ -66,3 +66,12 @@ std::string StringToLower(std::string strToConvert)
 
     return strToConvert;
 }
+
+bool AlignedData::addNewWord(std::string word, long int startTime, long int endTime, float conf)
+{
+    _words.push_back(word);
+    _wordStartTimes.push_back(startTime);
+    _wordEndTimes.push_back(endTime);
+
+    return true;
+}

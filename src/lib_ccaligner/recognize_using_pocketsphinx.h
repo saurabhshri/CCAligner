@@ -24,6 +24,7 @@ private:
     std::string _audioFileName, _subtitleFileName;          //input and output filenames
     std::vector<int16_t> _samples;
     std::vector <SubtitleItem*> _subtitles;
+    AlignedData * _alignedData;
     Params * _parameters;
 
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;

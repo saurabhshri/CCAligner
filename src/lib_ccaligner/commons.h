@@ -76,5 +76,25 @@ void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *mi
 std::string extractFileName(std::string fileName);  //extract path/to/filename from path/to/filename.extension
 std::string StringToLower(std::string strToConvert);
 
+class AlignedData
+{
+public:
+
+    std::vector<std::string> _words;
+    std::vector<long int>   _wordStartTimes;
+    std::vector<long int>   _wordEndTimes;
+    std::vector<float>      _wordConf;
+
+    bool addNewWord(std::string word, long int startTime, long int endTime, float conf);
+
+    std::vector<std::string> _phonemes;
+    std::vector<long int>   _phonemeStartTimes;
+    std::vector<long int>   _phonemeEndTimes;
+    std::vector<float>      _phonemeConf;
+
+    bool addNewPhoneme(std::string phoneme, long int startTime, long int endTime, float conf);
+
+};
+
 
 #endif //CCALIGNER_UTILITY_H
