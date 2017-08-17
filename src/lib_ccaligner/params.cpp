@@ -28,9 +28,10 @@ Params::Params()
     logPath = "tempFiles/" + localTime + ".log";
     phonemeLogPath = "tempFiles/phoneme-" + localTime + ".log";
 
-    searchWindow = 0;
     sampleWindow = 0;
     audioWindow = 0;
+    searchWindow = 3;
+
 
     chosenAlignerType = asrAligner;
     grammarType = complete_grammar;

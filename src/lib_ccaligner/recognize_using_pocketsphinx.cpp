@@ -9,8 +9,23 @@
 PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
 {
     _parameters = parameters;
+
+    //creating local copies
     _audioFileName = _parameters->audioFileName;
     _subtitleFileName = _parameters->subtitleFileName;
+
+    _modelPath = _parameters->modelPath;
+    _dictPath = _parameters->dictPath;
+    _lmPath = _parameters->lmPath;
+    _fsgPath = _parameters ->fsgPath;
+    _logPath = _parameters->logPath;
+    _phoneticlmPath = _parameters->phoneticlmPath;
+    _phonemeLogPath = _parameters->phonemeLogPath;
+
+    _audioWindow = _parameters->audioWindow;
+    _sampleWindow = _parameters->sampleWindow;
+    _searchWindow = _parameters->searchWindow;
+
     processFiles();
 }
 
@@ -254,7 +269,7 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
          *
          */
 
-        int searchWindowSize = 3;
+        int searchWindowSize = _searchWindow;
 
         /*
             Recognised  : so have you can you've brought seven
@@ -291,8 +306,10 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
                 sub->setWordRecognisedStatusByIndex(true, wordIndex);
                 sub->setWordTimesByIndex(startTime, endTime, wordIndex);
 
-                std::cout << "\t\tStart : \t" << sub->getWordStartTimeByIndex(wordIndex);
-                std::cout << "\tEnd : \t" << sub->getWordEndTimeByIndex(wordIndex);
+                std::cout << "\t\tStart : \t\t" << sub->getWordStartTimeByIndex(wordIndex);
+                std::cout << "\tEnd : \t\t" << sub->getWordEndTimeByIndex(wordIndex);
+                std::cout << "\tDuration : \t\t" << sub->getWordEndTimeByIndex(wordIndex) - sub->getWordStartTimeByIndex(wordIndex);
+
                 std::cout << std::endl;
 
                 break;
@@ -406,7 +423,7 @@ bool PocketsphinxAligner::recognise(outputOptions printOption)
             recognitionWindow = _audioWindow * 16;
         }
 
-        else if(!_sampleWindow)
+        else if(_sampleWindow)
         {
             recognitionWindow = _sampleWindow;
         }
@@ -427,7 +444,7 @@ bool PocketsphinxAligner::recognise(outputOptions printOption)
         const int16_t *sample = _samples.data();
 
         _rvWord = ps_start_utt(_psWordDecoder);
-        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow, FALSE, FALSE);
+        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + (2 * recognitionWindow), FALSE, FALSE);
         _rvWord = ps_end_utt(_psWordDecoder);
 
         _hypWord = ps_get_hyp(_psWordDecoder, &_scoreWord);
@@ -448,6 +465,8 @@ bool PocketsphinxAligner::recognise(outputOptions printOption)
         std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
 
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
+
+        printWordTimes(_configWord,_psWordDecoder);
 
         recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow , sub);
 
