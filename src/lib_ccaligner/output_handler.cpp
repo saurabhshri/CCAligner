@@ -4,7 +4,7 @@
 
 #include "output_handler.h"
 
-inline bool initFile(std::string fileName, outputFormats outputFormat)
+bool initFile(std::string fileName, outputFormats outputFormat)
 {
 
     std::ofstream out;
@@ -26,7 +26,7 @@ inline bool initFile(std::string fileName, outputFormats outputFormat)
     return true;
 }
 
-inline bool printFileEnd(std::string fileName, outputFormats outputFormat)
+bool printFileEnd(std::string fileName, outputFormats outputFormat)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -46,7 +46,7 @@ inline bool printFileEnd(std::string fileName, outputFormats outputFormat)
     return true;
 }
 
-inline bool printTranscriptionHeader(std::string fileName, outputFormats outputFormat)
+bool printTranscriptionHeader(std::string fileName, outputFormats outputFormat)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary);
@@ -67,7 +67,7 @@ inline bool printTranscriptionHeader(std::string fileName, outputFormats outputF
     return true;
 }
 
-inline bool printTranscriptionFooter(std::string fileName, outputFormats outputFormat)
+bool printTranscriptionFooter(std::string fileName, outputFormats outputFormat)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -107,7 +107,7 @@ bool printSRT(std::string fileName, std::vector<SubtitleItem *> subtitles, outpu
 }
 
 
-inline int printSRTContinuous(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
+int printSRTContinuous(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -148,7 +148,7 @@ inline int printSRTContinuous(std::string fileName, int subCount, SubtitleItem *
     return subCount;
 }
 
-inline int printTranscriptionAsSRTContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
+int printTranscriptionAsSRTContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -202,7 +202,7 @@ bool printXML(std::string fileName, std::vector<SubtitleItem *> subtitles)
     return true;
 }
 
-inline bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
+bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -245,7 +245,7 @@ inline bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
     return true;
 }
 
-inline bool printTranscriptionAsXMLContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
+bool printTranscriptionAsXMLContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -279,7 +279,7 @@ bool printJSON(std::string fileName, std::vector<SubtitleItem *> subtitles)
     return true;
 }
 
-inline bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
+bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -326,7 +326,7 @@ inline bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
 }
 
 
-inline bool printTranscriptionAsJSONContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
+bool printTranscriptionAsJSONContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -360,7 +360,7 @@ bool printKaraoke(std::string fileName, std::vector<SubtitleItem *> subtitles, o
     return true;
 }
 
-inline int printKaraokeContinuous(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
+int printKaraokeContinuous(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
