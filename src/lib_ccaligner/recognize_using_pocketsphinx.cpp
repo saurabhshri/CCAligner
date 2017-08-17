@@ -427,7 +427,7 @@ bool PocketsphinxAligner::recognise()
             case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
 
-            case xml:       printJSONContinuous(_outputFileName, sub);
+            case xml:       printXMLContinuous(_outputFileName, sub);
                 break;
 
             case json:      printJSONContinuous(_outputFileName, sub);

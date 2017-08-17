@@ -1,7 +1,8 @@
-//
-// Created by Saurabh Shrivastava on 17/08/17.
-//
-
+/*
+ * Author   : Saurabh Shrivastava
+ * Email    : saurabh.shrivastava54@gmail.com
+ * Link     : https://github.com/saurabhshri
+ */
 #include "output_handler.h"
 
 bool initFile(std::string fileName, outputFormats outputFormat)
