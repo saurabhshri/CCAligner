@@ -23,6 +23,7 @@ public:
     Params();
     void inputParams(int argc, char *argv[]);
     void validateParams();
+    void printParams();
     ~Params();
 
 };

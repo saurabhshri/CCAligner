@@ -82,7 +82,7 @@ void Params::inputParams(int argc, char *argv[])
             i++;
         }
 
-        if(paramPrefix== "-out")
+        else if(paramPrefix== "-out")
         {
             if(i+1 > argc)
             {
@@ -94,7 +94,7 @@ void Params::inputParams(int argc, char *argv[])
             i++;
         }
 
-        if(paramPrefix== "-oFormat")
+        else if(paramPrefix== "-oFormat")
         {
             if(i+1 > argc)
             {
@@ -436,20 +436,116 @@ void Params::inputParams(int argc, char *argv[])
             i++;
         }
 
+        else
+        {
+            FATAL(EXIT_INVALID_PARAMETERS, "Parameter %s not recognised!", paramPrefix.c_str());
+        }
+
     }
 
     validateParams();
 
 }
 
-Params::~Params()
-{
-
-}
-
 void Params::validateParams()
 {
+    if(audioFileName.empty())
+        FATAL(EXIT_INVALID_PARAMETERS, "Audio file name is empty!");
+
+    if(subtitleFileName.empty())
+        FATAL(EXIT_INVALID_PARAMETERS, "Subtitle file name is empty!");
+
+    if(modelPath.empty())
+        LOG("Using default Model Path.");
+
+    if(dictPath.empty())
+        LOG("Using default Dictionary Path.");
+
+    if(lmPath.empty())
+        LOG("Using default LM Path.");
+
+    if(logPath.empty())
+        LOG("Using default Log Path.");
+
+    if(fsgPath.empty())
+        LOG("Using default FSG Path.");
+
+    if(phoneticlmPath.empty())
+        LOG("Using default Phonetic LM Path.");
+
+    if(phonemeLogPath.empty())
+        LOG("Using default Phoneme Log Path.");
+
+    if(outputFileName.empty())
+    {
+        outputFileName = extractFileName(audioFileName);
+
+        switch (outputFormat)  //decide on based of set output format
+        {
+            case srt:       outputFileName += ".srt";
+                break;
+
+            case xml:       outputFileName += ".xml";
+                break;
+
+            case json:      outputFileName += ".json";
+                break;
+
+            case karaoke:   outputFileName += ".srt";
+                break;
+
+            default:        FATAL(EXIT_UNKNOWN, "An error occurred while choosing output format!");
+                exit(2);
+        }
+    }
+
+    if(useFSG && transcribe)
+    {
+        FATAL(EXIT_INCOMPATIBLE_PARAMETERS , "FSG and Transcribing are not compatible!");
+    }
+
     if(verbosity)
+    {
         should_log = true;
+        printParams();
+    }
+}
+
+void Params::printParams()
+{
+    std::cout<<"\n\nParsed Configuration : \n\n";
+    std::cout<<"audioFileName : "<<audioFileName<<"\n";
+    std::cout<<"subtitleFileName : "<<subtitleFileName<<"\n";
+    std::cout<<"outputFileName : "<<outputFileName<<"\n";
+    std::cout<<"modelPath : "<<modelPath<<"\n";
+    std::cout<<"lmPath : "<<lmPath<<"\n";
+    std::cout<<"dictPath : "<<dictPath<<"\n";
+    std::cout<<"fsgPath : "<<fsgPath<<"\n";
+
+    std::cout<<"phoneticlmPath : "<<phoneticlmPath<<"\n";
+
+    std::cout<<"logPath : "<<logPath<<"\n";
+    std::cout<<"phonemeLogPath : "<<phonemeLogPath<<"\n";
+
+    std::cout<<"sampleWindow : "<<sampleWindow<<"\n";
+    std::cout<<"audioWindow : "<<audioWindow<<"\n";
+    std::cout<<"searchWindow: "<<searchWindow<<"\n";
+
+
+    std::cout<<"chosenAlignerType : "<<chosenAlignerType<<"\n";
+    std::cout<<"grammarType : "<<grammarType<<"\n";
+    std::cout<<"outputFormat : "<<outputFormat<<"\n";
+    std::cout<<"printOption : "<<printOption<<"\n";
+
+    std::cout<<"verbosity : "<<verbosity<<"\n";
+    std::cout<<"useFSG : "<<useFSG<<"\n";
+    std::cout<<"transcribe : "<<transcribe<<"\n";
+    std::cout<<"useBatchMode : "<<useBatchMode<<"\n";
+    std::cout<<"useExperimentalParams : "<< useExperimentalParams<<"\n";
+    std::cout<<"searchPhonemes : "<<searchPhonemes<<"\n\n\n";
+}
+
+Params::~Params()
+{
 
 }

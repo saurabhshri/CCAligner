@@ -65,6 +65,7 @@ enum outputOptions
 #define EXIT_INCOMPATIBLE_PARAMETERS            4
 #define EXIT_INVALID_FILE                       6
 #define EXIT_WITH_HELP                          10
+#define EXIT_UNKNOWN                            13
 
 #define LOG(MSG, ...) log(__FILE__, __LINE__, MSG, ##__VA_ARGS__)
 void log(const char *fileName, const int lineNumber, const char *format, ...);
