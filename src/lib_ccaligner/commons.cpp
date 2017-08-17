@@ -72,6 +72,7 @@ bool AlignedData::addNewWord(std::string word, long int startTime, long int endT
     _words.push_back(word);
     _wordStartTimes.push_back(startTime);
     _wordEndTimes.push_back(endTime);
+    _wordConf.push_back(conf);
 
     return true;
 }
