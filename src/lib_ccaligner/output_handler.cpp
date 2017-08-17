@@ -17,6 +17,8 @@ bool printSRT(std::string fileName, std::vector<SubtitleItem *> subtitles, outpu
     std::ofstream out;
     out.open(fileName, std::ofstream::binary);
 
+    int subCount = 1;
+
     for(SubtitleItem *sub : subtitles)
     {
         for(int i=0;i<sub->getWordCount();i++)
@@ -37,13 +39,7 @@ bool printSRT(std::string fileName, std::vector<SubtitleItem *> subtitles, outpu
             //printing in SRT format
             sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
 
-            ms_to_srt_time(sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
-            ms_to_srt_time(sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
-
-            //printing in SRT format
-            sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
-
-            out<<sub->getSubNo()<<"\n";
+            out<<subCount++<<"\n";
             out<<timeline;
 
             if(printOption == printBothWithDistinctColors)
@@ -163,6 +159,67 @@ bool printJSON(std::string fileName, std::vector<SubtitleItem *> subtitles)
     out<<"}\r\n";
 
     out.close();
+    return true;
+}
+
+bool printKaraoke(std::string fileName, std::vector<SubtitleItem *> subtitles, outputOptions printOption)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::binary);
+
+    int subCount = 1;
+
+    for(SubtitleItem *sub : subtitles)
+    {
+        for(int i=0;i<sub->getWordCount();i++)
+        {
+            int hh1,mm1,ss1,ms1;
+            int hh2,mm2,ss2,ms2;
+            char timeline[128];
+
+            ms_to_srt_time(sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
+            ms_to_srt_time(sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
+
+            //printing in SRT format
+            sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
+
+            out<<subCount++<<"\n";
+            out<<timeline;
+
+            std::string outputLine = "";
+
+            for(int j=0;j<sub->getWordCount();j++)
+            {
+                if(j == i)
+                {
+                    if(printOption == printAsKaraokeWithDistinctColors)
+                    {
+                        if(sub->getWordRecognisedStatusByIndex(j))
+                            outputLine += " <font color='#0000FF'> ";
+
+                        else
+                            outputLine += " <font color='#ff0000'> ";
+
+                    }
+
+                    else
+                    {
+                        outputLine += " <font color='#0000FF'> ";
+                    }
+
+                    outputLine += sub->getWordByIndex(j);
+                    outputLine += " </font>";
+                }
+
+                else
+                    outputLine += sub->getWordByIndex(j);
+            }
+
+            outputLine += "\n\n";
+
+            out<<outputLine;
+        }
+    }
     return true;
 }
 
