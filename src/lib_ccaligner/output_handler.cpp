@@ -29,7 +29,7 @@ inline bool initFile(std::string fileName, outputFormats outputFormat)
 inline bool printFileEnd(std::string fileName, outputFormats outputFormat)
 {
     std::ofstream out;
-    out.open(fileName, std::ofstream::binary);
+    out.open(fileName, std::ofstream::binary | std::ofstream::app);
 
     if(outputFormat == xml)
     {
