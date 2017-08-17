@@ -68,18 +68,65 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
     LOG("Configuration : \n\tmodelPath = %s \n\tlmPath = %s \n\tdictPath = %s \n\tfsgPath = %s \n\tlogPath = %s ",
         _modelPath.c_str(), _lmPath.c_str(), _dictPath.c_str(), _fsgPath.c_str(), _logPath.c_str());
 
-    _configWord = cmd_ln_init(NULL,
-                          ps_args(), TRUE,
-                          "-hmm", modelPath.c_str(),
-                          "-lm", lmPath.c_str(),
-                          "-dict", dictPath.c_str(),
-                          "-logfn", logPath.c_str(),
-//                          "-cmn", "batch",
-//                          "-lw", "1.0",
-//                          "-beam", "1e-80",
-//                          "-wbeam", "1e-60",
-//                          "-pbeam", "1e-80",
-                          NULL);
+    if(_parameters->useBatchMode)
+    {
+        if(_parameters->useExperimentalParams)
+        {
+            _configWord = cmd_ln_init(NULL,
+                                      ps_args(), TRUE,
+                                      "-hmm", modelPath.c_str(),
+                                      "-lm", lmPath.c_str(),
+                                      "-dict", dictPath.c_str(),
+                                      "-logfn", logPath.c_str(),
+                                      "-cmn", "batch",
+                                      "-lw", "1.0",
+                                      "-beam", "1e-80",
+                                      "-wbeam", "1e-60",
+                                      "-pbeam", "1e-80",
+                                      NULL);
+        }
+
+        else
+        {
+            _configWord = cmd_ln_init(NULL,
+                                      ps_args(), TRUE,
+                                      "-hmm", modelPath.c_str(),
+                                      "-lm", lmPath.c_str(),
+                                      "-dict", dictPath.c_str(),
+                                      "-logfn", logPath.c_str(),
+                                      "-cmn", "batch",
+                                      NULL);
+        }
+
+    }
+
+    else if(_parameters->useExperimentalParams)
+    {
+        _configWord = cmd_ln_init(NULL,
+                                  ps_args(), TRUE,
+                                  "-hmm", modelPath.c_str(),
+                                  "-lm", lmPath.c_str(),
+                                  "-dict", dictPath.c_str(),
+                                  "-logfn", logPath.c_str(),
+                                  "-lw", "1.0",
+                                  "-beam", "1e-80",
+                                  "-wbeam", "1e-60",
+                                  "-pbeam", "1e-80",
+                                  NULL);
+
+    }
+
+    else
+    {
+        _configWord = cmd_ln_init(NULL,
+                                  ps_args(), TRUE,
+                                  "-hmm", modelPath.c_str(),
+                                  "-lm", lmPath.c_str(),
+                                  "-dict", dictPath.c_str(),
+                                  "-logfn", logPath.c_str(),
+                                  NULL);
+    }
+
 
     if (_configWord == NULL)
     {
@@ -594,6 +641,9 @@ bool PocketsphinxAligner::reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps)
 
 bool PocketsphinxAligner::alignWithFSG()
 {
+    int subCount = 1;
+    initFile(_outputFileName, _parameters->outputFormat);
+
     for (SubtitleItem *sub : _subtitles)
     {
         if (sub->getDialogue().empty())
@@ -612,7 +662,7 @@ bool PocketsphinxAligner::alignWithFSG()
         subConfig = cmd_ln_init(NULL,
                                 ps_args(), TRUE,
                                 "-hmm", _modelPath.c_str(),
-//                                "-lm", _lmPath.c_str(),
+                                "-lm", _lmPath.c_str(),
                                 "-dict", _dictPath.c_str(),
                                 "-logfn", _logPath.c_str(),
                                 "-fsg", fsgname.c_str(),
@@ -641,10 +691,22 @@ bool PocketsphinxAligner::alignWithFSG()
         long int samplesAlreadyRead = dialogueStartsAt * 16;
         long int samplesToBeRead = dialogueLastsFor * 16;
 
+        long int recognitionWindow = 0;
+
+        if(_audioWindow)
+        {
+            recognitionWindow = _audioWindow * 16;
+        }
+
+        else if(_sampleWindow)
+        {
+            recognitionWindow = _sampleWindow;
+        }
+
         const int16_t *sample = _samples.data();
 
         _rvWord = ps_start_utt(_psWordDecoder);
-        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead, samplesToBeRead, FALSE, FALSE);
+        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + (2 * recognitionWindow), FALSE, FALSE);
         _rvWord = ps_end_utt(_psWordDecoder);
 
         _hypWord = ps_get_hyp(_psWordDecoder, &_scoreWord);
@@ -663,14 +725,36 @@ bool PocketsphinxAligner::alignWithFSG()
         std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
         std::cout << "Recognised  : " << _hypWord << "\n";
         std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
+
         recognisedBlock currBlock = findAndSetWordTimes(subConfig, _psWordDecoder, sub);
 
+        switch (_parameters->outputFormat)  //decide on based of set output format
+        {
+            case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
+                break;
+
+            case xml:       printXMLContinuous(_outputFileName, sub);
+                break;
+
+            case json:      printJSONContinuous(_outputFileName, sub);
+                break;
+
+            case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, _parameters->printOption);
+                break;
+
+            default:        std::cout<<"An error occurred while choosing output format!";
+                exit(2);
+        }
+
+
         cmd_ln_free_r(subConfig);
-        currSub->printToSRT("output_fsg.srt", printBothWithDistinctColors);
 
         delete currSub;
 
     }
+
+    printFileEnd(_outputFileName, _parameters->outputFormat);
+
 }
 
 PocketsphinxAligner::~PocketsphinxAligner()
