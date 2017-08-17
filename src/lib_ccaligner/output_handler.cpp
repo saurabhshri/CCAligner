@@ -46,6 +46,49 @@ inline bool printFileEnd(std::string fileName, outputFormats outputFormat)
     return true;
 }
 
+inline bool printTranscriptionHeader(std::string fileName, outputFormats outputFormat)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::binary);
+
+    if(outputFormat == xml)
+    {
+        out<<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
+            "<words>\r\n";
+    }
+
+    else if(outputFormat == json)
+    {
+        out<<"{\r\n";
+        out<<"\t\"words\" : [\r\n";
+    }
+
+    out.close();
+    return true;
+}
+
+inline bool printTranscriptionFooter(std::string fileName, outputFormats outputFormat)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::binary | std::ofstream::app);
+
+    if(outputFormat == xml)
+    {
+        out<<"</words>\r\n";
+    }
+
+    else if(outputFormat == json)
+    {
+        out<<"\t]\r\n";
+        out<<"}\r\n";
+
+    }
+
+    out.close();
+    return true;
+
+}
+
 bool printSRT(std::string fileName, std::vector<SubtitleItem *> subtitles, outputOptions printOption)
 {
     initFile(fileName, srt);
@@ -105,6 +148,47 @@ inline int printSRTContinuous(std::string fileName, int subCount, SubtitleItem *
     return subCount;
 }
 
+inline int printTranscriptionAsSRTContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::binary | std::ofstream::app);
+
+    std::string outputString;
+
+    for(int i = printedTillIndex; i < alignedData->_words.size(); i++)
+    {
+        if (alignedData->_wordConf[i] <= 0.7)
+        {
+            outputString = "<font color='#FF0000'>";
+            outputString += alignedData->_words[i];
+            outputString += "</font>\n\n";
+        }
+
+        else
+        {
+            outputString = alignedData->_words[i];
+            outputString += "\n\n";
+        }
+
+        int hh1, mm1, ss1, ms1;
+        int hh2, mm2, ss2, ms2;
+        char timeline[128];
+
+        ms_to_srt_time(alignedData->_wordStartTimes[i], &hh1, &mm1, &ss1, &ms1);
+        ms_to_srt_time(alignedData->_wordEndTimes[i], &hh2, &mm2, &ss2, &ms2);
+
+        //printing in SRT format
+        sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
+
+        out<<i<<"\n";
+        out << timeline;
+        out << outputString;
+    }
+
+
+    return 0;
+}
+
 bool printXML(std::string fileName, std::vector<SubtitleItem *> subtitles)
 {
     initFile(fileName, xml);
@@ -118,7 +202,7 @@ bool printXML(std::string fileName, std::vector<SubtitleItem *> subtitles)
     return true;
 }
 
-bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
+inline bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -161,6 +245,26 @@ bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
     return true;
 }
 
+inline bool printTranscriptionAsXMLContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::binary | std::ofstream::app);
+
+    for(int i=printedTillIndex;i<alignedData->_words.size();i++)
+    {
+        out << "\t<word>\r\n";
+        out << "\t\t<text>" << alignedData->_words[i] << "</text>\r\n";
+        out << "\t\t<confidence>" << alignedData->_wordConf[i] << "</confidence>\r\n";
+        out << "\t\t<start>" << alignedData->_wordStartTimes[i] << "</start>\r\n";
+        out << "\t\t<end>" << alignedData->_wordEndTimes[i] << "</end>\r\n";
+        out << "\t\t<duration>" << alignedData->_wordEndTimes[i] - alignedData->_wordStartTimes[i] << "</duration>\r\n";
+        out << "\t</word>\r\n";
+    }
+
+    out.close();
+    return true;
+}
+
 bool printJSON(std::string fileName, std::vector<SubtitleItem *> subtitles)
 {
     initFile(fileName, json);
@@ -175,7 +279,7 @@ bool printJSON(std::string fileName, std::vector<SubtitleItem *> subtitles)
     return true;
 }
 
-bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
+inline bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -214,11 +318,32 @@ bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
         out<<"\t\t\t},\r\n";
     }
 
-    out<<"\t\t],\r\n";
+    out<<"\t\t]\r\n";
     out<<"\t},\r\n";
 
     out.close();
-    return false;
+    return true;
+}
+
+
+inline bool printTranscriptionAsJSONContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::binary | std::ofstream::app);
+
+    for(int i=printedTillIndex;i<alignedData->_words.size();i++)
+    {
+        out<<"\t{\r\n";
+        out<<"\t\t\"word\" : \""<<alignedData->_words[i]<<"\",\r\n";
+        out<<"\t\t\"confidence\" : \""<<alignedData->_wordConf[i]<<"\",\r\n";
+        out<<"\t\t\"start\" : \""<<alignedData->_wordStartTimes[i]<<"\",\r\n";
+        out<<"\t\t\"end\" : \""<<alignedData->_wordEndTimes[i]<<"\",\r\n";
+        out<<"\t\t\"duration\" : \""<<alignedData->_wordEndTimes[i] - alignedData->_wordStartTimes[i]<<"\",\r\n";
+        out<<"\t},\r\n";
+    }
+
+    out.close();
+    return true;
 }
 
 bool printKaraoke(std::string fileName, std::vector<SubtitleItem *> subtitles, outputOptions printOption)
@@ -235,7 +360,7 @@ bool printKaraoke(std::string fileName, std::vector<SubtitleItem *> subtitles, o
     return true;
 }
 
-int printKaraokeContinuous(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
+inline int printKaraokeContinuous(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -287,3 +412,6 @@ int printKaraokeContinuous(std::string fileName, int subCount, SubtitleItem *sub
 
     return subCount;
 }
+
+
+

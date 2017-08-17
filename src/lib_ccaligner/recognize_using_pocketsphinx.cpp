@@ -13,6 +13,7 @@ PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
     //creating local copies
     _audioFileName = _parameters->audioFileName;
     _subtitleFileName = _parameters->subtitleFileName;
+    _outputFileName = _parameters->outputFileName;
 
     _modelPath = _parameters->modelPath;
     _dictPath = _parameters->dictPath;
@@ -25,6 +26,8 @@ PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
     _audioWindow = _parameters->audioWindow;
     _sampleWindow = _parameters->sampleWindow;
     _searchWindow = _parameters->searchWindow;
+
+    _alignedData = new AlignedData();
 
     processFiles();
 }
@@ -517,16 +520,58 @@ bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit
     findAndSetPhonemeTimes(_configPhoneme,_psPhonemeDecoder, sub);
 }
 
+int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index)
+{
+    int frame_rate = cmd_ln_int32_r(config, "-frate");
+    ps_seg_t *iter = ps_seg_iter(ps);
+    int printedTillIndex = index;
+
+    while (iter != NULL)
+    {
+        index++;
+        int32 sf, ef, pprob;
+        float conf;
+
+        ps_seg_frames(iter, &sf, &ef);
+        pprob = ps_seg_prob(iter, NULL, NULL, NULL);
+        conf = logmath_exp(ps_get_logmath(ps), pprob);
+
+        std::string recognisedWord(ps_seg_word(iter));
+        long startTime = sf * 1000 / frame_rate, endTime = ef * 1000 / frame_rate;
+
+        _alignedData->addNewWord(recognisedWord, startTime, endTime, conf);
+
+        iter = ps_seg_next(iter);
+    }
+
+    printTranscriptionHeader(_outputFileName, _parameters->outputFormat);
+
+    if(_parameters->outputFormat == xml)
+        printTranscriptionAsXMLContinuous(_outputFileName, _alignedData, printedTillIndex);
+
+    else if(_parameters->outputFormat == json)
+        printTranscriptionAsJSONContinuous(_outputFileName, _alignedData, printedTillIndex);
+
+    else if(_parameters->outputFormat == srt)
+        printTranscriptionAsSRTContinuous(_outputFileName, _alignedData, printedTillIndex);
+
+    printTranscriptionFooter(_outputFileName, _parameters->outputFormat);
+
+    return index;
+}
+
 bool PocketsphinxAligner::transcribe()
 {
     //pointer to samples
     const int16_t *sample = _samples.data();
 
-    bool utt_started, in_speech;
-
     //creating partition of 2048 bytes
-
     int numberOfPartitions = _samples.size() / 2048, remainingSamples = _samples.size() % 2048;
+
+    //index of the word : used for sub and output handling
+    int index=0;
+
+    bool utt_started, in_speech;
 
     _rvWord = ps_start_utt(_psWordDecoder);
     utt_started = FALSE;
@@ -554,7 +599,8 @@ bool PocketsphinxAligner::transcribe()
             if (_hypWord != NULL)
             {
                 std::cout << "Recognised  : " << _hypWord << "\n";
-                printRecognisedWordAsSRT(_configWord, _psWordDecoder);
+                index = findTranscribedWordTimings(_configWord, _psWordDecoder, index);
+                //printRecognisedWordAsSRT(_configWord, _psWordDecoder);
             }
 
             ps_start_utt(_psWordDecoder);
@@ -573,7 +619,8 @@ bool PocketsphinxAligner::transcribe()
         if (_hypWord != NULL)
         {
             std::cout << "Recognised  : " << _hypWord << "\n";
-            printRecognisedWordAsSRT(_configWord, _psWordDecoder);
+            index = findTranscribedWordTimings(_configWord, _psWordDecoder, index);
+            //printRecognisedWordAsSRT(_configWord, _psWordDecoder);
         }
     }
 

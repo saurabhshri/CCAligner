@@ -313,7 +313,16 @@ void Params::inputParams(int argc, char *argv[])
 
         else if(paramPrefix== "-transcribe")
         {
-            transcribe = true;
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            if(subParam  == "yes")
+                transcribe = true;
+
+            i++;
         }
 
 

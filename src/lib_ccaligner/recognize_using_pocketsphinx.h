@@ -21,7 +21,7 @@ int levenshtein_distance(const std::string& firstWord, const std::string& second
 class PocketsphinxAligner
 {
 private:
-    std::string _audioFileName, _subtitleFileName;          //input and output filenames
+    std::string _audioFileName, _subtitleFileName, _outputFileName;          //input and output filenames
     std::vector<int16_t> _samples;
     std::vector <SubtitleItem*> _subtitles;
     AlignedData * _alignedData;
@@ -39,6 +39,7 @@ private:
     bool processFiles();
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     bool printRecognisedWordAsSRT(cmd_ln_t *config, ps_decoder_t *ps);
+    int findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index);
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);

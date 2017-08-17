@@ -11,14 +11,21 @@
 inline bool initFile(std::string fileName, outputFormats outputFormat);
 inline bool printFileEnd(std::string fileName, outputFormats outputFormat);
 
+inline bool printTranscriptionHeader(std::string fileName, outputFormats outputFormat);
+inline bool printTranscriptionFooter(std::string fileName, outputFormats outputFormat);
+
+
 bool printSRT(std::string fileName, std::vector <SubtitleItem*> subtitles, outputOptions printOption);          //prints the aligned result in SRT format
 inline int printSRTContinuous(std::string fileName, int subCount, SubtitleItem* sub, outputOptions printOption); //prints the aligned result in SRT format as they are generated
+inline int printTranscriptionAsSRTContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex);        //prints the transcribed result in JSON format as they are generated
 
 bool printJSON(std::string fileName, std::vector <SubtitleItem*> subtitles);    //prints the aligned result in JSON format
 inline bool printJSONContinuous(std::string fileName, SubtitleItem* sub);        //prints the aligned result in JSON format as they are generated
+inline bool printTranscriptionAsJSONContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex);        //prints the transcribed result in JSON format as they are generated
 
 bool printXML(std::string fileName, std::vector <SubtitleItem*> subtitles);     //prints the aligned information in XML format
 inline bool printXMLContinuous(std::string fileName, SubtitleItem* sub);         //prints the aligned information in XML format as they are generated
+inline bool printTranscriptionAsXMLContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex);         //prints the transcribed information in XML format as they are generated
 
 bool printKaraoke(std::string fileName, std::vector <SubtitleItem*> subtitles, outputOptions printOption);          //prints the aligned information in Karaoke format
 inline int printKaraokeContinuous(std::string fileName, int subCount, SubtitleItem* sub, outputOptions printOption); //prints the aligned information in Karaoke format as they are generated
