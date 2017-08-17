@@ -14,6 +14,7 @@
 #include "generate_approx_timestamp.h"
 #include "commons.h"
 #include "params.h"
+#include "output_handler.h"
 
 int levenshtein_distance(const std::string& firstWord, const std::string& secondWord);
 
@@ -51,6 +52,7 @@ public:
     bool align();
     bool recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);
     bool transcribe();
+    bool printAligned(std::string outputFileName, outputFormats format);
     ~PocketsphinxAligner();
 
 };

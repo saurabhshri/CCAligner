@@ -31,6 +31,7 @@ enum outputFormats      //various possible output formats
     srt,
     xml,
     json,
+    karaoke,
     console,
     blank               //means no output format is specified
 };
