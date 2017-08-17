@@ -346,8 +346,11 @@ bool PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
     }
 }
 
-bool PocketsphinxAligner::recognise(outputOptions printOption)
+bool PocketsphinxAligner::recognise()
 {
+    int subCount = 1;
+    initFile(_outputFileName, _parameters->outputFormat);
+
     for (SubtitleItem *sub : _subtitles)
     {
         if (sub->getDialogue().empty())
@@ -416,18 +419,32 @@ bool PocketsphinxAligner::recognise(outputOptions printOption)
 
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
-        printWordTimes(_configWord,_psWordDecoder);
+        if(_parameters->searchPhonemes)
+            recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow , sub);
 
-        recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow , sub);
+        switch (_parameters->outputFormat)  //decide on based of set output format
+        {
+            case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
+                break;
 
-        if (printOption == printAsKaraoke || printOption == printAsKaraokeWithDistinctColors)
-            currSub->printAsKaraoke("karaoke.srt", printOption);
+            case xml:       printJSONContinuous(_outputFileName, sub);
+                break;
 
-        else
-            currSub->printToSRT("output.srt", printOption);
+            case json:      printJSONContinuous(_outputFileName, sub);
+                break;
+
+            case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, _parameters->printOption);
+                break;
+
+            default:        std::cout<<"An error occurred while choosing output format!";
+                exit(2);
+        }
 
         delete currSub;
     }
+
+    printFileEnd(_outputFileName, _parameters->outputFormat);
+
 }
 
 bool PocketsphinxAligner::align()
@@ -444,7 +461,7 @@ bool PocketsphinxAligner::align()
         if(_parameters->useFSG)
             alignWithFSG();
         else
-            recognise(_parameters->printOption);
+            recognise();
     }
 
 }
