@@ -136,6 +136,7 @@ bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
         out<<"\t\t\t\t\t<text>"<<sub->getWordByIndex(i)<<"</text>\r\n";
         out<<"\t\t\t\t\t<start>"<<sub->getWordStartTimeByIndex(i)<<"</start>\r\n";
         out<<"\t\t\t\t\t<end>"<<sub->getWordEndTimeByIndex(i)<<"</end>\r\n";
+        out<<"\t\t\t\t\t<duration>"<<sub->getWordEndTimeByIndex(i) - sub->getWordStartTimeByIndex(i)<<"</duration>\r\n";
         out<<"\t\t\t\t</word>\r\n";
 
     }
@@ -148,6 +149,7 @@ bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
         out<<"\t\t\t\t\t<text>"<<sub->getPhonemeByIndex(i)<<"</text>\r\n";
         out<<"\t\t\t\t\t<start>"<<sub->getPhonemeStartTimeByIndex(i)<<"</start>\r\n";
         out<<"\t\t\t\t\t<end>"<<sub->getPhonemeEndTimeByIndex(i)<<"</end>\r\n";
+        out<<"\t\t\t\t\t<duration>"<<sub->getPhonemeEndTimeByIndex(i) - sub->getPhonemeStartTimeByIndex(i)<<"</duration>\r\n";
         out<<"\t\t\t\t</phoneme>\r\n";
     }
     out<<"\t\t\t</phonemes>\r\n";
@@ -194,6 +196,7 @@ bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
         out<<"\t\t\t\t\"recognised\" : \""<<sub->getWordRecognisedStatusByIndex(i)<<"\",\r\n";
         out<<"\t\t\t\t\"start\" : \""<<sub->getWordStartTimeByIndex(i)<<"\",\r\n";
         out<<"\t\t\t\t\"end\" : \""<<sub->getWordEndTimeByIndex(i)<<"\",\r\n";
+        out<<"\t\t\t\t\"duration\" : \""<<sub->getWordEndTimeByIndex(i) - sub->getWordStartTimeByIndex(i)<<"\",\r\n";
         out<<"\t\t\t},\r\n";
     }
 
@@ -207,6 +210,7 @@ bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
         out<<"\t\t\t\t\"word\" : \""<<sub->getPhonemeByIndex(i)<<"\",\r\n";
         out<<"\t\t\t\t\"start\" : \""<<sub->getPhonemeStartTimeByIndex(i)<<"\",\r\n";
         out<<"\t\t\t\t\"end\" : \""<<sub->getPhonemeEndTimeByIndex(i)<<"\",\r\n";
+        out<<"\t\t\t\t\"duration\" : \""<<sub->getPhonemeEndTimeByIndex(i) - sub->getPhonemeStartTimeByIndex(i)<<"\",\r\n";
         out<<"\t\t\t},\r\n";
     }
 

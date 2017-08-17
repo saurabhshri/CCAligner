@@ -418,7 +418,7 @@ bool PocketsphinxAligner::recognise(outputOptions printOption)
 
         long int recognitionWindow = 0;
 
-        if(!_audioWindow)
+        if(_audioWindow)
         {
             recognitionWindow = _audioWindow * 16;
         }
