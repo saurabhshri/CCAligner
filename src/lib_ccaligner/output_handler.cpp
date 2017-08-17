@@ -195,28 +195,24 @@ bool printKaraoke(std::string fileName, std::vector<SubtitleItem *> subtitles, o
                     if(printOption == printAsKaraokeWithDistinctColors)
                     {
                         if(sub->getWordRecognisedStatusByIndex(j))
-                            outputLine += " <font color='#0000FF'> ";
+                            outputLine += "<font color='#0000FF'>";
 
                         else
-                            outputLine += " <font color='#ff0000'> ";
-
+                            outputLine += "<font color='#ff0000'>";
                     }
 
                     else
-                    {
-                        outputLine += " <font color='#0000FF'> ";
-                    }
+                        outputLine += "<font color='#0000FF'>";
 
                     outputLine += sub->getWordByIndex(j);
                     outputLine += " </font>";
                 }
 
                 else
-                    outputLine += sub->getWordByIndex(j);
+                    outputLine += sub->getWordByIndex(j) + " ";
             }
 
             outputLine += "\n\n";
-
             out<<outputLine;
         }
     }
