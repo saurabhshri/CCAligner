@@ -657,20 +657,20 @@ bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats
 {
     switch (format)  //decide on based of set output format
     {
-        case srt: printSRT(outputFileName, _subtitles, _parameters->printOption);
-            break;
+        case srt:       printSRT(outputFileName, _subtitles, _parameters->printOption);
+                        break;
 
-        case xml:   printXML(outputFileName, _subtitles);
-            break;
+        case xml:       printXML(outputFileName, _subtitles);
+                        break;
 
-        case json:  printJSON(outputFileName, _subtitles);
-            break;
+        case json:      printJSON(outputFileName, _subtitles);
+                        break;
 
-        case karaoke:  printKaraoke(outputFileName, _subtitles, _parameters->printOption);
-            break;
+        case karaoke:   printKaraoke(outputFileName, _subtitles, _parameters->printOption);
+                        break;
 
-        default: std::cout<<"An error occurred while choosing output format!";
-            exit(2);
+        default:        std::cout<<"An error occurred while choosing output format!";
+                        exit(2);
     }
     return false;
 }
