@@ -56,7 +56,7 @@ bool printSRT(std::string fileName, std::vector<SubtitleItem *> subtitles, outpu
     {
         for(int i=0;i<sub->getWordCount();i++)
         {
-            subCount = printSRTContinuos(fileName, subCount, sub, printOption);
+            subCount = printSRTContinuous(fileName, subCount, sub, printOption);
         }
     }
 
@@ -64,7 +64,7 @@ bool printSRT(std::string fileName, std::vector<SubtitleItem *> subtitles, outpu
 }
 
 
-inline int printSRTContinuos(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
+inline int printSRTContinuous(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -111,14 +111,14 @@ bool printXML(std::string fileName, std::vector<SubtitleItem *> subtitles)
 
     for(SubtitleItem *sub : subtitles)
     {
-        printXMLContinuos(fileName, sub);
+        printXMLContinuous(fileName, sub);
     }
 
     printFileEnd(fileName, xml);
     return true;
 }
 
-bool printXMLContinuos(std::string fileName, SubtitleItem *sub)
+bool printXMLContinuous(std::string fileName, SubtitleItem *sub)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -165,7 +165,7 @@ bool printJSON(std::string fileName, std::vector<SubtitleItem *> subtitles)
 
     for(SubtitleItem *sub : subtitles)
     {
-        printJSONContinuos(fileName, sub);
+        printJSONContinuous(fileName, sub);
     }
 
     printFileEnd(fileName, json);
@@ -173,7 +173,7 @@ bool printJSON(std::string fileName, std::vector<SubtitleItem *> subtitles)
     return true;
 }
 
-bool printJSONContinuos(std::string fileName, SubtitleItem *sub)
+bool printJSONContinuous(std::string fileName, SubtitleItem *sub)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
@@ -225,13 +225,13 @@ bool printKaraoke(std::string fileName, std::vector<SubtitleItem *> subtitles, o
 
     for(SubtitleItem *sub : subtitles)
     {
-        subCount = printKaraokeContinuos(fileName, subCount, sub, printOption);
+        subCount = printKaraokeContinuous(fileName, subCount, sub, printOption);
     }
 
     return true;
 }
 
-int printKaraokeContinuos(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
+int printKaraokeContinuous(std::string fileName, int subCount, SubtitleItem *sub, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
