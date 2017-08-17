@@ -12,10 +12,11 @@
 class Params
 {
 public:
-    std::string audioFileName, subtitleFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
+    std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
     unsigned long searchWindow, sampleWindow, audioWindow;
     alignerType chosenAlignerType;
     grammarName grammarType;
+    outputFormats outputFormat;
     outputOptions printOption;
     bool verbosity, useFSG, transcribe, useBatchMode, useExperimentalParams, searchPhonemes;
 

@@ -11,6 +11,7 @@ Params::Params()
 {
     audioFileName = "";
     subtitleFileName = "";
+    outputFileName = "output";
     modelPath = "model/";
     lmPath = "tempFiles/lm/complete.lm";
     dictPath = "tempFiles/dict/complete.dict";
@@ -32,9 +33,8 @@ Params::Params()
     audioWindow = 0;
 
     chosenAlignerType = asrAligner;
-
     grammarType = complete_grammar;
-
+    outputFormat = xml;
     printOption = printBothWithDistinctColors;
 
     verbosity = true;
@@ -78,6 +78,50 @@ void Params::inputParams(int argc, char *argv[])
             }
 
             subtitleFileName = subParam;
+            i++;
+        }
+
+        if(paramPrefix== "-out")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            outputFileName = subParam;
+            i++;
+        }
+
+        if(paramPrefix== "-oFormat")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            if(subParam  == "srt")
+                outputFormat = srt;
+
+            else if(subParam  == "xml")
+                outputFormat = xml;
+
+            else if(subParam  == "json")
+                outputFormat = json;
+
+            else if(subParam  == "karaoke")
+                outputFormat = karaoke;
+
+            else if(subParam  == "stdout")
+                outputFormat = console;
+
+            else
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
             i++;
         }
 
