@@ -47,6 +47,7 @@ Params::Params()
     displayRecognised = true;
     readStream = false;
     quickDict = false;
+    quickLM = false;
 }
 
 void Params::inputParams(int argc, char *argv[])
@@ -283,6 +284,20 @@ void Params::inputParams(int argc, char *argv[])
 
             if(subParam == "yes")
                 quickDict = true;
+
+            i++;
+        }
+
+        else if(paramPrefix == "--quick-lm")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            if(subParam == "yes")
+                quickLM = true;
 
             i++;
         }
@@ -542,6 +557,9 @@ void Params::validateParams()
 
     if(grammarType == complete_grammar && quickDict)
         grammarType = quick_dict;
+
+    if(grammarType == complete_grammar && quickLM)
+        grammarType = quick_lm;
 
     if(useFSG && transcribe)
     {

@@ -46,6 +46,7 @@ enum grammarName      //various possible output formats
     vocab,
     complete_grammar,
     quick_dict,
+    quick_lm,
     no_grammar
 };
 

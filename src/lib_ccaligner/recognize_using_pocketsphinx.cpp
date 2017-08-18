@@ -415,8 +415,6 @@ bool PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
 
 bool PocketsphinxAligner::recognise()
 {
-    std::cout << "Beginning recognition and alignment..\n";
-
     int subCount = 1;
     initFile(_outputFileName, _parameters->outputFormat);
 
@@ -431,6 +429,8 @@ bool PocketsphinxAligner::recognise()
     {
         recognitionWindow = _sampleWindow;
     }
+
+    std::cout << "Recognising and aligning..\n";
 
     for (SubtitleItem *sub : _subtitles)
     {

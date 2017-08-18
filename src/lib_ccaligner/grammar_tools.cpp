@@ -8,10 +8,17 @@
 
 bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 {
-    bool generateQuickDict = false;
+    bool generateQuickDict = false, generateQuickLM = false;
+
     if(name==quick_dict)
     {
         generateQuickDict = true;
+        name = complete_grammar;
+    }
+
+    else if(name==quick_lm)
+    {
+        generateQuickLM = true;
         name = complete_grammar;
     }
 
@@ -171,6 +178,8 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
         {
             FATAL(EXIT_FAILURE, "Something went wrong while creating vocabulary!");
         }
+
+
     }
 
     if(name == dict || name == complete_grammar)
@@ -233,19 +242,40 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     {
         std::cout<<"Creating Biased Language Model : tempFiles/lm/complete.lm\n";
 
-        rv = std::system("text2idngram -vocab tempFiles/vocab/complete.vocab -idngram tempFiles/lm/lm.idngram <  tempFiles/corpus/corpus.txt");
-
-        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        if(generateQuickLM)
         {
-            FATAL(EXIT_FAILURE, "Something went wrong while creating idngram file!");
+            rv = std::system("perl quick_lm.pl -s tempFiles/corpus/corpus.txt");
+            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            {
+                FATAL(EXIT_FAILURE, "Something went wrong while creating Phonetic Language Model!");
+            }
+
+            rv = std::system("mv tempFiles/corpus/corpus.txt.arpabo tempFiles/lm/complete.lm ");
+
+            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            {
+                FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!s");
+            }
         }
 
-        rv = std::system("idngram2lm -vocab_type 0 -idngram tempFiles/lm/lm.idngram -vocab tempFiles/vocab/complete.vocab  -arpa tempFiles/lm/complete.lm");
-
-        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        else
         {
-            FATAL(EXIT_FAILURE, "Something went wrong while creating biased language model!");
+            rv = std::system("text2idngram -vocab tempFiles/vocab/complete.vocab -idngram tempFiles/lm/lm.idngram <  tempFiles/corpus/corpus.txt >> /dev/null");
+
+            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            {
+                FATAL(EXIT_FAILURE, "Something went wrong while creating idngram file!");
+            }
+
+            rv = std::system("idngram2lm -vocab_type 0 -idngram tempFiles/lm/lm.idngram -vocab tempFiles/vocab/complete.vocab  -arpa tempFiles/lm/complete.lm >> /dev/null");
+
+            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            {
+                FATAL(EXIT_FAILURE, "Something went wrong while creating biased language model!");
+            }
         }
+
+
     }
 
     if(name == phone_lm  || name == complete_grammar )
