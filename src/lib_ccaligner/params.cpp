@@ -59,7 +59,7 @@ void Params::inputParams(int argc, char *argv[])
         else
             subParam = "";
 
-        if(paramPrefix== "-in")
+        if(paramPrefix== "-wav")
         {
             if(i+1 > argc)
             {
