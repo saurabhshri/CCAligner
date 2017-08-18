@@ -181,7 +181,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             try
             {
-                dictDump.open("tempFiles/dict/complete.dict", std::ios::binary | std::ios::app);
+                dictDump.open("tempFiles/dict/complete.dict", std::ios::binary);
             }
 
             catch(std::system_error& e)
@@ -191,16 +191,23 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             std::string word;
             std::vector<std::string> phonemes;
+            bool beginWriting = false;
 
             while (std::getline(vocabInput, word))
             {
-                phonemes = stringToPhoneme(word);
+                if(beginWriting)
+                {
+                    phonemes = stringToPhoneme(word);
 
-                dictDump<<word<<" ";
+                    dictDump<<word<<" ";
 
-                for(std::string ph : phonemes)
-                    dictDump<<ph<<" ";
-                dictDump<<"\n";
+                    for(std::string ph : phonemes)
+                        dictDump<<ph<<" ";
+                    dictDump<<"\n";
+                }
+                
+                if(word == "<s>")
+                    beginWriting = true;
             }
 
             vocabInput.close();
