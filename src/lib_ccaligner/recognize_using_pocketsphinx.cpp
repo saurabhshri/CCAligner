@@ -420,6 +420,18 @@ bool PocketsphinxAligner::recognise()
     int subCount = 1;
     initFile(_outputFileName, _parameters->outputFormat);
 
+    long int recognitionWindow = 0;
+
+    if(_audioWindow)
+    {
+        recognitionWindow = _audioWindow * 16;
+    }
+
+    else if(_sampleWindow)
+    {
+        recognitionWindow = _sampleWindow;
+    }
+
     for (SubtitleItem *sub : _subtitles)
     {
         if (sub->getDialogue().empty())
@@ -438,17 +450,16 @@ bool PocketsphinxAligner::recognise()
         long int samplesAlreadyRead = dialogueStartsAt * 16;
         long int samplesToBeRead = dialogueLastsFor * 16;
 
-        long int recognitionWindow = 0;
+        if((samplesAlreadyRead - recognitionWindow) >= 0)
+            samplesAlreadyRead -= recognitionWindow;
+        else
+            samplesAlreadyRead = 0;
 
-        if(_audioWindow)
-        {
-            recognitionWindow = _audioWindow * 16;
-        }
+        if((samplesToBeRead + (2 * recognitionWindow)) < _samples.size())
+            samplesToBeRead += (2 * recognitionWindow);
 
-        else if(_sampleWindow)
-        {
-            recognitionWindow = _sampleWindow;
-        }
+        else
+            samplesToBeRead = _samples.size() - 1;
 
         /*
          * 00:00:19,320 --> 00:00:21,056
@@ -466,7 +477,7 @@ bool PocketsphinxAligner::recognise()
         const int16_t *sample = _samples.data();
 
         _rvWord = ps_start_utt(_psWordDecoder);
-        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + (2 * recognitionWindow), FALSE, FALSE);
+        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead, samplesToBeRead, FALSE, FALSE);
         _rvWord = ps_end_utt(_psWordDecoder);
 
         _hypWord = ps_get_hyp(_psWordDecoder, &_scoreWord);
@@ -497,7 +508,7 @@ bool PocketsphinxAligner::recognise()
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
         if(_parameters->searchPhonemes)
-            recognisePhonemes(sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + recognitionWindow , sub);
+            recognisePhonemes(sample + samplesAlreadyRead, samplesToBeRead, sub);
 
         switch (_parameters->outputFormat)  //decide on based of set output format
         {
@@ -684,6 +695,18 @@ bool PocketsphinxAligner::alignWithFSG()
     int subCount = 1;
     initFile(_outputFileName, _parameters->outputFormat);
 
+    long int recognitionWindow = 0;
+
+    if(_audioWindow)
+    {
+        recognitionWindow = _audioWindow * 16;
+    }
+
+    else if(_sampleWindow)
+    {
+        recognitionWindow = _sampleWindow;
+    }
+
     for (SubtitleItem *sub : _subtitles)
     {
         if (sub->getDialogue().empty())
@@ -731,22 +754,21 @@ bool PocketsphinxAligner::alignWithFSG()
         long int samplesAlreadyRead = dialogueStartsAt * 16;
         long int samplesToBeRead = dialogueLastsFor * 16;
 
-        long int recognitionWindow = 0;
+        if((samplesAlreadyRead - recognitionWindow) >= 0)
+            samplesAlreadyRead -= recognitionWindow;
+        else
+            samplesAlreadyRead = 0;
 
-        if(_audioWindow)
-        {
-            recognitionWindow = _audioWindow * 16;
-        }
+        if((samplesToBeRead + (2 * recognitionWindow)) < _samples.size())
+            samplesToBeRead += (2 * recognitionWindow);
 
-        else if(_sampleWindow)
-        {
-            recognitionWindow = _sampleWindow;
-        }
+        else
+            samplesToBeRead = _samples.size() - 1;
 
         const int16_t *sample = _samples.data();
 
         _rvWord = ps_start_utt(_psWordDecoder);
-        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead - recognitionWindow, samplesToBeRead + (2 * recognitionWindow), FALSE, FALSE);
+        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead, samplesToBeRead, FALSE, FALSE);
         _rvWord = ps_end_utt(_psWordDecoder);
 
         _hypWord = ps_get_hyp(_psWordDecoder, &_scoreWord);
