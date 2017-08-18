@@ -18,7 +18,7 @@ public:
     grammarName grammarType;
     outputFormats outputFormat;
     outputOptions printOption;
-    bool verbosity, useFSG, transcribe, useBatchMode, useExperimentalParams, searchPhonemes, displayRecognised;
+    bool verbosity, useFSG, transcribe, useBatchMode, useExperimentalParams, searchPhonemes, displayRecognised, readStream;
 
     Params();
     void inputParams(int argc, char *argv[]);

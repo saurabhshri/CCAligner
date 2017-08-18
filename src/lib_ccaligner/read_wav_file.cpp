@@ -268,6 +268,8 @@ bool WaveFileData::openFile ()
 
 int WaveFileData::processStreamHeader()
 {
+    LOG("Processing Stream Header!");
+    LOG("Checking chunkID, should be RIFF");
     unsigned char byteData;
     std::string riff ("RIFF"), wave ("WAVE");
     bool riffRead = false;                      //are 'RIFF' bytes read?
@@ -286,7 +288,12 @@ int WaveFileData::processStreamHeader()
             }
 
             if (currentByteCount == 3)
+            {
                 riffRead = true;
+                LOG("chunkID = RIFF confirmed!");
+                LOG("Checking WAV file header, should be WAVE");
+
+            }
         }
 
         else
@@ -301,6 +308,7 @@ int WaveFileData::processStreamHeader()
                 if (currentByteCount == 11)
                 {
                     return chunkSize - 8;
+                    LOG("wav header = WAVE confirmed!");
                 }
             }
 
@@ -316,8 +324,9 @@ int WaveFileData::processStreamHeader()
 
 int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
 {
+    LOG("Checking SubChunk1ID, should be fmt");
+
     unsigned char byteData;
-    //char *fmt = "fmt";
     std::string fmt ("fmt");
     int fmtCount = 0, readBytes = 0;
 
@@ -333,6 +342,8 @@ int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
 
             if(fmtCount == 3)           //definitely 'fmt'
             {
+                LOG("SubChunk1ID = fmt confirmed!");
+
                 std::cin>>std::noskipws>>byteData;
                 _fileData.push_back(byteData);
                 return readBytes + 1;   // +1 because the block is 4 bytes 'fmt' + ' ' an empty byte.
@@ -356,6 +367,8 @@ int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
 
 int WaveFileData::validateSubChunk1(int remainingBytes)
 {
+    LOG("Validating SubChunk1");
+
     unsigned char byteData;
     std::vector<unsigned char> fmtBlock;
     int currentByteCount = -1;
@@ -424,6 +437,8 @@ int WaveFileData::validateSubChunk1(int remainingBytes)
 
 int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
 {
+    LOG("Reading SubChunk2");
+
     unsigned char byteData;
     //char *data = "data";
     std::string data ("data");
@@ -474,6 +489,8 @@ int WaveFileData::getNumberOfSamples()
 
 bool WaveFileData::readSamplesFromStream(int numberOfSamples)
 {
+    LOG("Reading and decoding samples from stream..");
+
     unsigned char byteData;
     std::vector<unsigned char> twoBytes;
     int two = 0, bytesRead = 0;
@@ -503,6 +520,9 @@ bool WaveFileData::readSamplesFromStream(int numberOfSamples)
     {
         std::cout<<"\nReceived less number of samples then the expected amount! Still processing.";
     }
+
+    LOG("Samples read and decoded!");
+
 
     return -1;
 

@@ -45,6 +45,7 @@ Params::Params()
     useExperimentalParams = false;
     searchPhonemes = false;
     displayRecognised = true;
+    readStream = false;
 }
 
 void Params::inputParams(int argc, char *argv[])
@@ -81,6 +82,11 @@ void Params::inputParams(int argc, char *argv[])
 
             subtitleFileName = subParam;
             i++;
+        }
+
+        else if(paramPrefix== "-" || paramPrefix== "-stdin")
+        {
+            readStream = true;
         }
 
         else if(paramPrefix== "-out")
@@ -453,7 +459,7 @@ void Params::inputParams(int argc, char *argv[])
 
         else
         {
-            FATAL(EXIT_INVALID_PARAMETERS, "Parameter ' %s ' not recognised!", paramPrefix.c_str());
+            FATAL(EXIT_INVALID_PARAMETERS, "Parameter '%s' not recognised!", paramPrefix.c_str());
         }
 
     }
@@ -464,7 +470,7 @@ void Params::inputParams(int argc, char *argv[])
 
 void Params::validateParams()
 {
-    if(audioFileName.empty())
+    if(audioFileName.empty() && !readStream)
         FATAL(EXIT_INVALID_PARAMETERS, "Audio file name is empty!");
 
     if(subtitleFileName.empty())
@@ -490,6 +496,11 @@ void Params::validateParams()
 
     if(phonemeLogPath.empty())
         LOG("Using default Phoneme Log Path.");
+
+    if(readStream)
+    {
+        audioFileName = "stdin";
+    }
 
     if(outputFileName.empty())
     {

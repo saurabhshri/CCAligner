@@ -38,7 +38,14 @@ bool PocketsphinxAligner::processFiles()
     LOG("Audio Filename : %s Subtitle filename : %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
     std::cout << "Reading and decoding audio samples..\n";
-    WaveFileData *file = new WaveFileData(_audioFileName);
+
+    WaveFileData *file;
+
+    if(_parameters->readStream)
+        file = new WaveFileData(readStreamDirectly);
+    else
+        file=  new WaveFileData(_audioFileName);
+
     file->read();
     _samples = file->getSamples();
 
