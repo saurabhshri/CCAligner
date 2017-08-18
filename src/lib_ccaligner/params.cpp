@@ -44,6 +44,7 @@ Params::Params()
     useBatchMode = false;
     useExperimentalParams = false;
     searchPhonemes = false;
+    displayRecognised = true;
 }
 
 void Params::inputParams(int argc, char *argv[])
@@ -340,6 +341,20 @@ void Params::inputParams(int argc, char *argv[])
             i++;
         }
 
+        else if(paramPrefix== "--display-recognised")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            if(subParam  == "no")
+                displayRecognised = false;
+
+            i++;
+        }
+
         else if(paramPrefix== "-searchWindow")
         {
             if(i+1 > argc)
@@ -438,7 +453,7 @@ void Params::inputParams(int argc, char *argv[])
 
         else
         {
-            FATAL(EXIT_INVALID_PARAMETERS, "Parameter %s not recognised!", paramPrefix.c_str());
+            FATAL(EXIT_INVALID_PARAMETERS, "Parameter ' %s ' not recognised!", paramPrefix.c_str());
         }
 
     }
@@ -504,6 +519,11 @@ void Params::validateParams()
         FATAL(EXIT_INCOMPATIBLE_PARAMETERS , "FSG and Transcribing are not compatible!");
     }
 
+    if(searchPhonemes && transcribe)
+    {
+        FATAL(EXIT_INCOMPATIBLE_PARAMETERS , "Sorry, currently phoneme transcribing is not supported!");
+    }
+
     if(verbosity)
     {
         should_log = true;
@@ -513,36 +533,38 @@ void Params::validateParams()
 
 void Params::printParams()
 {
-    std::cout<<"\n\nParsed Configuration : \n\n";
-    std::cout<<"audioFileName : "<<audioFileName<<"\n";
-    std::cout<<"subtitleFileName : "<<subtitleFileName<<"\n";
-    std::cout<<"outputFileName : "<<outputFileName<<"\n";
-    std::cout<<"modelPath : "<<modelPath<<"\n";
-    std::cout<<"lmPath : "<<lmPath<<"\n";
-    std::cout<<"dictPath : "<<dictPath<<"\n";
-    std::cout<<"fsgPath : "<<fsgPath<<"\n";
+    std::cout<<"audioFileName       : "<<audioFileName<<"\n";
+    std::cout<<"subtitleFileName    : "<<subtitleFileName<<"\n";
+    std::cout<<"outputFileName      : "<<outputFileName<<"\n";
+    std::cout<<"modelPath           : "<<modelPath<<"\n";
+    std::cout<<"lmPath              : "<<lmPath<<"\n";
+    std::cout<<"dictPath            : "<<dictPath<<"\n";
+    std::cout<<"fsgPath             : "<<fsgPath<<"\n";
 
-    std::cout<<"phoneticlmPath : "<<phoneticlmPath<<"\n";
+    std::cout<<"phoneticlmPath      : "<<phoneticlmPath<<"\n";
 
-    std::cout<<"logPath : "<<logPath<<"\n";
-    std::cout<<"phonemeLogPath : "<<phonemeLogPath<<"\n";
+    std::cout<<"logPath             : "<<logPath<<"\n";
+    std::cout<<"phonemeLogPath      : "<<phonemeLogPath<<"\n";
 
-    std::cout<<"sampleWindow : "<<sampleWindow<<"\n";
-    std::cout<<"audioWindow : "<<audioWindow<<"\n";
-    std::cout<<"searchWindow: "<<searchWindow<<"\n";
+    std::cout<<"sampleWindow        : "<<sampleWindow<<"\n";
+    std::cout<<"audioWindow         : "<<audioWindow<<"\n";
+    std::cout<<"searchWindow        : "<<searchWindow<<"\n";
 
 
-    std::cout<<"chosenAlignerType : "<<chosenAlignerType<<"\n";
-    std::cout<<"grammarType : "<<grammarType<<"\n";
-    std::cout<<"outputFormat : "<<outputFormat<<"\n";
-    std::cout<<"printOption : "<<printOption<<"\n";
+    std::cout<<"chosenAlignerType   : "<<chosenAlignerType<<"\n";
+    std::cout<<"grammarType         : "<<grammarType<<"\n";
+    std::cout<<"outputFormat        : "<<outputFormat<<"\n";
+    std::cout<<"printOption         : "<<printOption<<"\n";
 
-    std::cout<<"verbosity : "<<verbosity<<"\n";
-    std::cout<<"useFSG : "<<useFSG<<"\n";
-    std::cout<<"transcribe : "<<transcribe<<"\n";
-    std::cout<<"useBatchMode : "<<useBatchMode<<"\n";
-    std::cout<<"useExperimentalParams : "<< useExperimentalParams<<"\n";
-    std::cout<<"searchPhonemes : "<<searchPhonemes<<"\n\n\n";
+    std::cout<<"verbosity           : "<<verbosity<<"\n";
+    std::cout<<"useFSG              : "<<useFSG<<"\n";
+    std::cout<<"transcribe          : "<<transcribe<<"\n";
+    std::cout<<"useBatchMode        : "<<useBatchMode<<"\n";
+    std::cout<<"ExperimentalParams  : "<< useExperimentalParams<<"\n";
+    std::cout<<"searchPhonemes      : "<<searchPhonemes<<"\n\n\n";
+
+    std::cout<<"=====================================================\n\n";
+
 }
 
 Params::~Params()

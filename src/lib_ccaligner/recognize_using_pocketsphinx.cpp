@@ -37,6 +37,7 @@ bool PocketsphinxAligner::processFiles()
     LOG("Initialising Aligner using PocketSphinx");
     LOG("Audio Filename : %s Subtitle filename : %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
+    std::cout << "Reading and decoding audio samples..\n";
     WaveFileData *file = new WaveFileData(_audioFileName);
     file->read();
     _samples = file->getSamples();
@@ -51,7 +52,14 @@ bool PocketsphinxAligner::generateGrammar(grammarName name)
 {
     LOG("Generating Grammar based on subtitles, Grammar Name : %d ", name);
 
-    std::cout << "Generating Grammar based on subtitles..\n";
+    std::cout << "Generating language model and grammar files..\n";
+
+    if(_parameters->grammarType == complete_grammar || _parameters->grammarType == dict)
+    {
+        std::cout << "Note : You have chosen to generate dictionary. Based on your TensorFlow configuration,\n";
+        std::cout << "this may take some time, please be patient. For alternatives, see docs.\n";
+    }
+
     generate(_subtitles, name);
 }
 
@@ -59,6 +67,7 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
 {
     LOG("Initialising PocketSphinx decoder");
 
+    std::cout << "Initialising PocketSphinx decoder..\n";
     _modelPath = modelPath;
     _lmPath = lmPath;
     _dictPath = dictPath;
@@ -152,6 +161,8 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
 bool PocketsphinxAligner::initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath)
 {
     LOG("Initialising PocketSphinx phoneme decoder");
+
+    std::cout << "Initialising PocketSphinx phoneme decoder..\n";
 
     _phoneticlmPath = phoneticlmPath;
     _phonemeLogPath = phonemeLogPath;
@@ -350,17 +361,19 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
 
             if (distance < largerLength * 0.25)   //at least 75% must match
             {
-                std::cout << "Possible Match : " << words[wordIndex];
 
                 lastWordFoundAtIndex = wordIndex;
                 sub->setWordRecognisedStatusByIndex(true, wordIndex);
                 sub->setWordTimesByIndex(startTime, endTime, wordIndex);
 
-                std::cout << "\t\tStart : \t\t" << sub->getWordStartTimeByIndex(wordIndex);
-                std::cout << "\tEnd : \t\t" << sub->getWordEndTimeByIndex(wordIndex);
-                std::cout << "\tDuration : \t\t" << sub->getWordEndTimeByIndex(wordIndex) - sub->getWordStartTimeByIndex(wordIndex);
-
-                std::cout << std::endl;
+                if(_parameters->displayRecognised)
+                {
+                    std::cout << "Possible Match : " << words[wordIndex];
+                    std::cout << "\t\tStart : \t\t" << sub->getWordStartTimeByIndex(wordIndex);
+                    std::cout << "\tEnd : \t\t" << sub->getWordEndTimeByIndex(wordIndex);
+                    std::cout << "\tDuration : \t\t" << sub->getWordEndTimeByIndex(wordIndex) - sub->getWordStartTimeByIndex(wordIndex);
+                    std::cout << "\n";
+                }
 
                 break;
             }
@@ -395,6 +408,8 @@ bool PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
 
 bool PocketsphinxAligner::recognise()
 {
+    std::cout << "Beginning recognition and alignment..\n";
+
     int subCount = 1;
     initFile(_outputFileName, _parameters->outputFormat);
 
@@ -452,17 +467,25 @@ bool PocketsphinxAligner::recognise()
         if (_hypWord == NULL)
         {
             _hypWord = "NULL";
-            std::cout << "\n\n-----------------------------------------\n\n";
-            std::cout << "Recognised  : " << _hypWord << "\n";
+
+            if(_parameters->displayRecognised)
+            {
+                std::cout << "\n\n-----------------------------------------\n\n";
+                std::cout << "Recognised  : " << _hypWord << "\n";
+            }
+
             continue;
 
         }
 
-        std::cout << "\n\n-----------------------------------------\n\n";
-        std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
-        std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
-        std::cout << "Recognised  : " << _hypWord << "\n";
-        std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
+        if(_parameters->displayRecognised)
+        {
+            std::cout << "\n\n-----------------------------------------\n\n";
+            std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
+            std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
+            std::cout << "Recognised  : " << _hypWord << "\n";
+            std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
+        }
 
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
@@ -492,12 +515,16 @@ bool PocketsphinxAligner::recognise()
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
 
+    std::cout << "Finished recognition and alignment..\n";
 }
 
 bool PocketsphinxAligner::align()
 {
-    generateGrammar(_parameters->grammarType);
+    if(_parameters->grammarType != no_grammar)
+        generateGrammar(_parameters->grammarType);
+
     initDecoder(_parameters->modelPath, _parameters->lmPath, _parameters->dictPath, _parameters->fsgPath, _parameters->logPath);
+
     if(_parameters->transcribe)
     {
         transcribe();
@@ -569,6 +596,8 @@ int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder
 
 bool PocketsphinxAligner::transcribe()
 {
+    std::cout << "Transcribing..\n";
+
     //pointer to samples
     const int16_t *sample = _samples.data();
 
@@ -607,7 +636,8 @@ bool PocketsphinxAligner::transcribe()
 
             if (_hypWord != NULL)
             {
-                std::cout << "Recognised  : " << _hypWord << "\n";
+                if(_parameters->displayRecognised)
+                    std::cout << "Recognised  : " << _hypWord << "\n";
                 index = findTranscribedWordTimings(_configWord, _psWordDecoder, index);
             }
 
@@ -626,12 +656,15 @@ bool PocketsphinxAligner::transcribe()
         _hypWord = ps_get_hyp(_psWordDecoder, NULL);
         if (_hypWord != NULL)
         {
-            std::cout << "Recognised  : " << _hypWord << "\n";
+            if(_parameters->displayRecognised)
+                std::cout << "Recognised  : " << _hypWord << "\n";
             index = findTranscribedWordTimings(_configWord, _psWordDecoder, index);
         }
     }
 
     printTranscriptionFooter(_outputFileName, _parameters->outputFormat);
+
+    std::cout << "Finished transcription.\n";
 }
 
 bool PocketsphinxAligner::reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps)
@@ -714,17 +747,25 @@ bool PocketsphinxAligner::alignWithFSG()
         if (_hypWord == NULL)
         {
             _hypWord = "NULL";
-            std::cout << "\n\n-----------------------------------------\n\n";
-            std::cout << "Recognised  : " << _hypWord << "\n";
+
+            if(_parameters->displayRecognised)
+            {
+                std::cout << "\n\n-----------------------------------------\n\n";
+                std::cout << "Recognised  : " << _hypWord << "\n";
+            }
+
             continue;
 
         }
 
-        std::cout << "\n\n-----------------------------------------\n\n";
-        std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
-        std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
-        std::cout << "Recognised  : " << _hypWord << "\n";
-        std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
+        if(_parameters->displayRecognised)
+        {
+            std::cout << "\n\n-----------------------------------------\n\n";
+            std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
+            std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
+            std::cout << "Recognised  : " << _hypWord << "\n";
+            std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
+        }
 
         recognisedBlock currBlock = findAndSetWordTimes(subConfig, _psWordDecoder, sub);
 
