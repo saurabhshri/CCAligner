@@ -34,7 +34,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     LOG("Directories created successfully!");
 
-    std::ofstream corpusDump, phoneticCorpusDump, fsgDump, vocabDump, dictDump;
+    std::ofstream corpusDump, phoneticCorpusDump, fsgDump, vocabDump, dictDump, logDump;
 
     //setting exceptions to be thrown on failure
     corpusDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -42,6 +42,18 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     vocabDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     dictDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     phoneticCorpusDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    logDump.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+    try
+    {
+        logDump.open("tempFiles/grammar.log",std::ios::binary);
+        logDump.close();
+    }
+
+    catch(std::system_error& e)
+    {
+        FATAL(EXIT_FAILURE, e.code().message().c_str());
+    }
 
     if(name == corpus || name == complete_grammar)
     {
