@@ -11,7 +11,7 @@ Params::Params()
 {
     audioFileName = "";
     subtitleFileName = "";
-    outputFileName = "output";
+    outputFileName = "";
     modelPath = "model/";
     lmPath = "tempFiles/lm/complete.lm";
     dictPath = "tempFiles/dict/complete.dict";
