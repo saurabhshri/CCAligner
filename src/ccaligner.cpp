@@ -17,6 +17,30 @@ void printUsage()
           "NOTE : This tool is in it's early stage and is constantly evolving; things are likely to change!";
 }
 
+void printHeader(std::string version)
+{
+    std::cout<<"\n";
+    std::cout<<"  ____ ____    _    _ _                       \n";
+    std::cout<<" / ___/ ___|  / \\  | (_) __ _ _ __   ___ _ __ \n";
+    std::cout<<"| |  | |     / _ \\ | | |/ _` | '_ \\ / _ \\ '__|\n";
+    std::cout<<"| |__| |___ / ___ \\| | | (_| | | | |  __/ |   \n";
+    std::cout<<" \\____\\____/_/   \\_\\_|_|\\__, |_| |_|\\___|_|   \n";
+    std::cout<<"                        |___/                 \n\n";
+
+    std::cout<<"CCAligner "<<version<<"\n";
+    std::cout<<"Word by Word Audio-Subtitle Synchronization\n";
+    std::cout<<"Saurabh Shrivastava | saurabh.shrivastava54@gmail.com\n";
+    std::cout<<"https://github.com/saurabhshri/CCAligner\n";
+    std::cout<<"=====================================================\n\n";
+}
+
+void printFooter()
+{
+    std::cout<<"\n\n=====================================================\n";
+    std::cout<<"Issues? Open a ticket here\n";
+    std::cout<<"https://github.com/saurabhshri/CCAligner/issues\n";
+}
+
 CCAligner::CCAligner(Params * paramters)
 {
     _parameters = paramters;
@@ -36,6 +60,7 @@ int CCAligner::initAligner()
     {
         PocketsphinxAligner * aligner = new PocketsphinxAligner(_parameters);
         aligner->align();
+        //aligner->printAligned("Manual_Printing.json", json);
         delete(aligner);
     }
 
@@ -55,6 +80,8 @@ CCAligner::~CCAligner()
 
 int main(int argc, char *argv[])
 {
+    printHeader("0.03 Alpha [Shubham]");
+
     Params *paramters = new Params();
     paramters->inputParams(argc,argv);
 
@@ -62,6 +89,9 @@ int main(int argc, char *argv[])
     ccaligner->initAligner();
 
     delete(ccaligner);
+    delete(paramters);
+
+    printFooter();
 
     return 0;
 }
