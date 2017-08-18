@@ -205,7 +205,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
                         dictDump<<ph<<" ";
                     dictDump<<"\n";
                 }
-                
+
                 if(word == "<s>")
                     beginWriting = true;
             }

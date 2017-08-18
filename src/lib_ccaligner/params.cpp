@@ -46,7 +46,7 @@ Params::Params()
     searchPhonemes = false;
     displayRecognised = true;
     readStream = false;
-    quickDict = true;
+    quickDict = false;
 }
 
 void Params::inputParams(int argc, char *argv[])
@@ -281,8 +281,8 @@ void Params::inputParams(int argc, char *argv[])
                 exit(2);
             }
 
-            if(subParam == "no")
-                quickDict = false;
+            if(subParam == "yes")
+                quickDict = true;
 
             i++;
         }
