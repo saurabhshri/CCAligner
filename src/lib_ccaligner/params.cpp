@@ -46,6 +46,7 @@ Params::Params()
     searchPhonemes = false;
     displayRecognised = true;
     readStream = false;
+    quickDict = true;
 }
 
 void Params::inputParams(int argc, char *argv[])
@@ -268,6 +269,20 @@ void Params::inputParams(int argc, char *argv[])
                 std::cout<<"Incorrect parameters, parsing failed!";
                 exit(2);
             }
+
+            i++;
+        }
+
+        else if(paramPrefix == "--quick-dict")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            if(subParam == "no")
+                quickDict = false;
 
             i++;
         }
@@ -524,6 +539,9 @@ void Params::validateParams()
                 exit(2);
         }
     }
+
+    if(grammarType == complete_grammar && quickDict)
+        grammarType = quick_dict;
 
     if(useFSG && transcribe)
     {

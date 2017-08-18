@@ -8,6 +8,13 @@
 
 bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 {
+    bool generateQuickDict = false;
+    if(name==quick_dict)
+    {
+        generateQuickDict = true;
+        name = complete_grammar;
+    }
+
     //create temporary directories in case it doesn't exist
     LOG("Creating temp directories at tempFiles/");
 
@@ -168,14 +175,49 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == dict || name == complete_grammar)
     {
-        std::cout<<"Creating Dictionary, this might take a little time depending "
-            "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
-        rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
-
-        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        if(generateQuickDict)
         {
-            FATAL(EXIT_FAILURE, "Something went wrong while creating dictionary!");
+            std::ifstream vocabInput("tempFiles/vocab/complete.vocab");
+
+            try
+            {
+                dictDump.open("tempFiles/dict/complete.dict", std::ios::binary | std::ios::app);
+            }
+
+            catch(std::system_error& e)
+            {
+                FATAL(EXIT_FAILURE, e.code().message().c_str());
+            }
+
+            std::string word;
+            std::vector<std::string> phonemes;
+
+            while (std::getline(vocabInput, word))
+            {
+                phonemes = stringToPhoneme(word);
+
+                for(std::string ph : phonemes)
+                    dictDump<<ph<<" ";
+                dictDump<<"\n";
+            }
+
+            vocabInput.close();
+            dictDump.close();
+
         }
+
+        else
+        {
+            std::cout<<"Creating Dictionary, this might take a little time depending "
+                "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
+            rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
+
+            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            {
+                FATAL(EXIT_FAILURE, "Something went wrong while creating dictionary!");
+            }
+        }
+
     }
 
     if(name == lm || name == complete_grammar )
