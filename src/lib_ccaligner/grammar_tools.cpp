@@ -196,6 +196,8 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
             {
                 phonemes = stringToPhoneme(word);
 
+                dictDump<<word<<" ";
+
                 for(std::string ph : phonemes)
                     dictDump<<ph<<" ";
                 dictDump<<"\n";
