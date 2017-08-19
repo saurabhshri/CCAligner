@@ -606,3 +606,8 @@ std::vector<int16_t> WaveFileData::getSamples()
 {
     return _samples;    //returning sample vector
 }
+
+WaveFileData::~WaveFileData()
+{
+
+}
