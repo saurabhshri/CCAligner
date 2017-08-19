@@ -83,6 +83,252 @@ CCAligner::~CCAligner()
 
 int main(int argc, char *argv[])
 {
+    //default values :
+
+    std::string modelPath ("model"), lmPath ("tempFiles/lm/complete.lm"), dictPath ("tempFiles/dict/complete.dict"), fsgPath ("tempFiles/fsg/"), logPath ("tempFiles/log.log");
+    int generateGrammar = 1;    //1 = print, 0 = don't print, 2 = print corpus for web tool
+    srtOptions printOptions = printBothWithDistinctColors;
+    bool useFSG = false, transcribe = false;
+
+
+    std::string audioFileName, subtitleFileName;
+
+    for(int i=1;i<argc;i++)         //parsing arguments
+    {
+        std::string param(argv[i]);
+
+        if(param == "-model")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            modelPath = argv[i+1];
+            i++;
+        }
+
+        if(param == "-lm")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            lmPath = argv[i+1];
+            i++;
+        }
+
+
+        if(param == "-dict")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            dictPath = argv[i+1];
+            i++;
+        }
+
+
+        if(param == "-fsg")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            fsgPath = argv[i+1];
+            i++;
+        }
+
+
+        if(param == "-log")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            logPath = argv[i+1];
+            i++;
+        }
+
+        if(param == "--generate-grammar")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            std::string subParam (argv[i+1]);
+
+            if(subParam == "true")
+                generateGrammar = 1;
+
+            else if(subParam == "false")
+                generateGrammar = 0;
+
+            else if(subParam == "printCorpus")
+                generateGrammar = 2;
+
+            else
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            i++;
+        }
+
+        if(param == "-in")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            audioFileName = argv[i+1];
+            i++;
+        }
+
+        if(param == "-srt")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            subtitleFileName = argv[i+1];
+            i++;
+        }
+
+        if(param == "--print-aligned")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            std::string subParam (argv[i+1]);
+
+            if(subParam == "color")
+                printOptions = printBothWithDistinctColors;
+
+            else if(subParam == "true")
+                printOptions = printOnlyRecognised;
+
+            else
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            i++;
+        }
+
+        if(param == "--print-as-karaoke")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            std::string subParam (argv[i+1]);
+
+            if(subParam == "color")
+                printOptions = printAsKaraokeWithDistinctColors;
+
+            else if(subParam == "true")
+                printOptions = printAsKaraoke;
+
+            else
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            i++;
+        }
+
+        if(param == "--use-fsg")
+        {
+            if(i+1 > argc)
+            {
+                std::cout<<"Incorrect parameters, parsing failed!";
+                exit(2);
+            }
+
+            std::string subParam (argv[i+1]);
+
+            if(subParam == "yes")
+                useFSG = true;
+
+            i++;
+        }
+
+        if(param == "-transcribe")
+        {
+            transcribe = true;
+        }
+
+    }
+
+
+    if(audioFileName.empty() || subtitleFileName.empty())
+    {
+        std::cout<<"Filenames not supplied!";
+        exit(2);
+    }
+
+    Aligner * aligner = new Aligner(audioFileName, subtitleFileName);
+
+    if(generateGrammar == 1)
+        aligner->generateGrammar(all);
+
+    else if(generateGrammar == 2)
+    {
+        aligner->generateGrammar(corpus);
+        exit(0);
+    }
+
+    aligner->initDecoder(modelPath, lmPath, dictPath, fsgPath, logPath);
+
+    if(transcribe)
+    {
+        aligner->transcribe();
+    }
+
+    else
+    {
+        if(useFSG)
+            aligner->alignWithFSG();
+        else
+            aligner->align(printOptions);
+    }
+
+
+    delete(aligner);
+
+    /*
+    CCAligner *ccaligner = new CCAligner();
+    ccaligner->setAligner(approxAligner);
+    ccaligner->setOutputFormat(console);
+    ccaligner->setInputFileName(argv[2]);
+    ccaligner->initAligner();
+
+
     if(argc<2)
     {
         printUsage();
@@ -161,5 +407,7 @@ int main(int argc, char *argv[])
     ccaligner->initAligner();   //initialise the aligner as per the arguments.
 
     delete ccaligner;
+    */
+
     return 0;
 }

@@ -31,11 +31,12 @@
 *.out
 *.app
 
-# Cmake and IDE Stuff
+# Cmake / IDE / test Stuff
 .idea/
 build/
 cmake-build-debug/
+*.wav
 
 #mac
 .DS_Store
-*.wav
+._*

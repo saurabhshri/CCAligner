@@ -42,8 +42,7 @@ currentSub::currentSub(SubtitleItem *sub)
 
 }
 
-
-void currentSub::printToSRT(std::string fileName)
+void currentSub::printAsKaraoke(std::string fileName, srtOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);
@@ -61,8 +60,82 @@ void currentSub::printToSRT(std::string fileName)
         sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
 
         out<<timeline;
-        out<<_sub->getWordByIndex(i)<<"\n\n";
+
+        std::string outputLine = "";
+
+        for(int j=0;j<_sub->getWordCount();j++)
+        {
+            if(j == i)
+            {
+                if(printOption == printAsKaraokeWithDistinctColors)
+                {
+                    if(_sub->getWordRecognisedStatusByIndex(j))
+                        outputLine += " <font color='#0000FF'> ";
+
+                    else
+                        outputLine += " <font color='#A1E4D3'> ";
+
+                }
+
+                else
+                {
+                    outputLine += " <font color='#0000FF'> ";
+                }
+            }
+
+            else
+                outputLine += " <font color='#FFFFFF'> ";
+
+            outputLine += _sub->getWordByIndex(j);
+            outputLine += " </font>";
+        }
+
+        outputLine += "\n\n";
+
+        out<<outputLine;
     }
+
+    out.close();
+}
+
+
+void currentSub::printToSRT(std::string fileName, srtOptions printOption)
+{
+    std::ofstream out;
+    out.open(fileName, std::ofstream::app);
+
+    for(int i=0;i<_sub->getWordCount();i++)
+    {
+        if(printOption == printOnlyRecognised)
+        {
+            if(!_sub->getWordRecognisedStatusByIndex(i))
+                continue;
+
+        }
+        int hh1,mm1,ss1,ms1;
+        int hh2,mm2,ss2,ms2;
+        char timeline[128];
+
+        ms_to_srt_time(_sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
+        ms_to_srt_time(_sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
+
+        //printing in SRT format
+        sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
+
+        out<<timeline;
+
+        if(printOption == printBothWithDistinctColors)
+        {
+            if(!_sub->getWordRecognisedStatusByIndex(i))
+                out<<"<font color='#FF0000'>"<<_sub->getWordByIndex(i)<<"</font>"<<"\n\n";
+            else
+                out<<_sub->getWordByIndex(i)<<"\n\n";
+        }
+        else
+            out<<_sub->getWordByIndex(i)<<"\n\n";
+    }
+
+    out.close();
 }
 
 void currentSub::printToXML(std::string fileName)
@@ -117,6 +190,7 @@ void currentSub::printToConsole(std::string fileName)
 {
     for(int i=0;i<_sub->getWordCount();i++)
     {
+        //std::cout<<_sub->getWordByIndex(i)<<"\n";
         std::cout<<"START\n";
         std::cout<<"word    : "<<_sub->getWordByIndex(i)<<"\n";
         std::cout<<"start   : "<<_sub->getWordStartTimeByIndex(i)<<" ms\n";
@@ -185,6 +259,59 @@ void currentSub::run()
     _sub->setWordTimes(wordStartTime, wordEndTime, wordDuration);
 }
 
+void currentSub::alignNonRecognised(recognisedBlock currBlock)
+{
+    long int startTime = _sub->getStartTime(), endTime = _sub->getEndTime(), duration = startTime - endTime;
+
+    long int breakPoints [_sub->getWordCount() * 2 + 1][3];   //suppose there are silence after each word + start and end silence
+
+    for(int r = 0; r < _sub->getWordCount() * 2 + 1; r++)
+    {
+        for(int c = 0; c < 3; c++)
+        {
+            breakPoints[r][c] = 0;      //init with 0
+        }
+    }
+    //trimming starting and ending silences
+
+    if(currBlock.recognisedString[0] == "<s>")
+    {
+        startTime += currBlock.recognisedWordStartTimes[0];
+    }
+
+    if(currBlock.recognisedString[currBlock.recognisedString.size()] == "</s>")
+    {
+        endTime -= currBlock.recognisedWordEndTimes[currBlock.recognisedString.size()];
+    }
+
+    //creating breakpoints in the timeline for recognised words and silences
+
+    long int breakPointCounter = 0;
+
+    for(int i=0;i<_sub->getWordCount();i++)
+    {
+        if(_sub->getWordRecognisedStatusByIndex(i))
+        {
+            breakPoints[breakPointCounter][0] = _sub->getWordStartTimeByIndex(i);
+            breakPoints[breakPointCounter][1] = _sub->getWordEndTimeByIndex(i);
+            breakPoints[breakPointCounter][2] = i;
+            breakPointCounter++;
+        }
+    }
+
+    for(int i=0;i<currBlock.recognisedString.size();i++)
+    {
+        if(currBlock.recognisedString[i] == "<sil>")
+        {
+            breakPoints[breakPointCounter][0] = currBlock.recognisedWordStartTimes[i];
+            breakPoints[breakPointCounter][1] =  currBlock.recognisedWordEndTimes[i];
+            breakPoints[breakPointCounter][2] = -1;
+            breakPointCounter++;
+        }
+    }
+
+}
+
 currentSub::~currentSub()
 {
     _sub = NULL;
@@ -205,7 +332,7 @@ ApproxAligner::ApproxAligner(std::string fileName, outputFormats outputFormat)
     out.close();
 }
 
-void ApproxAligner::align()
+std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align()
 {
     SubtitleParserFactory *subParserFactory = new SubtitleParserFactory(_fileName);
     SubtitleParser *parser = subParserFactory->getParser();
@@ -218,7 +345,7 @@ void ApproxAligner::align()
 
         switch (_outputFormat)  //decide on based of set output format
         {
-            case srt:   currSub->printToSRT(_outputFileName);
+            case srt:   currSub->printToSRT(_outputFileName, printBothWihoutColors);
                         break;
 
             case xml:   currSub->printToXML(_outputFileName);
@@ -234,15 +361,12 @@ void ApproxAligner::align()
                         exit(2);
         }
 
-        delete currSub;
     }
 
-    delete parser;
-    delete subParserFactory;
+    return subtitles;
 }
 
 ApproxAligner::~ApproxAligner()
 {
-
 
 }

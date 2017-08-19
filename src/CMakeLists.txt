@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(ccaligner)
 
-set(CMAKE_CXX_STANDARD 11)
+if (CMAKE_VERSION VERSION_LESS "3.1")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set (CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}")
+    endif ()
+else ()
+    set (CMAKE_CXX_STANDARD 11)
+endif ()
 
 ######## INCLUDING LIBRARIES ########
 
@@ -33,14 +39,35 @@ add_library(webRTC ${webRTCVADFiles})
 set_target_properties(webRTC PROPERTIES FOLDER lib_ext)
 
 if(UNIX)
-    set (EXTRA_FLAGS ${EXTRA_FLAGS} -lpthread)
+    set (EXTRA_FLAGS ${EXTRA_FLAGS} -lpthread -pthread)
 endif(UNIX)
+
+#including PocketSphinx and Sphinxbase
+include_directories(lib_ext/pocketsphinx/include/
+        lib_ext/sphinxbase/include/
+)
+
+FILE(GLOB_RECURSE POCKETSPHINX_FILES "lib_ext/pocketsphinx/src/libpocketsphinx/*.c")
+add_library(pocketsphinx ${POCKETSPHINX_FILES})
+set_target_properties(pocketsphinx PROPERTIES FOLDER lib)
+
+
+FILE(GLOB_RECURSE SPHINXBASE_FILES "lib_ext/sphinxbase/src/libsphinxbase/*.c")
+add_library(sphinxbase ${SPHINXBASE_FILES})
+set_target_properties(sphinxbase PROPERTIES FOLDER lib)
+
+if(UNIX)
+    add_definitions(-DHAVE_UNISTD_H)
+endif(UNIX)
+
+target_link_libraries(pocketsphinx sphinxbase)
 
 #including CCAligner libraries
 include_directories(lib_ccaligner/)
 
 set(SOURCE_FILES
         ccaligner.cpp
+        ccaligner.h
         lib_ccaligner/generate_approx_timestamp.cpp
         lib_ccaligner/generate_approx_timestamp.h
         lib_ccaligner/voice_activity_detection.h
@@ -48,7 +75,11 @@ set(SOURCE_FILES
         lib_ccaligner/common_header_files.h
         lib_ccaligner/read_wav_file.h
         lib_ccaligner/read_wav_file.cpp
-        ccaligner.h)
+        lib_ccaligner/grammar_tools.cpp
+        lib_ccaligner/grammar_tools.h
+        lib_ccaligner/recognize_using_pocketsphinx.cpp
+        lib_ccaligner/recognize_using_pocketsphinx.h
+)
 
 add_executable(ccaligner ${SOURCE_FILES})
-target_link_libraries(ccaligner webRTC ${EXTRA_FLAGS})
+target_link_libraries(ccaligner webRTC  pocketsphinx sphinxbase ${EXTRA_FLAGS})

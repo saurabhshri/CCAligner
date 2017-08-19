@@ -8,6 +8,7 @@
 #define CCALIGNER_CCALIGNER_H
 
 #include "generate_approx_timestamp.h"
+#include "recognize_using_pocketsphinx.h"
 
 enum alignerType
 {

@@ -17,6 +17,179 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <regex>
+
+class recognisedBlock
+{
+public:
+    std::vector<std::string> recognisedString;
+    std::vector<long int> recognisedWordStartTimes;
+    std::vector<long int> recognisedWordEndTimes;
+};
+
+const std::vector<std::string> initialNumbers = { "zero", 
+                                           "one", 
+                                           "two", 
+                                           "three", 
+                                           "four", 
+                                           "five", 
+                                           "six", 
+                                           "seven", 
+                                           "eight", 
+                                           "nine", 
+                                           "ten", 
+                                           "eleven", 
+                                           "twelve", 
+                                           "thirteen", 
+                                           "fourteen" 
+};
+
+const std::vector<std::string> numberPrefixes = { "twen", 
+                                            "thir", 
+                                            "for", 
+                                            "fif", 
+                                            "six", 
+                                            "seven", 
+                                            "eigh", 
+                                            "nine" 
+};
+
+inline std::string numberToNumberName(const int number)
+{
+    if (number < 0)
+    {
+        return "minus " + numberToNumberName(-number);
+    }
+
+    if (number <= 14)
+        return initialNumbers.at(number);
+
+    if (number < 20)
+        return numberPrefixes.at(number - 12) + "teen";
+
+    if (number < 100)
+    {
+        unsigned int remainder = number - (static_cast<int>(number / 10) * 10);
+        return numberPrefixes.at(number / 10 - 2) + (0 != remainder ? "ty " + numberToNumberName(remainder) : "ty");
+    }
+
+    if (number < 1000)
+    {
+        unsigned int remainder = number - (static_cast<int>(number / 100) * 100);
+        return initialNumbers.at(number / 100) + (0 != remainder ? " hundred " + numberToNumberName(remainder) : " hundred");
+    }
+
+    if (number < 1000000)
+    {
+        unsigned int thousands = static_cast<int>(number / 1000);
+        unsigned int remainder = number - (thousands * 1000);
+        return numberToNumberName(thousands) + (0 != remainder ? " thousand " + numberToNumberName(remainder) : " thousand");
+    }
+
+    if (number < 1000000000)
+    {
+        unsigned int millions = static_cast<int>(number / 1000000);
+        unsigned int remainder = number - (millions * 1000000);
+        return numberToNumberName(millions) + (0 != remainder ? " million " + numberToNumberName(remainder) : " million");
+    }
+
+    throw std::out_of_range("numberToNumberName() value too large");
+}
+
+inline std::string splitNumberAndAlphabets(const std::string& in)
+{
+    return std::regex_replace(
+        in,
+        std::regex("(?:([a-zA-Z])([0-9]))|(?:([0-9])([a-zA-Z]))"),
+        "\\1\\3 \\2\\4",
+        std::regex_constants::format_sed
+    );
+}
+
+//basic tokenization : TODO : Add complete tokenization and make it efficient.
+inline std::vector<std::string> &splitDialogue(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+
+    while (getline(ss, item, delim)) {
+
+        bool tokenizeDirectly = false, firstSplit = false, wordHasAlpha = false, wordHasDigit = false;
+
+        for(char ch : item)
+        {
+            if(isdigit(ch))
+            {
+                wordHasDigit = true;
+            }
+            else
+            {
+                wordHasAlpha = true;
+            }
+
+            if(wordHasDigit)
+            {
+                if(wordHasAlpha)
+                {
+                    tokenizeDirectly = false;
+                    firstSplit = true;
+                    break;
+                }
+
+                else
+                {
+                    tokenizeDirectly = true;
+                    firstSplit = false;
+                }
+
+            }
+
+        }
+
+        if(tokenizeDirectly)
+        {
+            item = numberToNumberName(std::stoi(item));
+            std::stringstream ssss(item);
+            std::string itemIn;
+            while (getline(ssss, itemIn, delim)) {
+
+                elems.push_back(itemIn);
+            }
+        }
+
+        else if(firstSplit)
+        {
+           item =  splitNumberAndAlphabets(item);
+
+            std::stringstream sss(item);
+
+            while (getline(sss, item, delim)) {
+
+                if(isdigit(item[0]))
+                {
+                    item = numberToNumberName(std::stoi(item));
+
+                    std::stringstream ssss(item);
+                    std::string itemIn;
+                    while (getline(ssss, itemIn, delim)) {
+
+                        elems.push_back(itemIn);
+                    }
+                }
+
+
+                else
+                    elems.push_back(item);
+            }
+
+        }
+
+        else
+        {
+            elems.push_back(item);
+        }
+    }
+    return elems;
+}
 
 //function for splitting sentences based on supplied delimiter
 inline std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
@@ -27,6 +200,11 @@ inline std::vector<std::string> &split(const std::string &s, char delim, std::ve
         elems.push_back(item);
     }
     return elems;
+}
+
+inline bool isPunc(char ch)
+{
+    return (ch == '!' || ch == '?' || ch == '.' || ch == ',' || ch == '"' || ch == '-' || ch ==':' || !(ch >= 0 && ch < 128));
 }
 
 /**** Class definitions ****/
@@ -64,7 +242,8 @@ private:
     std::vector<std::string> _word;         //list of words in dialogue
     std::vector<long int> _wordStartTime;   //start time of each word in dialogue
     std::vector<long int> _wordEndTime;     //end time of each word in dialogue
-    std::vector<long int> _wordDuration;   //actual duration of each word without silence
+    std::vector<long int> _wordDuration;    //actual duration of each word without silence
+    std::vector<bool> _isWordRecognised;    //is word recognised by ASR or not
     int _styleTagCount;                     //count of style tags in a single subtitle
     std::vector<std::string> _styleTag;     //list of style tags in that subtitle
     void extractInfo(bool keepHTML = 0, bool doNotIgnoreNonDialogues = 0,  bool doNotRemoveSpeakerNames = 0);   //process subtitle
@@ -86,8 +265,10 @@ public:
     std::string getWordByIndex(int index);       //return word stored at 'index'
     std::vector<long int> getWordStartTimes();   //return long int vector of start time of individual words
     std::vector<long int> getWordEndTimes();     //return long int vector of end time of individual words
+    std::vector<bool> getWordRecognisedStatus(); //return boolean vector containing status of each word if it's recognised or not
     long int getWordStartTimeByIndex(int index); //return the start time of a word based on index
     long int getWordEndTimeByIndex (int index);  //return the end time of a word based on index
+    bool getWordRecognisedStatusByIndex(int index); //return the status as true/false whether the word was recognised or not
     std::vector<std::string> getSpeakerNames();  //return string vector of speaker names
     std::vector<std::string> getNonDialogueWords(); //return string vector of non dialogue words
     std::vector<std::string> getStyleTags();    //return string vector of style tags
@@ -97,6 +278,9 @@ public:
     void setEndTime(long int endTime);      //set ending time
     void setText(std::string text);         //set subtitle text
     void setWordTimes(std::vector<long int> wordStartTime, std::vector<long int> wordEndTime, std::vector<long int> wordDuration);  //assign time to individual words
+    void setWordTimesByIndex(long int startTime, long int endTime, int index);
+    void setWordRecognisedStatusByIndex(bool status, int index); //return boolean vector containing status of each word if it's recognised or not
+
 
     SubtitleItem(void);
     SubtitleItem(int subNo, std::string startTime,std::string endTime, std::string text, bool ignore = false,
@@ -351,6 +535,16 @@ inline void SubtitleItem::setWordTimes(std::vector<long int> wordStartTime, std:
     _wordEndTime = wordEndTime;
     _wordDuration = wordDuration;
 }
+inline void SubtitleItem::setWordTimesByIndex(long int startTime, long int endTime, int index)
+{
+    _wordStartTime[index] = startTime;
+    _wordEndTime[index] = endTime;
+    _wordDuration[index] = endTime - startTime;
+}
+inline void SubtitleItem::setWordRecognisedStatusByIndex(bool status, int index)
+{
+    _isWordRecognised[index] = status;
+}
 inline int SubtitleItem::getSubNo() const
 {
     return _subNo;
@@ -431,7 +625,7 @@ inline void SubtitleItem::extractInfo(bool keepHTML, bool doNotIgnoreNonDialogue
         int countP = 0;
         for(char& c : output)   // replacing (...) with ~~~~
         {
-            if(c=='(')
+            if(c=='(' || c=='[')
             {
                 countP++;
                 c = '~';
@@ -441,10 +635,10 @@ inline void SubtitleItem::extractInfo(bool keepHTML, bool doNotIgnoreNonDialogue
             {
                 if(countP!=0)
                 {
-                    if(c != ')')
+                    if(c != ')' || c!='[')
                         c = '~';
 
-                    else if(c == ')')
+                    else if(c == ')' || c=='[')
                     {
                         c = '~';
                         countP--;
@@ -558,13 +752,26 @@ inline void SubtitleItem::extractInfo(bool keepHTML, bool doNotIgnoreNonDialogue
     _justDialogue.erase(0, _justDialogue.find_first_not_of(whiteSpaces));
     _justDialogue.erase(_justDialogue.find_last_not_of(whiteSpaces) + 1);
 
+    //removing punctuations
+    _justDialogue.erase(remove_if(_justDialogue.begin(), _justDialogue.end(), isPunc), _justDialogue.end());
+
     if(_justDialogue.empty() || _justDialogue == " ")
         _ignore = true;
 
     else
     {
-        _word = split(_justDialogue, ' ', _word); //extracting individual words
+        _word = splitDialogue(_justDialogue, ' ', _word); //extracting individual words
         _wordCount = _word.size();
+        _isWordRecognised.resize(_wordCount, false);
+
+        //recreating justDialogue using tokenized words.
+        _justDialogue.clear();
+        _justDialogue = _word[0];
+
+        for(int i=1; i<_wordCount; i++)
+        {
+            _justDialogue += " " + _word[i];
+        }
     }
 }
 
@@ -615,6 +822,10 @@ inline std::vector<long int> SubtitleItem::getWordEndTimes()
 {
     return _wordEndTime;
 }
+inline std::vector<bool> SubtitleItem::getWordRecognisedStatus()
+{
+    return _isWordRecognised;
+}
 inline long int SubtitleItem::getWordStartTimeByIndex(int index)
 {
     return _wordStartTime[index];
@@ -622,6 +833,10 @@ inline long int SubtitleItem::getWordStartTimeByIndex(int index)
 inline long int SubtitleItem::getWordEndTimeByIndex(int index)
 {
     return _wordEndTime[index];
+}
+inline bool SubtitleItem::getWordRecognisedStatusByIndex(int index)
+{
+    return _isWordRecognised[index];
 }
 inline std::vector<std::string> SubtitleItem::getStyleTags()
 {
