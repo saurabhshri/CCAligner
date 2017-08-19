@@ -857,16 +857,16 @@ bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats
 
 PocketsphinxAligner::~PocketsphinxAligner()
 {
-    //std::system("rm -rf tempFiles/");
 
-    if(_psWordDecoder)
-        ps_free(_psWordDecoder);
-    if(_configWord)
-        cmd_ln_free_r(_configWord);
-    if(_psPhonemeDecoder)
+    ps_free(_psWordDecoder);
+    cmd_ln_free_r(_configWord);
+
+    if(_parameters->searchPhonemes)
+    {
         ps_free(_psPhonemeDecoder);
-    if(_configPhoneme)
         cmd_ln_free_r(_configPhoneme);
+    }
+
 
     delete(_file);
 
