@@ -567,11 +567,18 @@ bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit
     if (_hypPhoneme == NULL)
     {
         _hypPhoneme = "NULL";
-        std::cout << "Phonemes  : " << _hypPhoneme << "\n";
 
+        if(_parameters->displayRecognised)
+            std::cout << "Phonemes  : " << _hypPhoneme << "\n";
     }
 
-    findAndSetPhonemeTimes(_configPhoneme,_psPhonemeDecoder, sub);
+    else
+    {
+        if(_parameters->displayRecognised)
+            std::cout<<"Phonemes : "<<_hypPhoneme<<"\n";
+
+        findAndSetPhonemeTimes(_configPhoneme,_psPhonemeDecoder, sub);
+    }
 }
 
 int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index)
@@ -851,8 +858,16 @@ bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats
 PocketsphinxAligner::~PocketsphinxAligner()
 {
     //std::system("rm -rf tempFiles/");
-    ps_free(_psWordDecoder);
-    cmd_ln_free_r(_configWord);
+
+    if(_psWordDecoder)
+        ps_free(_psWordDecoder);
+    if(_configWord)
+        cmd_ln_free_r(_configWord);
+    if(_psPhonemeDecoder)
+        ps_free(_psPhonemeDecoder);
+    if(_configPhoneme)
+        cmd_ln_free_r(_configPhoneme);
+
     delete(_file);
 
     delete(_parser);
