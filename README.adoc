@@ -101,13 +101,11 @@ The alternate ways of generating language models, dictionaries and grammars are 
 
 === Quick Demo ===
 
-By default CCAligner generates a XML file as result. To try,
+The default output of CCAligner is stored as an XML file. For example, the next command will generate `file.xml` :
 
-    ./ccaligner -wav /path/to/wav_file -srt /path/to/subtitle_file
+    ./ccaligner -wav /path/to/file.wav -srt /path/to/file.srt
 
-Output is in `{input_filename}.xml`.
-
-=== Using as an API or Library ===
+=== API or Library usage ===
 
 1. Clone the repository from Github :
 
@@ -142,8 +140,6 @@ Complete documentation of the API will be written under docs.
 
 === Some Previews ===
 
-=== Some Previews ===
-
 - _Obtaining output in Karaoke format :_
 
 image::https://github.com/saurabhshri/saurabhshri.github.io/raw/master/images/karaoke.gif?raw=true[align="center", "Synced output in Karaoke Style", height = "360px"]
@@ -155,7 +151,7 @@ image::https://github.com/saurabhshri/saurabhshri.github.io/raw/master/images/ka
 image::https://img.youtube.com/vi/km1iHe_mGuo/0.jpg["Click to watch the video on YouTube!", align="center"]
 == Usage Parameters ==
 
-The following is a complete list of available parameters that can be passed to CCAligner. Feel free to fork this readme and update/modify any missing parameter(s).
+The following is a complete list of available parameters that can be passed to CCAligner. Feel free to open a PR if you spot a missing parameter.
 
 - *Input related parameters :*
 
@@ -243,7 +239,7 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -transcribe yes``_
 
 |`--use-fsg`
 |`yes`, `no`
-|Instruct CCAligner to follow Finite Sate Grammar while performing recognition.
+|Instruct CCAligner to follow Finite State Grammar while performing recognition.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --use-fsg yes``_
 
@@ -260,19 +256,19 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -useBatchMode yes``_
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -experiment yes``_
 
 |`-searchWindow`
-|An interger
+|An integer
 |Determine the extent to which current recognised word is searched in the respective subtitle dialogue. Default value is 3.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -searchWindow 6``_
 
 |`-audioWindow`
-|An interger
+|An integer
 |Determine the frontal and rear window from current subtitle timimng to perform recognition. The value should be in milliseconds. Default value is 0.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -audioWindow 500``_
 
 |`-sampleWindow`
-|An interger
+|An integer
 |Determine the frontal and rear window from current subtitle timimng to perform recognition. The value should be in number of samples. Default value is 0.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -sampleWindow 500``_
@@ -286,7 +282,7 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -sampleWindow 500``_
 
 |`--generate-grammar`
 |`yes`, `no`, `onlyCorpus`, `onlyDict`, `onlyFSG`, `onlyLM`, `onlyVocab`
-|Parameter deciding if and which type of grammar/lm to be generated. Once you have generated a them, no need to generate again, they are stored in `tempFiles/{respective_dir}`. Also, use this when supplying files manually.
+|Parameter deciding if and which type of grammar/lm to be generated. Once you have generated these files, no need to generate them again. They are stored in `tempFiles/{respective_dir}`. Also, use this when supplying files manually.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --generate-grammar no``_
 
@@ -347,7 +343,7 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -verbose no``_
 
 |`--display-recognised`
 |`yes`, `no`
-|Determine whether to display the reconised words and matching status on stdout or not.
+|Determine whether to display the recognised words and matching status on stdout or not.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --display-recognised no``_
 
@@ -397,4 +393,4 @@ I have tried my best to ensure that credit and reference is given in the source 
 
 ### Contributing
 
-The project is under constant developmenet, and needs a lot of brushing and bug fixes. Feel free to contribute in any way. Your contribution will be highly appreciated! 🙂
+The project is under constant development, and needs a lot of brushing and bug fixes. Feel free to contribute in any way. Your contribution will be highly appreciated! 🙂
