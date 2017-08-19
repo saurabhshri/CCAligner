@@ -23,8 +23,14 @@ class PocketsphinxAligner
 private:
     std::string _audioFileName, _subtitleFileName, _outputFileName;          //input and output filenames
     std::vector<int16_t> _samples;
+
+    WaveFileData * _file;
+    SubtitleParserFactory * _subParserFactory;
+    SubtitleParser * _parser;
     std::vector <SubtitleItem*> _subtitles;
+
     AlignedData * _alignedData;
+
     Params * _parameters;
 
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;

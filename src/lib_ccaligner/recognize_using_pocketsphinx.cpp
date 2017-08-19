@@ -39,20 +39,18 @@ bool PocketsphinxAligner::processFiles()
 
     std::cout << "Reading and decoding audio samples..\n";
 
-    WaveFileData *file;
-
     if(_parameters->readStream)
-        file = new WaveFileData(readStreamDirectly);
+        _file = new WaveFileData(readStreamDirectly);
     else
-        file=  new WaveFileData(_audioFileName);
+        _file=  new WaveFileData(_audioFileName);
 
-    file->read();
-    _samples = file->getSamples();
+    _file->read();
+    _samples = _file->getSamples();
 
     std::cout << "Reading and processing subtitles..\n";
-    SubtitleParserFactory *subParserFactory = new SubtitleParserFactory(_subtitleFileName);
-    SubtitleParser *parser = subParserFactory->getParser();
-    _subtitles = parser->getSubtitles();
+    _subParserFactory = new SubtitleParserFactory(_subtitleFileName);
+    _parser = _subParserFactory->getParser();
+    _subtitles = _parser->getSubtitles();
 }
 
 bool PocketsphinxAligner::generateGrammar(grammarName name)
@@ -819,19 +817,12 @@ bool PocketsphinxAligner::alignWithFSG()
 
         cmd_ln_free_r(subConfig);
 
-        delete currSub;
+        delete (currSub);
 
     }
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
 
-}
-
-PocketsphinxAligner::~PocketsphinxAligner()
-{
-    //std::system("rm -rf tempFiles/");
-    ps_free(_psWordDecoder);
-    cmd_ln_free_r(_configWord);
 }
 
 bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats format)
@@ -854,5 +845,18 @@ bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats
                         exit(2);
     }
     return false;
+}
+
+
+PocketsphinxAligner::~PocketsphinxAligner()
+{
+    //std::system("rm -rf tempFiles/");
+    ps_free(_psWordDecoder);
+    cmd_ln_free_r(_configWord);
+    delete(_file);
+
+    delete(_parser);
+    delete(_subParserFactory);
+    delete(_alignedData);
 }
 
