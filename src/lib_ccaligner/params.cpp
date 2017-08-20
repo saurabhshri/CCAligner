@@ -27,7 +27,6 @@ Params::Params()
     std::string localTime(buffer);
     logPath = "tempFiles/" + localTime + ".log";
     phonemeLogPath = "tempFiles/phoneme-" + localTime + ".log";
-    delete(lt);
 
     sampleWindow = 0;
     audioWindow = 0;
