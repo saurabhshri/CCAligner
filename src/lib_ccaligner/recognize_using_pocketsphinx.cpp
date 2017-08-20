@@ -37,8 +37,12 @@ bool PocketsphinxAligner::processFiles()
     LOG("Initialising Aligner using PocketSphinx");
     LOG("Audio Filename : %s Subtitle filename : %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
-    std::cout << "Reading and decoding audio samples..\n";
+    std::cout << "Reading and processing subtitles..\n";
+    _subParserFactory = new SubtitleParserFactory(_subtitleFileName);
+    _parser = _subParserFactory->getParser();
+    _subtitles = _parser->getSubtitles();
 
+    std::cout << "Reading and decoding audio samples..\n";
     if(_parameters->readStream)
         _file = new WaveFileData(readStreamDirectly);
     else
@@ -47,10 +51,6 @@ bool PocketsphinxAligner::processFiles()
     _file->read();
     _samples = _file->getSamples();
 
-    std::cout << "Reading and processing subtitles..\n";
-    _subParserFactory = new SubtitleParserFactory(_subtitleFileName);
-    _parser = _subParserFactory->getParser();
-    _subtitles = _parser->getSubtitles();
 }
 
 bool PocketsphinxAligner::generateGrammar(grammarName name)
