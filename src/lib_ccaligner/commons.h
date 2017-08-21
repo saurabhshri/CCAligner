@@ -65,6 +65,7 @@ enum outputOptions
 #define EXIT_FILE_NOT_FOUND                     2
 #define EXIT_INVALID_PARAMETERS                 3
 #define EXIT_INCOMPATIBLE_PARAMETERS            4
+#define EXIT_INCOMPLETE_PARAMETERS              5
 #define EXIT_INVALID_FILE                       6
 #define EXIT_WITH_HELP                          10
 #define EXIT_UNKNOWN                            13

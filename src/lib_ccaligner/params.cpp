@@ -66,8 +66,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-wav requires a path to valid wave!");
             }
 
             audioFileName = subParam;
@@ -78,8 +77,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-srt requires a path to valid SubRip subtitle file!");
             }
 
             subtitleFileName = subParam;
@@ -95,8 +93,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-out requires a valid output filename!");
             }
 
             outputFileName = subParam;
@@ -107,8 +104,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-oFormat requires a valid output format");
             }
 
             if(subParam  == "srt")
@@ -128,8 +124,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INVALID_PARAMETERS, "-oFormat requires a valid output format!");
             }
 
             i++;
@@ -139,8 +134,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-model requires a path to valid acoustic model!");
             }
 
             modelPath = subParam;
@@ -151,8 +145,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-lm requires a path to language model!");
             }
 
             lmPath = subParam;
@@ -164,8 +157,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-dict requires a path to valid dictionary file!");
             }
 
             dictPath = subParam;
@@ -177,8 +169,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-fsg requires a path to valid directory containing FSG files!");
             }
 
             fsgPath = subParam;
@@ -190,8 +181,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-log requires a path to valid output log file!");
             }
 
             logPath = subParam;
@@ -202,8 +192,8 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-phoneLM requires a path to valid phonetic language model!");
+
             }
 
             phoneticlmPath = subParam;
@@ -214,8 +204,8 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-phoneLog requires a path to valid output log file!");
+
             }
 
             phonemeLogPath = subParam;
@@ -226,8 +216,8 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "--enable-phonemes requires a valid response!");
+
             }
 
             if(subParam == "yes")
@@ -240,8 +230,8 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "--generate-grammar requires a valid response!");
+
             }
 
             if(subParam  == "yes")
@@ -267,8 +257,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INVALID_PARAMETERS, "--generate-grammar requires a valid response!");
             }
 
             i++;
@@ -278,8 +267,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "--quick-dict requires a valid response!");
             }
 
             if(subParam == "yes")
@@ -292,8 +280,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "--quick-lm requires a valid response!");
             }
 
             if(subParam == "yes")
@@ -306,8 +293,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "--print-aligned requires a valid response!");
             }
 
             if(subParam  == "yes")
@@ -327,8 +313,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INVALID_PARAMETERS, "--print-aligned requires a valid response!");
             }
 
             i++;
@@ -338,8 +323,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "--use-fsg requires a valid response!");
             }
 
             if(subParam  == "yes")
@@ -352,8 +336,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-transcribe requires a valid response!");
             }
 
             if(subParam  == "yes")
@@ -367,8 +350,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-verbose requires a valid response!");
             }
 
             if(subParam  == "no")
@@ -381,8 +363,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "--display-recognised requires a valid response!");
             }
 
             if(subParam  == "no")
@@ -395,15 +376,14 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-searchWindow requires a integer value to determine search scope!");
             }
 
             searchWindow = std::strtoul( subParam.c_str(), NULL, 10 );
 
             if ( errno )
             {
-                fprintf( stderr, "%s: parameter %s: %s\n", argv[0], argv[i], strerror(errno) );
+                FATAL(EXIT_FAILURE, "Invalid value passed to -searchWindow : %s", strerror(errno));
             }
 
             i++;
@@ -413,15 +393,14 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-sampleWindow requires a valid integer value to determine recognition scope!");
             }
 
             sampleWindow = std::strtoul( subParam.c_str(), NULL, 10 );
 
             if ( errno )
             {
-                fprintf( stderr, "%s: parameter %s: %s\n", argv[0], argv[i], strerror(errno) );
+                FATAL(EXIT_FAILURE, "Invalid value passed to -sampleWindow : %s", strerror(errno));
             }
 
             i++;
@@ -431,15 +410,14 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-audioWindow requires a valid integer value in milliseconds to determine recognition scope!");
             }
 
             audioWindow = std::strtoul( subParam.c_str(), NULL, 10 );
 
             if ( errno )
             {
-                fprintf( stderr, "%s: parameter %s: %s\n", argv[0], argv[i], strerror(errno) );
+                FATAL(EXIT_FAILURE, "Invalid value passed to -audioWindow : %s", strerror(errno));
             }
 
             i++;
@@ -449,8 +427,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-useBatchMode requires a valid response!");
             }
 
             if(subParam  == "yes")
@@ -463,8 +440,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-experiment requires a valid response!");
             }
 
             if(subParam  == "yes")
@@ -477,8 +453,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                std::cout<<"Incorrect parameters, parsing failed!";
-                exit(2);
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-approx requires a valid response!");
             }
 
             if(subParam  == "yes")
@@ -608,9 +583,13 @@ void Params::printParams()
     std::cout<<"transcribe          : "<<transcribe<<"\n";
     std::cout<<"useBatchMode        : "<<useBatchMode<<"\n";
     std::cout<<"ExperimentalParams  : "<< useExperimentalParams<<"\n";
-    std::cout<<"searchPhonemes      : "<<searchPhonemes<<"\n\n\n";
+    std::cout<<"searchPhonemes      : "<<searchPhonemes<<"\n";
+    std::cout<<"displayRecognised   : "<<displayRecognised<<"\n";
+    std::cout<<"readStream          : "<<readStream<<"\n";
+    std::cout<<"quickDict           : " <<quickDict<<"\n";
+    std::cout<<"quickLM             : " <<quickLM<<"\n";
 
-    std::cout<<"=====================================================\n\n";
+    std::cout<<"\n\n=====================================================\n\n";
 
 }
 
