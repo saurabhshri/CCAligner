@@ -9,12 +9,11 @@
 void printUsage()
 {
     std::cout<<"\n\nUsage : \n"
-          "ApproxAligner : ccaligner -a input.srt\n"
-          "                ccaligner -a input.srt -of <output_format>"
-          "                                       (srt/xml/json)"
-          "           e.g. ccaligner -a input.srt -of xml"
-          ""
-          "NOTE : This tool is in it's early stage and is constantly evolving; things are likely to change!";
+        "                 ccaligner -wav /path/to/wav/file -srt /path/to/srt/file\n"
+        "                 ccaligner -wav /path/to/wav/file -srt /path/to/srt/file -out /path/to/output/file -oFormat <output_format>\n"
+        "                                                                                                     (srt/xml/json/karaoke)\n"
+        "                 e.g. ccaligner -wav tbbt.wav -srt tbbt.srt -out tbbt-karaoke.srt -oFormat karaoke\n"
+        "\nFor complete list of available parameters and documentation, refer to readme file.\n";
 }
 
 void printHeader(std::string version)
