@@ -1,0 +1,53 @@
+=== Installing Dependencies ===
+
+To automatically generate language models, dictionaries and grammars, following dependencies need to be met. The tool has capability to generate them without these dependencies, but the accuracy in that case is not guarenteed. It is highly recommended to work with the dependencies installed.
+
+1. cmuclmtk : to generate vocab and LM.
+    _(https://github.com/saurabhshri/mirror/raw/master/cmuclmtk-0.7.tar.gz)_
+2. g2p-seq2seq  (to generate dictionary)
+    _(https://github.com/saurabhshri/mirror/raw/master/g2p-seq2seq-master.zip)_
+
+The above links are from a mirror Github repository.
+
+*Steps :*
+
+To install cmuclmtk :
+
+1. Download and uncompress `cmuclmtk-0.7.tar.gz` while preserving the permissions :
+
+    wget https://github.com/saurabhshri/mirror/raw/master/cmuclmtk-0.7.tar.gz
+    tar xvpzf cmuclmtk-0.7.tar.gz
+
+2. Navigate to `cmumltk-0.7` directory :
+
+    cd cmuclmtk-0.7
+
+3. Install :
+
+    ./configure
+    make
+    sudo make install/
+
+You may have to run `sudo ldconfig` to fix errors such as missing shared library.
+
+To install g2p-seq2seq :
+
+1. First, install Tensorflow by your preferred choice of method. If you are on Linux (x86_64), you may directly run the following :
+
+    sudo pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0-cp27-none-linux_x86_64.whl
+
+2. Download and uncompress `g2p-seq2seq-master.zip` while preserving the permissions :
+
+    wget https://github.com/saurabhshri/mirror/raw/master/g2p-seq2seq-master.zip
+    unzip g2p-seq2seq-master.zip
+
+3. Navigate to `g2p-seq2seq-master` directory and run :
+
+    sudo python setup.py install
+
+
+*I have incorporated above steps into a bash script located inside `install/` directory, that you may simply call using :*
+
+    `./install_grammar_tools.sh`
+
+The alternate ways of generating language models, dictionaries and grammars are covered later in the docs.
