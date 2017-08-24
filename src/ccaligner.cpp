@@ -65,8 +65,7 @@ int CCAligner::initAligner()
 
     else
     {
-        std::cout<<"Support for more robust aligners is coming soon! Stay tuned!\n";
-        exit(3);
+        FATAL(EXIT_INVALID_PARAMETERS, "Unsupported ALigner Type!");
     }
 
     return 1;
