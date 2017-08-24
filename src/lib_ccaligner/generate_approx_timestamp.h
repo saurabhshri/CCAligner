@@ -12,7 +12,7 @@
 #include "params.h"
 #include "output_handler.h"
 
-class currentSub    //processing one subtitle at a time
+class CurrentSub    //processing one subtitle at a time
 {
     int _sentenceLength, _wordCount;    //length of the dialogue, number of words in that dialogue
     long _dialogueDuration;             //duration of the dialogue in ms
@@ -22,13 +22,13 @@ class currentSub    //processing one subtitle at a time
 public:
     int getDuration (long startTime, long endTime); //return the duration in ms between ending and starting timestamp
     double getWordWeight (std::string word);        //returns the approximate weight of word
-    currentSub(SubtitleItem *sub);
+    CurrentSub(SubtitleItem *sub);
     void run();                                     //run the alignment
     void alignNonRecognised(recognisedBlock currBlock);                      //run the approx alignment on unrecognised words
     void printToSRT(std::string fileName, outputOptions printOption);          //prints the aligned result in SRT format
     void printToConsole(std::string fileName);      //prints the output to console/stdout
     void assignTime(long int &wordDuration, const std::string &word );  //assign the approximate duration the word is estimated to be spoken
-    ~currentSub();
+    ~CurrentSub();
 };
 
 class ApproxAligner

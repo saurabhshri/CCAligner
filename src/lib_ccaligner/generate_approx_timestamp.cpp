@@ -6,9 +6,9 @@
 
 #include "generate_approx_timestamp.h"
 
-int currentSub::_wordNumber;    //defining static data member
+int CurrentSub::_wordNumber;    //defining static data member
 
-currentSub::currentSub(SubtitleItem *sub)
+CurrentSub::CurrentSub(SubtitleItem *sub)
 {
     _sub = sub;
     _wordNumber = 0;
@@ -18,7 +18,7 @@ currentSub::currentSub(SubtitleItem *sub)
 
 }
 
-void currentSub::printToSRT(std::string fileName, outputOptions printOption)
+void CurrentSub::printToSRT(std::string fileName, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);
@@ -58,7 +58,7 @@ void currentSub::printToSRT(std::string fileName, outputOptions printOption)
     out.close();
 }
 
-void currentSub::printToConsole(std::string fileName)
+void CurrentSub::printToConsole(std::string fileName)
 {
     for(int i=0;i<_sub->getWordCount();i++)
     {
@@ -70,7 +70,7 @@ void currentSub::printToConsole(std::string fileName)
     }
 }
 
-inline int currentSub::getDuration (long startTime, long endTime)
+inline int CurrentSub::getDuration (long startTime, long endTime)
 {
     if(endTime < startTime)
     {
@@ -82,14 +82,14 @@ inline int currentSub::getDuration (long startTime, long endTime)
 
 }
 
-inline double currentSub::getWordWeight (std::string word)
+inline double CurrentSub::getWordWeight (std::string word)
 {
     double weight = (double) word.size() / (double) _sentenceLength;    //word weight as function of word length : sentence length
     return weight;
 
 }
 
-void currentSub::assignTime(long int &wordDuration, const std::string &word )
+void CurrentSub::assignTime(long int &wordDuration, const std::string &word )
 {
     if(_wordNumber>_wordCount)
         std::cout<<"Oops! Something went wrong!\n";
@@ -100,7 +100,7 @@ void currentSub::assignTime(long int &wordDuration, const std::string &word )
 
 }
 
-void currentSub::run()
+void CurrentSub::run()
 {
     std::vector<std::string> words = _sub->getIndividualWords();
     std::vector<long int> wordDuration(_wordCount), wordStartTime(_wordCount), wordEndTime(_wordCount);
@@ -130,7 +130,7 @@ void currentSub::run()
     _sub->setWordTimes(wordStartTime, wordEndTime, wordDuration);
 }
 
-void currentSub::alignNonRecognised(recognisedBlock currBlock)  //TODO
+void CurrentSub::alignNonRecognised(recognisedBlock currBlock)  //TODO
 {
     long int startTime = _sub->getStartTime(), endTime = _sub->getEndTime(), duration = startTime - endTime;
 
@@ -183,7 +183,7 @@ void currentSub::alignNonRecognised(recognisedBlock currBlock)  //TODO
 
 }
 
-currentSub::~currentSub()
+CurrentSub::~CurrentSub()
 {
     _sub = NULL;
     _wordNumber = 0;
@@ -218,7 +218,7 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
 
     for(SubtitleItem *sub : subtitles)
     {
-        currentSub * currSub = new currentSub(sub);
+        CurrentSub * currSub = new CurrentSub(sub);
         currSub->run();
 
         switch (_outputFormat)  //decide on based of set output format

@@ -30,7 +30,6 @@ private:
     std::vector <SubtitleItem*> _subtitles;
 
     AlignedData * _alignedData;
-
     Params * _parameters;
 
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;

@@ -437,7 +437,7 @@ bool PocketsphinxAligner::recognise()
 
 
         //first assigning approx timestamps
-        currentSub *currSub = new currentSub(sub);
+        CurrentSub *currSub = new CurrentSub(sub);
         currSub->run();
 
         //let's correct the timestamps :)
@@ -719,7 +719,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
 
         //first assigning approx timestamps
-        currentSub *currSub = new currentSub(sub);
+        CurrentSub *currSub = new CurrentSub(sub);
         currSub->run();
 
         long int dialogueStartsAt = sub->getStartTime();
