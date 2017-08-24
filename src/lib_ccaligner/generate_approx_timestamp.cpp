@@ -6,33 +6,9 @@
 
 #include "generate_approx_timestamp.h"
 
-void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds)
-{
-    *milliseconds = (int)(ms % 1000);
-    ms = (ms - *milliseconds) / 1000;
+int CurrentSub::_wordNumber;    //defining static data member
 
-    *seconds = (int)(ms % 60);
-    ms = (ms - *seconds) / 60;
-
-    *minutes = (int)(ms % 60);
-    ms = (ms - *minutes) / 60;
-
-    *hours = (int)ms;
-}
-
-std::string extractFileName(std::string fileName)
-{
-    int lastIndex = fileName.find_last_of(".");
-
-    if(lastIndex == std::string::npos)
-        return fileName;    //if no extension is present, return complete filename
-    else
-        return fileName.substr(0, lastIndex);
-}
-
-int currentSub::_wordNumber;    //defining static data member
-
-currentSub::currentSub(SubtitleItem *sub)
+CurrentSub::CurrentSub(SubtitleItem *sub)
 {
     _sub = sub;
     _wordNumber = 0;
@@ -42,64 +18,7 @@ currentSub::currentSub(SubtitleItem *sub)
 
 }
 
-void currentSub::printAsKaraoke(std::string fileName, srtOptions printOption)
-{
-    std::ofstream out;
-    out.open(fileName, std::ofstream::app);
-
-    for(int i=0;i<_sub->getWordCount();i++)
-    {
-        int hh1,mm1,ss1,ms1;
-        int hh2,mm2,ss2,ms2;
-        char timeline[128];
-
-        ms_to_srt_time(_sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
-        ms_to_srt_time(_sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
-
-        //printing in SRT format
-        sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
-
-        out<<timeline;
-
-        std::string outputLine = "";
-
-        for(int j=0;j<_sub->getWordCount();j++)
-        {
-            if(j == i)
-            {
-                if(printOption == printAsKaraokeWithDistinctColors)
-                {
-                    if(_sub->getWordRecognisedStatusByIndex(j))
-                        outputLine += " <font color='#0000FF'> ";
-
-                    else
-                        outputLine += " <font color='#A1E4D3'> ";
-
-                }
-
-                else
-                {
-                    outputLine += " <font color='#0000FF'> ";
-                }
-            }
-
-            else
-                outputLine += " <font color='#FFFFFF'> ";
-
-            outputLine += _sub->getWordByIndex(j);
-            outputLine += " </font>";
-        }
-
-        outputLine += "\n\n";
-
-        out<<outputLine;
-    }
-
-    out.close();
-}
-
-
-void currentSub::printToSRT(std::string fileName, srtOptions printOption)
+void CurrentSub::printToSRT(std::string fileName, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);
@@ -122,6 +41,7 @@ void currentSub::printToSRT(std::string fileName, srtOptions printOption)
         //printing in SRT format
         sprintf(timeline, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
 
+        out<<_sub->getSubNo()<<"\n";
         out<<timeline;
 
         if(printOption == printBothWithDistinctColors)
@@ -138,59 +58,10 @@ void currentSub::printToSRT(std::string fileName, srtOptions printOption)
     out.close();
 }
 
-void currentSub::printToXML(std::string fileName)
-{
-    std::ofstream out;
-    out.open(fileName, std::ofstream::app);
-
-    out<<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            "<!DOCTYPE subtitle>\n\n";
-
-    /*
-     * ├───Subtitle
-     *      ├───Start Time
-     *      ├───End Time
-     *      ├───Start Time in ms
-     *      ├───Start Time in ms
-     *      ├───Word
-     *      ├───Style
-     *      |   ├───Style Tag 1
-     *      |   ├───Style Tag 2
-     *      |   └───Style Tag
-     */
-
-    for(int i=0;i<_sub->getWordCount();i++)
-    {
-        out<<"<subtitle>\n";
-        int hh1,mm1,ss1,ms1;
-        int hh2,mm2,ss2,ms2;
-        char printLine[150];
-
-        ms_to_srt_time(_sub->getWordStartTimeByIndex(i),&hh1,&mm1,&ss1,&ms1);
-        ms_to_srt_time(_sub->getWordEndTimeByIndex(i),&hh2,&mm2,&ss2,&ms2);
-
-        sprintf(printLine, "\t<time start=%ld end=%ld></time>\n", _sub->getWordStartTimeByIndex(i), _sub->getWordEndTimeByIndex(i));
-        out<<printLine;
-        sprintf(printLine, "\t<srtTime start=%02d:%02d:%02d,%03d end=%02d:%02d:%02d,%03d></srtTime>\n", hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2);
-        out<<printLine;
-        out<<"\t<text>";
-        out<<_sub->getWordByIndex(i)<<"</text>\n";
-        out<<"</subtitle>\n\n";
-    }
-}
-
-void currentSub::printToJSON(std::string fileName)
-{
-    //make JSON as output
-    std::cout<<"JSON format is yet to be decided :) Try xml/srt!\n";
-    exit(2);
-}
-
-void currentSub::printToConsole(std::string fileName)
+void CurrentSub::printToConsole(std::string fileName)
 {
     for(int i=0;i<_sub->getWordCount();i++)
     {
-        //std::cout<<_sub->getWordByIndex(i)<<"\n";
         std::cout<<"START\n";
         std::cout<<"word    : "<<_sub->getWordByIndex(i)<<"\n";
         std::cout<<"start   : "<<_sub->getWordStartTimeByIndex(i)<<" ms\n";
@@ -199,7 +70,7 @@ void currentSub::printToConsole(std::string fileName)
     }
 }
 
-inline int currentSub::getDuration (long startTime, long endTime)
+inline int CurrentSub::getDuration (long startTime, long endTime)
 {
     if(endTime < startTime)
     {
@@ -211,14 +82,14 @@ inline int currentSub::getDuration (long startTime, long endTime)
 
 }
 
-inline double currentSub::getWordWeight (std::string word)
+inline double CurrentSub::getWordWeight (std::string word)
 {
     double weight = (double) word.size() / (double) _sentenceLength;    //word weight as function of word length : sentence length
     return weight;
 
 }
 
-void currentSub::assignTime(long int &wordDuration, const std::string &word )
+void CurrentSub::assignTime(long int &wordDuration, const std::string &word )
 {
     if(_wordNumber>_wordCount)
         std::cout<<"Oops! Something went wrong!\n";
@@ -229,7 +100,7 @@ void currentSub::assignTime(long int &wordDuration, const std::string &word )
 
 }
 
-void currentSub::run()
+void CurrentSub::run()
 {
     std::vector<std::string> words = _sub->getIndividualWords();
     std::vector<long int> wordDuration(_wordCount), wordStartTime(_wordCount), wordEndTime(_wordCount);
@@ -259,7 +130,7 @@ void currentSub::run()
     _sub->setWordTimes(wordStartTime, wordEndTime, wordDuration);
 }
 
-void currentSub::alignNonRecognised(recognisedBlock currBlock)
+void CurrentSub::alignNonRecognised(recognisedBlock currBlock)  //TODO
 {
     long int startTime = _sub->getStartTime(), endTime = _sub->getEndTime(), duration = startTime - endTime;
 
@@ -312,7 +183,7 @@ void currentSub::alignNonRecognised(recognisedBlock currBlock)
 
 }
 
-currentSub::~currentSub()
+CurrentSub::~CurrentSub()
 {
     _sub = NULL;
     _wordNumber = 0;
@@ -326,10 +197,14 @@ ApproxAligner::ApproxAligner(std::string fileName, outputFormats outputFormat)
     _fileName = fileName;
     _outputFormat = outputFormat;
     _outputFileName = extractFileName(_fileName);
+}
 
-    std::ofstream out;
-    out.open(_outputFileName);  //writing empty file; will be edited to incorporate headers
-    out.close();
+ApproxAligner::ApproxAligner(Params * parameters)
+{
+    _parameters = parameters;
+    _fileName = _parameters->subtitleFileName;
+    _outputFormat = _parameters->outputFormat;
+    _outputFileName = _parameters->outputFileName;
 }
 
 std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align()
@@ -338,31 +213,38 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
     SubtitleParser *parser = subParserFactory->getParser();
     std::vector <SubtitleItem*> subtitles = parser->getSubtitles();
 
+    int subCount = 1;
+    initFile(_outputFileName, _outputFormat);
+
     for(SubtitleItem *sub : subtitles)
     {
-        currentSub * currSub = new currentSub(sub);
+        CurrentSub * currSub = new CurrentSub(sub);
         currSub->run();
 
         switch (_outputFormat)  //decide on based of set output format
         {
-            case srt:   currSub->printToSRT(_outputFileName, printBothWihoutColors);
-                        break;
+            case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, printBothWihoutColors);
+                break;
 
-            case xml:   currSub->printToXML(_outputFileName);
-                        break;
+            case xml:       printXMLContinuous(_outputFileName, sub);
+                break;
 
-            case json:  currSub->printToJSON(_outputFileName);
-                        break;
+            case json:      printJSONContinuous(_outputFileName, sub);
+                break;
 
-            case console: currSub->printToConsole(_outputFileName);
-                        break;
+            case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, printBothWihoutColors);
+                break;
 
-            default: std::cout<<"An error occurred while choosing output format!";
-                        exit(2);
+            case console:   currSub->printToConsole(_outputFileName);
+                break;
+
+            default:        std::cout<<"An error occurred while choosing output format!";
+                exit(2);
         }
 
     }
 
+    printFileEnd(_outputFileName, _outputFormat);
     return subtitles;
 }
 

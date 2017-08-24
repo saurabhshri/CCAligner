@@ -1,0 +1,16 @@
+=== Compiling / Installing ===
+
+1. Clone the repository from Github using :
+
+    git clone https://www.github.com/saurabhshri/ccextractor.git
+
+2. Make sure dependencies are installed. The instructions are located in `/docs/installing_dependencies.adoc`.
+
+3. Navigate to `install` directory and run `build.sh`.
+
+    cd install/
+    ./build.sh
+
+4. Align!
+
+    ./ccaligner <arguments>

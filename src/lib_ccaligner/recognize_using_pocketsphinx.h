@@ -12,37 +12,54 @@
 #include "pocketsphinx.h"
 #include "grammar_tools.h"
 #include "generate_approx_timestamp.h"
+#include "commons.h"
+#include "params.h"
+#include "output_handler.h"
 
 int levenshtein_distance(const std::string& firstWord, const std::string& secondWord);
 
-class Aligner
+class PocketsphinxAligner
 {
 private:
-    std::string _audioFileName,_subtitleFileName;          //input and output filenames
+    std::string _audioFileName, _subtitleFileName, _outputFileName;          //input and output filenames
     std::vector<int16_t> _samples;
+
+    WaveFileData * _file;
+    SubtitleParserFactory * _subParserFactory;
+    SubtitleParser * _parser;
     std::vector <SubtitleItem*> _subtitles;
 
-    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath;
+    AlignedData * _alignedData;
+    Params * _parameters;
 
-    ps_decoder_t * _ps;
-    cmd_ln_t * _config;
-    char const * _hyp;
-    int _rv;
-    int32 _score;
+    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;
+    long int _audioWindow, _sampleWindow, _searchWindow;
 
+    ps_decoder_t * _psWordDecoder, * _psPhonemeDecoder;
+    cmd_ln_t * _configWord, * _configPhoneme;
+    char const * _hypWord, * _hypPhoneme;
+    int _rvWord, _rvPhoneme;
+    int32 _scoreWord, _scorePhoneme;
+
+    bool processFiles();
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
-    bool printRecognisedWordAsSRT(cmd_ln_t *config, ps_decoder_t *ps);
+    int findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index);
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
+    bool findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
+    bool initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath);
 
 public:
-    Aligner(std::string inputAudioFileName, std::string inputSubtitleFileName);
+    PocketsphinxAligner(Params * parameters);
     bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
     bool generateGrammar(grammarName name);
-    bool align(srtOptions printOption);
+    bool recognise();
     bool alignWithFSG();
+    bool align();
+    bool recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);
     bool transcribe();
-    ~Aligner();
+    bool printAligned(std::string outputFileName, outputFormats format);
+    ~PocketsphinxAligner();
 
 };
 

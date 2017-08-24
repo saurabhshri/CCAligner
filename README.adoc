@@ -1,6 +1,6 @@
 # 🗼CCAligner image:https://travis-ci.org/saurabhshri/CCAligner.svg?branch=master["Build Status", link="https://travis-ci.org/saurabhshri/CCAligner"]
 
-Word by word audio subtitle synchronization tool. Being developed under GSoC 2017 with CCExtractor.
+Word by word audio subtitle synchronization tool and API. Being developed under Google Summer of Code 2017 with CCExtractor.
 
 _(https://saurabhshri.github.io/)_
 
@@ -8,82 +8,75 @@ _(https://saurabhshri.github.io/)_
 
 _There are two major branches in this repository - `master` and `development`._
 
-_The `master` branch is updated at the end of each phase (currently it has code which was written in the first phase) and the `development` branch is regularly updated as the work proceeds. At the end of each phase, the development branch is merged with the `master` branch._
+_The `master` branch is updated at the end of each phase (currently it has code which was written in the second phase) and the `development` branch is regularly updated as the work proceeds. At the end of each phase, the development branch is merged with the `master` branch._
 
-_The project is in it's very early stage and is constantly evolving. The available functions, usage instructions et cetera are expected to refactor over time. It is not production ready but you are welcome to play with it, or better, help improve it :)_
+_The project is in it's very early stage and is constantly evolving. The available functions, usage instructions et cetera are expected to refactor over time. It is not production ready but you are welcome to play with it, or better, help improve it! :)_
 
 ---
 
 == Using CCAligner
 
-CCAligner can be used as both standalone tool or a library in your own project. Please go through the code to find the available functions and and classes. The code is very well documented. With time, I will update this readme with a list as well.
+CCAligner can be used as both standalone tool or a library in your own project.
 
 === Installing Dependencies ===
 
-To automatically generate language models, dictionaries and grammars, following dependencies need to be met.
+To automatically generate language models, dictionaries and grammars, following dependencies need to be met. The tool has capability to generate them without these dependencies, but the accuracy in that case is not guarenteed. It is highly recommended to work with the dependencies installed.
 
-1. CMUCLMTK     (to generate LM)
+1. cmuclmtk : to generate vocab and LM.
+    _(https://github.com/saurabhshri/mirror/raw/master/cmuclmtk-0.7.tar.gz)_
 2. g2p-seq2seq  (to generate dictionary)
+    _(https://github.com/saurabhshri/mirror/raw/master/g2p-seq2seq-master.zip)_
 
-They are stored in `install/dependencied`.
+The above links are from a mirror Github repository.
 
 *Steps :*
 
 To install cmuclmtk :
 
-1. Uncompress `cmuclmtk-0.7.tar.gz` while preserving the permissions :   
+1. Download and uncompress `cmuclmtk-0.7.tar.gz` while preserving the permissions :
 
+    wget https://github.com/saurabhshri/mirror/raw/master/cmuclmtk-0.7.tar.gz
     tar xvpzf cmuclmtk-0.7.tar.gz
 
-2. Navigate to `install/dependecies/cmumltk-0.7` directory and run :    
+2. Navigate to `cmumltk-0.7` directory :
 
     cd cmuclmtk-0.7
+
+3. Install :
+
     ./configure
     make
-    sudo make install/  
+    sudo make install/
 
 You may have to run `sudo ldconfig` to fix errors such as missing shared library.
 
 To install g2p-seq2seq :
 
-1. Install Tensorflow by your preferred choice of method. If you are on Linux, you may directly run the following :
+1. First, install Tensorflow by your preferred choice of method. If you are on Linux (x86_64), you may directly run the following :
 
-    sudo pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0-cp27-none-linux_x86_64.whl 
+    sudo pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0-cp27-none-linux_x86_64.whl
 
-2. Uncompress `g2p-seq2seq-master.zip` while preserving the permissions :   
+2. Download and uncompress `g2p-seq2seq-master.zip` while preserving the permissions :
 
+    wget https://github.com/saurabhshri/mirror/raw/master/g2p-seq2seq-master.zip
     unzip g2p-seq2seq-master.zip
 
-3. Navigate to `install/dependecies/unzip g2p-seq2seq-master` directory and run :    
+3. Navigate to `g2p-seq2seq-master` directory and run :
 
-    sudo python setup.py install  
+    sudo python setup.py install
 
 
-### I have incorporated above steps into a bash script that you may simply call using :
+*I have incorporated above steps into a bash script located inside `install/` directory, that you may simply call using :*
 
     `./install_grammar_tools.sh`
 
+The alternate ways of generating language models, dictionaries and grammars are covered later in the docs.
 
-_Alternatively, you may use web-service to generate all the relevant files using text corpus._
+=== Before You Run ===
 
-1. Generate text corpus in relevant format by doing :
+1. Please make sure you have all the dependencies installed in case you want to use grammar tools. To disable generating grammar by ccaligner, issue `--generate-grammar no`.
 
-    ./ccaligner -in input.wav -srt input.srt --generate-grammar printCorpus
-
-Courpus can be found at : `tempFiles/corpus/corpus.txt`
-
-2. Goto http://www.speech.cs.cmu.edu/tools/lmtool-new.html and upload the generated `courpus.txt`.
-
-3. Download all the generated files and supply them to ccaligner with respective argument.
-
-=== Before you run ===
-
-1. Please make sure you have all the dependencies installed in case you want to use grammar tools. To disable generating grammar by ccaligner, issue `--generate-grammar false`.
-
-2. Please copy the `model` folder and `g2p-seq2seq-cmudict` to the directory where you are installing ccaligner. The bash script does that by calling 
-
-    cp -rf ../src/lib_ext/model .
-    cp -rf ../src/lib_ext/g2p-seq2seq-cmudict .
+2. Make sure the `model` folder and `g2p-seq2seq-cmudict` are in the directory where you are compiling ccaligner.
 
 3. Make sure the subtitles are clean and are in propar SRT format.
 
@@ -93,19 +86,26 @@ Courpus can be found at : `tempFiles/corpus/corpus.txt`
 
 === Installing ===
 
-1. Navigate to `install` directory and run `build.sh`.
+1. Clone the repository from Github using :
 
-2. Use `./ccaligner`.
+    git clone https://www.github.com/saurabhshri/ccextractor.git
 
-=== Quick Demo ====
+2. Navigate to `install` directory and run `build.sh`.
 
-To generate output as SRT with coloured differences in recognised and non recognised words, do : 
+    cd install/
+    ./build.sh
 
-    ./ccaligner --print-aligned color -in input.wav -srt input.srt
+3. Align!
 
-Output is in `output.srt`.
+    ./ccaligner <arguments>
 
-=== Using as a Library ===
+=== Quick Demo ===
+
+The default output of CCAligner is stored as an XML file. For example, the next command will generate `file.xml` :
+
+    ./ccaligner -wav /path/to/file.wav -srt /path/to/file.srt
+
+=== API or Library usage ===
 
 1. Clone the repository from Github :
 
@@ -113,72 +113,243 @@ Output is in `output.srt`.
 
 2. Place the `CCAligner` folder in appropriate directory in your project.
 
-3. In your project, simply include the directories you wish to use. The documentation of the same shall be listed below.
+3. In your project, simply include the directories and source file you wish to use. You may refer to CMakeLists.txt in the `src/` directory to get an idea. The CCAligner tool is built arround the CCAligner API.
 
-4. Appropriately include the directories andsource file in your CMake list if you are using it.
-
-For example : If you want to use the approximation based alignement in your project
+For example : If you want to use the audio based alignement in your project
 
 ```cpp
 
 //include the header file
-#include "generate_approx_timestamp.h"
+#include "recognize_using_pocketsphinx.h"
 
 //Declare the aligner
-ApproxAligner * aligner = new ApproxAligner(_filename,_outputFormat);
+PocketsphinxAligner * aligner = new PocketsphinxAligner(_parameters);
 
 //Align
 aligner->align();
 
+//Print the result
+aligner->printAligned("Manual_Printing.json", json);
+
+//delete the aligner
+delete(aligner);
+
 ```
 
-Please read the documentation later to find all available functions and options.
+Complete documentation of the API will be written under docs.
 
-Alternatively, and I will recommend this, you can also **browse the `/demo` directory to find working demo examples and `CMakeLists.txt` **.
+=== Some Previews ===
 
-=== Using as a Tool ===
+- _Obtaining output in Karaoke format :_
 
-1. Clone the repository from Github :
+image::https://github.com/saurabhshri/saurabhshri.github.io/raw/master/images/karaoke.gif?raw=true[align="center", "Synced output in Karaoke Style", height = "360px"]
 
-    git clone https://github.com/saurabhshri/CCAligner.git
 
-2. Navigate to `CCAligner/src` directory.
+- _Here's a quick video showing the output of approximated alignment :_
 
-    cd CCAligner/src
+[link=https://www.youtube.com/watch?v=km1iHe_mGuo]
+image::https://img.youtube.com/vi/km1iHe_mGuo/0.jpg["Click to watch the video on YouTube!", align="center"]
+== Usage Parameters ==
 
-3. Create a new directory where executable will be stored.
+The following is a complete list of available parameters that can be passed to CCAligner. Feel free to open a PR if you spot a missing parameter.
 
-    mkdir build
-    cd build
+- *Input related parameters :*
 
-4. Run `cmake` to generate make files in Linux/Mac or Visual Studio Solution in Windows.
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
 
-    - Linux/Mac
-    
-    cmake ../src/
-    make
-    
-    - windows
-    
-    cmake ../src/ -G "Visual Studio 14 2015"
-    cmake --build . --config Release --target ccaligner
-    
-5. Use the generated executable as per the documentation.
-   
-    ./ccaligner -a input.srt -of xml
-    
-Here's a quick video showing the output in action, of the above command :
+|`-wav`
+|`/path/to/wav_file`
+|Provide path to input audio wave file. Wave file must be 16 bit PCM mono sampled at 16KHz.
 
-image:https://img.youtube.com/vi/km1iHe_mGuo/0.jpg["Click to watch the video!", link="https://www.youtube.com/watch?v=km1iHe_mGuo"]
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt``_
 
-### Current Functionalities
+Required : yes.
 
-- [x] Tool for subtitle processing and basic testing architecture.
-- [x] Sample repository.
-- [x]  Algorithmic and Probability based word - audio matching.
-- [x] VAD implementation.
+|`-srt`
+|`/path/to/subtitle_file`
+|Provide path to subtitle file in SRT format. Please ensure that the subtitle file is clean and in proper format.
 
-== Project Details
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt``_
+
+Required : yes.
+
+|`-stdin` or `-`
+|Audio wave file from stdin or pipe.
+|Use this parameter to pass wav file from `stdin` or pipe.
+
+_E.g.: ``cat tbbt.wav \| ccaligner -stdin -srt tbbt.srt``_
+|===
+
+- *Output related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`-out`
+|`/path/to/output_file`
+|Provide name and path to generated to output file. By default the output name is extracted from input file and generated in same location in which the input file is located.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -out my_output.xml``_
+
+|`-oFormat`
+|`xml`, `json`, `srt`, `karaoke`, `stdout`
+|To choose output format. By default the output format is XML.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -out output_as_karaoke.srt -oFormat karaoke``_
+
+|`-log`
+|`/path/to/aligner_log_file/`
+|Specify path to logfile for PocketSphinx decoder. By default stores log in `tempFiles/{execution_timestamp}.log`
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -log tbbt.log``_
+
+|`-phoneLog`
+|`/path/to/phoneme_log_file/`
+|Specify path to logfile for PocketSphinx phoneme decoder. By default stores log in `tempFiles/phoneme_{execution_timestamp}.log`
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -phoneLog tbbt_phoneme.log``_
+|===
+
+- *Alignment related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`-approx`
+|`yes`, `no`
+|Use approx aligner instead of audio based aligner. Calculated timing of words based on it's weight. Super fast and doesn't involve audio analysis. Please be aware the result is not accurate but approximate.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -approx yes``_
+
+|`--enable-phonemes`
+|`yes`, `no`
+|Recognise and find phonemes and their timestamps along with words. SRT and Karaoke output can not display phonemes.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --enable-phonemes yes``_
+
+|`-transcribe`
+|`yes`, `no`
+|Performs transcription of complete audio instead of searching using timestamps and subs. Use this when timings in subtitles are incorrect or you want YouTube like transcription of video.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -transcribe yes``_
+
+|`--use-fsg`
+|`yes`, `no`
+|Instruct CCAligner to follow Finite State Grammar while performing recognition.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --use-fsg yes``_
+
+|`-useBatchMode`
+|`yes`, `no`
+|Instruct CCAligner to use batch mode of PocketSphinx. May improve accuracy by flushing CMN values.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -useBatchMode yes``_
+
+|`-experiment`
+|`yes`, `no`
+|Use experimental parameters. May improve accuracy in some cases.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -experiment yes``_
+
+|`-searchWindow`
+|An integer
+|Determine the extent to which current recognised word is searched in the respective subtitle dialogue. Default value is 3.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -searchWindow 6``_
+
+|`-audioWindow`
+|An integer
+|Determine the frontal and rear window from current subtitle timimng to perform recognition. The value should be in milliseconds. Default value is 0.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -audioWindow 500``_
+
+|`-sampleWindow`
+|An integer
+|Determine the frontal and rear window from current subtitle timimng to perform recognition. The value should be in number of samples. Default value is 0.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -sampleWindow 500``_
+|===
+
+- *Grammar, Language Model related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`--generate-grammar`
+|`yes`, `no`, `onlyCorpus`, `onlyDict`, `onlyFSG`, `onlyLM`, `onlyVocab`
+|Parameter deciding if and which type of grammar/lm to be generated. Once you have generated these files, no need to generate them again. They are stored in `tempFiles/{respective_dir}`. Also, use this when supplying files manually.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --generate-grammar no``_
+
+|`-model`
+|`path/to/acoustic/model`
+|Enter path of acoustic model to be used by aligner. Accuracy *highly* depends on the acoustic model.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -lm custom.lm``_
+
+|`-lm`
+|`path/to/language/model`
+|Enter path of language model to be used by aligner.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -lm custom.lm``_
+
+|`-dict`
+|`path/to/dictionary`
+|Enter path of dictionary to be used by aligner.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -dict custom.dict``_
+
+|`-fsg`
+|`path/to/fsg/directory`
+|Enter path of the directory containg FSGs, each FSG with name as starting timestamp of dialogue.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -fsg fsg/``_
+
+|`-phoneLM`
+|`path/to/phonetic/language/model`
+|Enter path of phonetic language model to be used by aligner.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -fsg fsg/``_
+
+|`--quick-dict`
+|`yes`,`no`
+|Generate dictionary quickly without using TensorFlow and seq2seq. Result might not give best accuracy.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --quick-dict yes``_
+
+|`--quick-lm`
+|`yes`,`no`
+|Generate language model quickly without using cmuclmtk. Result might not give best accuracy.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --quick-dict yes``_
+|===
+
+- *Display related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`-verbose`
+|`yes`, `no`
+|Turns verbosity on and off. Turn off for preventing [info] logs.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -verbose no``_
+
+|`--display-recognised`
+|`yes`, `no`
+|Determine whether to display the recognised words and matching status on stdout or not.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --display-recognised no``_
+
+|===
+
+== Project Details ==
 
 The usual subtitle files (such as SubRips) have line by line synchronization in them i.e. the subtitles containing the dialogue appear when the person starts talking and disappears when the dialogue finishes. This continues for the whole video. For example :
 
@@ -214,6 +385,12 @@ https://github.com/saurabhshri/CCAligner
 
 - Mentors : https://github.com/cfsmp3[@cfsmp3^] and https://github.com/AlexBratosin2001[@AlexBratosin2001^]
 
+### Credits and Licensing
+
+I haven't decided the license for the tool yet, but all the individual licenses of libraries and code used can be found under `license/` directory.
+
+I have tried my best to ensure that credit and reference is given in the source wherever it is due. In case I have missed any reference/license, firstly please accept my apology. Feel free to reach out to me and I'll be happy to correct my mistake. 🤝
+
 ### Contributing
 
-Feel free to contribute to the project. Your contribution will be highly appreciated! 🙂
+The project is under constant development, and needs a lot of brushing and bug fixes. Feel free to contribute in any way. Your contribution will be highly appreciated! 🙂

@@ -1,0 +1,387 @@
+===== Source Code Documentation ===== 
+
+All the technical details are commented in the codes and the documentation is available in the readme of the repository. Code is properly commented and the variables, classes and other components are named properly in Camel Case for easier understanding of the code.
+
+```
+.
+├── README.adoc
+├── demo
+│   ├── ApproxAligner
+│   └── VAD
+├── docs
+│   ├── code_documentation.adoc
+│   ├── API_documentation.adoc
+│   ├── compiling.adoc
+│   ├── installing_dependencies.adoc
+│   └── usage_parameters.adoc
+├── install
+│   ├── build.sh
+│   ├── g2p-seq2seq-cmudict
+│   ├── install_grammar_tools.sh
+│   ├── model
+│   └── quick_lm.pl
+├── license
+└── src
+    ├── lib_ccaligner
+    │   ├── commons.cpp
+    │   ├── commons.h
+    │   ├── g2p_rules.cpp
+    │   ├── generate_approx_timestamp.cpp
+    │   ├── generate_approx_timestamp.h
+    │   ├── grammar_tools.cpp
+    │   ├── grammar_tools.h
+    │   ├── output_handler.cpp
+    │   ├── output_handler.h
+    │   ├── params.cpp
+    │   ├── params.h
+    │   ├── phoneme_utils.cpp
+    │   ├── phoneme_utils.h
+    │   ├── read_wav_file.cpp
+    │   ├── read_wav_file.h
+    │   ├── recognize_using_pocketsphinx.cpp
+    │   ├── recognize_using_pocketsphinx.h
+    │   ├── voice_activity_detection.cpp
+    │   └── voice_activity_detection.h
+    └── lib_ext
+        ├── pocketsphinx
+        ├── sphinxbase
+        ├── srtparser
+        └── webrtc
+```
+
+# commons.cpp and commons.h
+
+These files contain enums, functions and classes that provide common functionalities throught the project. These include options, enums, global variables, logging and error functions, some helper functions and a class used to store aligned data.
+
+
+1. `should_log` 	: Boolean global variable determining whether to enable logging or not.
+
+2. `alignerType`	: Enum for typef of aligner to perform the force alignment.
+
+```
+approxAligner,          //approximation based alignment
+asrAligner,             //using pocketsphinx as ASR
+alignerUnassigned       //no aligner is specified
+```
+
+3. `outputFormats`	: Enum for various possible output formats.
+
+```
+srt,
+xml,
+json,
+karaoke,
+console,
+blank               //means no output format is specified
+```
+
+4. `grammarName`	: Enum for various possible output formats.
+
+```
+corpus,
+fsg,
+lm,
+phone_lm,
+dict,
+vocab,
+complete_grammar,
+quick_dict,
+quick_lm,
+no_grammar
+```
+
+5. `outputOptions`	: Enum for various output characterstics.
+
+```
+printOnlyRecognised,
+printBothWihoutColors,
+printBothWithDistinctColors,
+printAsKaraoke,
+printAsKaraokeWithDistinctColors,
+```
+
+6. `LOG()` and `log()` : Logger functions to help log events throught the project.
+
+Example :
+
+```
+LOG("Reading wave file from stream..");
+```
+
+7. `FATAL()` and `fatal()` : Error functions to exit program on catching a fatal error.
+
+Example :
+
+```
+FATAL(EXIT_FAILURE, "Invalid value passed to -sampleWindow : %s", strerror(errno));
+```
+
+8. `ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds)` : convert milliseconds to subtitle time format.
+
+9. `extractFileName(std::string fileName)` : Extract path/to/filename from path/to/filename.extension and return as std::string.
+
+10. `StringToLower(std::string strToConvert)` : Convert string into lowercase. Retrun type : std::string.
+
+11. `AlignedData` : Used to store transcribed data. All members are public.
+
+```
+{
+public:
+
+    std::vector<std::string> _words;
+    std::vector<long int>   _wordStartTimes;
+    std::vector<long int>   _wordEndTimes;
+    std::vector<float>      _wordConf;
+
+    bool addNewWord(std::string word, long int startTime, long int endTime, float conf);	// insert new word
+
+    std::vector<std::string> _phonemes;
+    std::vector<long int>   _phonemeStartTimes;
+    std::vector<long int>   _phonemeEndTimes;
+    std::vector<float>      _phonemeConf;
+
+    bool addNewPhoneme(std::string phoneme, long int startTime, long int endTime, float conf);	//insert new phoneme
+
+};
+
+```
+
+# generate_approx_timestamp.h and generate_approx_timestamp.cpp
+
+These files are responsible for handling current sub and performing approximation based word by word synchronization.
+
+1. `CurrentSub` : Used to store and process a single sub from a subtitle file.
+
+```
+class CurrentSub    //processing one subtitle at a time
+{
+    int _sentenceLength, _wordCount;    //length of the dialogue, number of words in that dialogue
+    long _dialogueDuration;             //duration of the dialogue in ms
+    static int _wordNumber;             //used to maintain the information about which word is being processed
+    SubtitleItem *_sub;                 //the subtitle itself (SubtitleItem is defined in srtparser.h)
+
+public:
+    int getDuration (long startTime, long endTime); //return the duration in ms between ending and starting timestamp
+    double getWordWeight (std::string word);        //returns the approximate weight of word
+    CurrentSub(SubtitleItem *sub);
+    void run();                                     //run the approx alignment
+    void alignNonRecognised(recognisedBlock currBlock);                      //run the approx alignment on unrecognised words
+    void printToSRT(std::string fileName, outputOptions printOption);          //prints the aligned result in SRT format
+    void printToConsole(std::string fileName);      //prints the output to console/stdout
+    void assignTime(long int &wordDuration, const std::string &word );  //assign the approximate duration the word is estimated to be spoken
+    ~CurrentSub();
+};
+```
+
+2. `ApproxAligner` : Class used to handle and perform approximation based alignment.
+
+```
+class ApproxAligner
+{
+private:
+    Params * _parameters;
+    std::string _fileName,_outputFileName;          //input and output filenames
+    outputFormats _outputFormat;                    //output format (xml/json/srt/stdout)
+public:
+    ApproxAligner(std::string fileName, outputFormats outputFormat = srt);  //default output is in SRT format
+    ApproxAligner(Params * parameters);  //default output is in SRT format
+    std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> align();   //begin alignment
+    ~ApproxAligner();
+};
+```
+
+# grammar_tools.h and grammar_tools.cpp
+
+These files are responsible for generating grammar files based on subtitles and chose grammar type.
+
+1. `generate(std::vector <SubtitleItem*> subtitles, grammarName name = complete_grammar)` : Generate grammar based on subtitles of type `grammarName`. Returns a boolean value.
+
+# output_handler.h and output_handler.cpp
+
+1. `initFile(std::string fileName, outputFormats outputFormat)`	: Remove if existing and create a new file fileName.
+
+2. `printFileEnd(std::string fileName, outputFormats outputFormat)` : Print ending closing footers for supplied filetype.
+
+3. `printTranscriptionHeader(std::string fileName, outputFormats outputFormat)` : Print file header while transcription.
+
+4. `printTranscriptionFooter(std::string fileName, outputFormats outputFormat)` : Print file footer while transcription.
+
+5. `printSRT(std::string fileName, std::vector <SubtitleItem*> subtitles, outputOptions printOption)` : Prints the aligned result in SRT format.
+
+6. `printSRTContinuous(std::string fileName, int subCount, SubtitleItem* sub, outputOptions printOption)` : Prints the aligned result in SRT format as they are generated.
+
+7. `printTranscriptionAsSRTContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)` : Prints the transcribed result in JSON format as they are generated.
+
+8. `printJSON(std::string fileName, std::vector <SubtitleItem*> subtitles)` : Prints the aligned result in JSON format.
+
+9. `printJSONContinuous(std::string fileName, SubtitleItem* sub)` : Prints the aligned result in JSON format as they are generated.
+
+10. `printTranscriptionAsJSONContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)` : Prints the transcribed result in JSON format as they are generated.
+
+11. `printXML(std::string fileName, std::vector <SubtitleItem*> subtitles)` : Prints the aligned information in XML format.
+
+12. `printXMLContinuous(std::string fileName, SubtitleItem* sub)` : Prints the aligned information in XML format as they are generated.
+
+13. `printTranscriptionAsXMLContinuous(std::string fileName, AlignedData *alignedData, int printedTillIndex)` : Prints the transcribed information in XML format as they are generated.
+
+14. `printKaraoke(std::string fileName, std::vector <SubtitleItem*> subtitles, outputOptions printOption)` : Prints the aligned information in Karaoke format.
+
+15. `printKaraokeContinuous(std::string fileName, int subCount, SubtitleItem* sub, outputOptions printOption)` : Prints the aligned information in Karaoke format as they are generated.
+
+# params.h and params.cpp
+
+These files are responsible for parameter parsing, processing, validating and handling.
+
+1. `Params` : Class containing all configuration options and parameters. Provide functions for input, validation and printing parameters.
+
+```
+class Params
+{
+public:
+    std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
+    unsigned long searchWindow, sampleWindow, audioWindow;
+    alignerType chosenAlignerType;
+    grammarName grammarType;
+    outputFormats outputFormat;
+    outputOptions printOption;
+    bool verbosity, useFSG, transcribe, useBatchMode, useExperimentalParams, searchPhonemes, displayRecognised, readStream, quickDict, quickLM;
+
+    Params();
+    void inputParams(int argc, char *argv[]);	//process command line arguments to find and fill parameters
+    void validateParams();	// validate passed parameters.
+    void printParams();		// print the current configuration, i.e. values of all parameters.
+    ~Params();
+
+};
+```
+
+# phoneme_utils.h and phoneme_utils.cpp
+
+These files provide utitlity functions for phoneme handling. 
+
+1. `std::wstring latin1ToWide(const std::string& s)` : Returns wide string from supplied std::string.
+
+2. `const std::vector<std::pair<std::wregex, std::wstring>>& getReplacementRules()` : Get phonetic rules for G2P conversion.
+
+3. `Phoneme charToPhone(wchar_t c)` : Converts a character to phoneme.
+
+4. `std::vector<Phoneme> stringToPhoneme(const std::string &word)` : Returns a vector of phonemes (std::string) for a string of characters.
+
+# read_wav_file.h and read_wav_file.cpp
+
+These files are contain the code which performs the audio input and processing.
+
+1. `openMode` : Enum for various possible file opening modes.
+
+```
+readFile,               //read from a file located on disk
+readStreamDirectly,     //read directly from stream/piped data
+readStreamIntoBuffer,   //read data from stream/pipe into buffer first, then process
+```
+
+2. `findIndex(std::vector<unsigned char>& fileData, std::string chunk)`  : returns the index of beginning of the sub string.
+
+3. `WaveFileData` : Class used for storing and handling wave files.
+
+```
+class WaveFileData
+{
+    std::string _fileName;                  //name/path of the wave file
+    std::vector<unsigned char> _fileData;   //content of the wave file
+    std::vector<int16_t> _samples;          //the raw samples containing audio data : PCM, 16 bit, Sampled at 16Khz, mono
+    openMode _openMode;                     //mode of reading file
+
+    //when reading from file / buffer
+    bool checkValidWave (std::vector<unsigned char>& fileData); //check if wave file is valid by reading the RIFF header
+    bool decode();  //decode the wave file and fill the _sample vector
+
+    //when reading from stream/pipe
+    int processStreamHeader();                      //check if stream is valid wave stream
+    int seekToEndOfSubChunk1ID(int remainingBytes); //reach till the end of 'fmt' Chunk ID + skip 1 byte (empty byte)
+    int validateSubChunk1(int remainingBytes);      //check the 'fmt' chunk for required wave file config (16 bit, 16KHz, mono, PCM)
+    int seekToEndOfSubChunk2ID(int remainingBytes); //reach till the end of 'data' Chunk ID
+    int getNumberOfSamples();                       //basically gets size of 'data' Chunk which contains size of samples
+    bool readSamplesFromStream(int numberOfSamples);//read the sample from stream and insert in the _sample vector
+
+    unsigned long fourBytesToInt (std::vector<unsigned char>& fileData, int index); //convert 4 bytes into unsigned long int
+    int twoBytesToInt (std::vector<unsigned char>& fileData, int index);            //convert 2 bytes into signed integer
+    double twoBytesToDouble (int sample);                                           //convert 2 bytes to double; not required rn
+
+public:
+    WaveFileData(std::string fileName);                 //initialize wave file for file on disk mode; pass file name
+    WaveFileData(openMode mode = readStreamDirectly);   //initialize wave file for stream mode; optionally store in buffer
+
+    bool openFile();                //open file using file name
+    bool readStream();              //process stream directly
+    bool readStreamUsingBuffer();   //first store stream into buffer, then process
+    bool read();                    //the main function which decides the open method using set mode
+
+    std::vector<int16_t> getSamples();  //returns the sample vector; time based coming soon
+    ~WaveFileData();
+};
+
+```
+
+# recognize_using_pocketsphinx.h and recognize_using_pocketsphinx.cpp
+
+These files contain the code where actual alignment occurs based on PocketSphinx ASR.
+
+1. `levenshtein_distance(const std::string& firstWord, const std::string& secondWord)` : Computes levenshtein distance between two words. Used to measure how close two words are.
+
+2. `PocketsphinxAligner` : Class used to handle PocketSphinx based aligner.
+
+```
+class PocketsphinxAligner
+{
+private:
+    std::string _audioFileName, _subtitleFileName, _outputFileName;          //input and output filenames
+    std::vector<int16_t> _samples;	// processed audio samples
+
+    // wave file object
+    WaveFileData * _file;
+
+    //subtitle file object
+    SubtitleParserFactory * _subParserFactory;
+    SubtitleParser * _parser;
+    std::vector <SubtitleItem*> _subtitles;
+
+    //transcription aligned data storing object
+    AlignedData * _alignedData;
+
+    //parameter object
+    Params * _parameters;
+
+    //configuration variables
+    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;
+    long int _audioWindow, _sampleWindow, _searchWindow;
+
+    //decoder variables
+    ps_decoder_t * _psWordDecoder, * _psPhonemeDecoder;
+    cmd_ln_t * _configWord, * _configPhoneme;
+    char const * _hypWord, * _hypPhoneme;
+    int _rvWord, _rvPhoneme;
+    int32 _scoreWord, _scorePhoneme;
+
+    bool processFiles();	//process input files to obtain processed samples and subtitles.
+    bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);	//print hypothesis along with it's timeframes
+    int findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index);	///obtain phoneme timestamps and output transcribed data
+    recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub); //search word in sub and output it.
+    bool findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);	//obtain phoneme timestamps and output it.
+    bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);	//reinitialise decoder.
+    bool initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath); //initialise phonectic decoder
+
+public:
+    PocketsphinxAligner(Params * parameters);
+    bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);	//inintialise word decoder.
+    bool generateGrammar(grammarName name);	//generate grammar and LM
+    bool recognise();	//begin recognition using PocketSphinx
+    bool alignWithFSG();	//perform alignement using FSG
+    bool align();	//perform alignement 
+    bool recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);	//recognise phonemes
+    bool transcribe();	//perform transcription
+    bool printAligned(std::string outputFileName, outputFormats format);	//print aligned data as
+    ~PocketsphinxAligner();
+
+};
+```
+

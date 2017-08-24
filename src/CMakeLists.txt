@@ -45,6 +45,7 @@ endif(UNIX)
 #including PocketSphinx and Sphinxbase
 include_directories(lib_ext/pocketsphinx/include/
         lib_ext/sphinxbase/include/
+        lib_ext/pocketsphinx/src/libpocketsphinx/
 )
 
 FILE(GLOB_RECURSE POCKETSPHINX_FILES "lib_ext/pocketsphinx/src/libpocketsphinx/*.c")
@@ -68,18 +69,25 @@ include_directories(lib_ccaligner/)
 set(SOURCE_FILES
         ccaligner.cpp
         ccaligner.h
+        lib_ccaligner/commons.cpp
+        lib_ccaligner/commons.h
         lib_ccaligner/generate_approx_timestamp.cpp
         lib_ccaligner/generate_approx_timestamp.h
         lib_ccaligner/voice_activity_detection.h
         lib_ccaligner/voice_activity_detection.cpp
-        lib_ccaligner/common_header_files.h
         lib_ccaligner/read_wav_file.h
         lib_ccaligner/read_wav_file.cpp
         lib_ccaligner/grammar_tools.cpp
         lib_ccaligner/grammar_tools.h
         lib_ccaligner/recognize_using_pocketsphinx.cpp
         lib_ccaligner/recognize_using_pocketsphinx.h
-)
+        lib_ccaligner/params.cpp
+        lib_ccaligner/params.h
+        lib_ccaligner/phoneme_utils.cpp
+        lib_ccaligner/phoneme_utils.h
+        lib_ccaligner/output_handler.cpp
+        lib_ccaligner/output_handler.h
+        )
 
 add_executable(ccaligner ${SOURCE_FILES})
 target_link_libraries(ccaligner webRTC  pocketsphinx sphinxbase ${EXTRA_FLAGS})

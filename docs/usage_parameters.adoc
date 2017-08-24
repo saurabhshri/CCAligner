@@ -1,0 +1,199 @@
+=== Usage Parameters ===
+
+The following is a complete list of available command line arguments or parameters that can be passed to CCAligner. Feel free to open a PR if you spot a missing parameter.
+
+- *Input related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`-wav`
+|`/path/to/wav_file`
+|Provide path to input audio wave file. Wave file must be 16 bit PCM mono sampled at 16KHz.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt``_
+
+Required : yes.
+
+|`-srt`
+|`/path/to/subtitle_file`
+|Provide path to subtitle file in SRT format. Please ensure that the subtitle file is clean and in proper format.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt``_
+
+Required : yes.
+
+|`-stdin` or `-`
+|Audio wave file from stdin or pipe.
+|Use this parameter to pass wav file from `stdin` or pipe.
+
+_E.g.: ``cat tbbt.wav \| ccaligner -stdin -srt tbbt.srt``_
+|===
+
+- *Output related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`-out`
+|`/path/to/output_file`
+|Provide name and path to generated to output file. By default the output name is extracted from input file and generated in same location in which the input file is located.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -out my_output.xml``_
+
+|`-oFormat`
+|`xml`, `json`, `srt`, `karaoke`, `stdout`
+|To choose output format. By default the output format is XML.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -out output_as_karaoke.srt -oFormat karaoke``_
+
+|`-log`
+|`/path/to/aligner_log_file/`
+|Specify path to logfile for PocketSphinx decoder. By default stores log in `tempFiles/{execution_timestamp}.log`
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -log tbbt.log``_
+
+|`-phoneLog`
+|`/path/to/phoneme_log_file/`
+|Specify path to logfile for PocketSphinx phoneme decoder. By default stores log in `tempFiles/phoneme_{execution_timestamp}.log`
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -phoneLog tbbt_phoneme.log``_
+|===
+
+- *Alignment related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`-approx`
+|`yes`, `no`
+|Use approx aligner instead of audio based aligner. Calculated timing of words based on it's weight. Super fast and doesn't involve audio analysis. Please be aware the result is not accurate but approximate.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -approx yes``_
+
+|`--enable-phonemes`
+|`yes`, `no`
+|Recognise and find phonemes and their timestamps along with words. SRT and Karaoke output can not display phonemes.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --enable-phonemes yes``_
+
+|`-transcribe`
+|`yes`, `no`
+|Performs transcription of complete audio instead of searching using timestamps and subs. Use this when timings in subtitles are incorrect or you want YouTube like transcription of video.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -transcribe yes``_
+
+|`--use-fsg`
+|`yes`, `no`
+|Instruct CCAligner to follow Finite State Grammar while performing recognition.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --use-fsg yes``_
+
+|`-useBatchMode`
+|`yes`, `no`
+|Instruct CCAligner to use batch mode of PocketSphinx. May improve accuracy by flushing CMN values.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -useBatchMode yes``_
+
+|`-experiment`
+|`yes`, `no`
+|Use experimental parameters. May improve accuracy in some cases.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -experiment yes``_
+
+|`-searchWindow`
+|An integer
+|Determine the extent to which current recognised word is searched in the respective subtitle dialogue. Default value is 3.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -searchWindow 6``_
+
+|`-audioWindow`
+|An integer
+|Determine the frontal and rear window from current subtitle timimng to perform recognition. The value should be in milliseconds. Default value is 0.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -audioWindow 500``_
+
+|`-sampleWindow`
+|An integer
+|Determine the frontal and rear window from current subtitle timimng to perform recognition. The value should be in number of samples. Default value is 0.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -sampleWindow 500``_
+|===
+
+- *Grammar, Language Model related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`--generate-grammar`
+|`yes`, `no`, `onlyCorpus`, `onlyDict`, `onlyFSG`, `onlyLM`, `onlyVocab`
+|Parameter deciding if and which type of grammar/lm to be generated. Once you have generated these files, no need to generate them again. They are stored in `tempFiles/{respective_dir}`. Also, use this when supplying files manually.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --generate-grammar no``_
+
+|`-model`
+|`path/to/acoustic/model`
+|Enter path of acoustic model to be used by aligner. Accuracy *highly* depends on the acoustic model.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -lm custom.lm``_
+
+|`-lm`
+|`path/to/language/model`
+|Enter path of language model to be used by aligner.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -lm custom.lm``_
+
+|`-dict`
+|`path/to/dictionary`
+|Enter path of dictionary to be used by aligner.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -dict custom.dict``_
+
+|`-fsg`
+|`path/to/fsg/directory`
+|Enter path of the directory containg FSGs, each FSG with name as starting timestamp of dialogue.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -fsg fsg/``_
+
+|`-phoneLM`
+|`path/to/phonetic/language/model`
+|Enter path of phonetic language model to be used by aligner.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -fsg fsg/``_
+
+|`--quick-dict`
+|`yes`,`no`
+|Generate dictionary quickly without using TensorFlow and seq2seq. Result might not give best accuracy.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --quick-dict yes``_
+
+|`--quick-lm`
+|`yes`,`no`
+|Generate language model quickly without using cmuclmtk. Result might not give best accuracy.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --quick-dict yes``_
+|===
+
+- *Display related parameters :*
+
+[cols="2,2,4"]
+|===
+| Parameter | Accepted Values | Description
+
+|`-verbose`
+|`yes`, `no`
+|Turns verbosity on and off. Turn off for preventing [info] logs.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -verbose no``_
+
+|`--display-recognised`
+|`yes`, `no`
+|Determine whether to display the recognised words and matching status on stdout or not.
+
+_E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --display-recognised no``_
+
+|===

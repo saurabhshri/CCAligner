@@ -204,7 +204,7 @@ inline std::vector<std::string> &split(const std::string &s, char delim, std::ve
 
 inline bool isPunc(char ch)
 {
-    return (ch == '!' || ch == '?' || ch == '.' || ch == ',' || ch == '"' || ch == '-' || ch ==':' || !(ch >= 0 && ch < 128));
+    return (ch == '!' || ch == '?' || ch == '.' || ch == ',' || ch == '"' || ch == '-' || ch ==':' || !((unsigned char) ch >= 0 && (unsigned char) ch < 128));
 }
 
 /**** Class definitions ****/
@@ -232,20 +232,30 @@ private:
     int _subNo;                              //subtitle number
     std::string _startTimeString;           //time as in srt format
     std::string _endTimeString;
+
     bool _ignore;                           //should subtitle be ignore; used when the subtitle is empty after processing
     std::string _justDialogue;              //contains processed subtitle - stripped style, non dialogue text removal etc.
+
     int _speakerCount;                      //count of number of speakers
     std::vector<std::string> _speaker;      //list of speakers in a single subtitle
+
     int _nonDialogueCount;                  //count of non spoken words in a subtitle
     std::vector<std::string> _nonDialogue;  //list of non dialogue words, e.g. (applause)
+
     int _wordCount;                         //number of words in _justDialogue
     std::vector<std::string> _word;         //list of words in dialogue
     std::vector<long int> _wordStartTime;   //start time of each word in dialogue
     std::vector<long int> _wordEndTime;     //end time of each word in dialogue
     std::vector<long int> _wordDuration;    //actual duration of each word without silence
     std::vector<bool> _isWordRecognised;    //is word recognised by ASR or not
+
+    std::vector<std::string> _phoneme;         //list of phonemes in dialogue
+    std::vector<long int> _phonemeStartTime;   //start time of each phoneme in dialogue
+    std::vector<long int> _phonemeEndTime;     //end time of each phoneme in dialogue
+
     int _styleTagCount;                     //count of style tags in a single subtitle
     std::vector<std::string> _styleTag;     //list of style tags in that subtitle
+
     void extractInfo(bool keepHTML = 0, bool doNotIgnoreNonDialogues = 0,  bool doNotRemoveSpeakerNames = 0);   //process subtitle
 public:
     long int getStartTime() const;          //returns starting time in ms
@@ -260,6 +270,7 @@ public:
     int getSpeakerCount() const;            //return speaker count
     int getNonDialogueCount() const;        //return non dialogue words count
     int getStyleTagCount() const;           //return style tags count
+
     int getWordCount() const;               //return words count
     std::vector<std::string> getIndividualWords(); //return string vector of individual words
     std::string getWordByIndex(int index);       //return word stored at 'index'
@@ -269,6 +280,15 @@ public:
     long int getWordStartTimeByIndex(int index); //return the start time of a word based on index
     long int getWordEndTimeByIndex (int index);  //return the end time of a word based on index
     bool getWordRecognisedStatusByIndex(int index); //return the status as true/false whether the word was recognised or not
+
+    int getPhonemeCount() const;               //return words count
+    std::vector<std::string> getPhonemes(); //return string vector of individual words
+    std::string getPhonemeByIndex(int index);       //return word stored at 'index'
+    std::vector<long int> getPhonemeStartTimes();   //return long int vector of start time of individual words
+    std::vector<long int> getPhonemeEndTimes();     //return long int vector of end time of individual words
+    long int getPhonemeStartTimeByIndex(int index); //return the start time of a word based on index
+    long int getPhonemeEndTimeByIndex (int index);  //return the end time of a word based on index
+
     std::vector<std::string> getSpeakerNames();  //return string vector of speaker names
     std::vector<std::string> getNonDialogueWords(); //return string vector of non dialogue words
     std::vector<std::string> getStyleTags();    //return string vector of style tags
@@ -277,10 +297,14 @@ public:
     void setStartTime(long int startTime);  //set starting time
     void setEndTime(long int endTime);      //set ending time
     void setText(std::string text);         //set subtitle text
+
     void setWordTimes(std::vector<long int> wordStartTime, std::vector<long int> wordEndTime, std::vector<long int> wordDuration);  //assign time to individual words
     void setWordTimesByIndex(long int startTime, long int endTime, int index);
     void setWordRecognisedStatusByIndex(bool status, int index); //return boolean vector containing status of each word if it's recognised or not
 
+    void addPhoneme(std::string phoneme, long int startTime, long int endTime);
+    void setPhonemeTimes(std::vector<long int> wordStartTime, std::vector<long int> wordEndTime);  //assign time to individual words
+    void setPhonemeTimesByIndex(long int startTime, long int endTime, int index);
 
     SubtitleItem(void);
     SubtitleItem(int subNo, std::string startTime,std::string endTime, std::string text, bool ignore = false,
@@ -545,6 +569,22 @@ inline void SubtitleItem::setWordRecognisedStatusByIndex(bool status, int index)
 {
     _isWordRecognised[index] = status;
 }
+inline void SubtitleItem::addPhoneme(std::string phoneme, long int startTime, long int endTime)
+{
+    _phoneme.push_back(phoneme);
+    _phonemeStartTime.push_back(startTime);
+    _phonemeEndTime.push_back(endTime);
+}
+inline void SubtitleItem::setPhonemeTimes(std::vector<long int> wordStartTime, std::vector<long int> wordEndTime)
+{
+    _phonemeStartTime = wordStartTime;
+    _phonemeEndTime = wordEndTime;
+}
+inline void SubtitleItem::setPhonemeTimesByIndex(long int startTime, long int endTime, int index)
+{
+    _phonemeStartTime[index] = startTime;
+    _phonemeEndTime[index] = endTime;
+}
 inline int SubtitleItem::getSubNo() const
 {
     return _subNo;
@@ -794,10 +834,6 @@ inline int SubtitleItem::getStyleTagCount() const
 {
     return _styleTagCount;
 }
-inline int SubtitleItem::getWordCount() const
-{
-    return _wordCount;
-}
 inline std::vector<std::string> SubtitleItem::getSpeakerNames()
 {
     return _speaker;
@@ -809,6 +845,10 @@ inline std::vector<std::string> SubtitleItem::getNonDialogueWords()
 inline std::vector<std::string> SubtitleItem::getIndividualWords()
 {
     return _word;
+}
+inline int SubtitleItem::getWordCount() const
+{
+    return _wordCount;
 }
 inline std::string SubtitleItem::getWordByIndex(int index)
 {
@@ -838,6 +878,35 @@ inline bool SubtitleItem::getWordRecognisedStatusByIndex(int index)
 {
     return _isWordRecognised[index];
 }
+inline int SubtitleItem::getPhonemeCount() const
+{
+    return _phoneme.size();
+}
+inline std::vector<std::string> SubtitleItem::getPhonemes()
+{
+    return _phoneme;
+}
+inline std::string SubtitleItem::getPhonemeByIndex(int index)
+{
+    return _phoneme[index];
+}
+inline std::vector<long int> SubtitleItem::getPhonemeStartTimes()
+{
+    return _phonemeStartTime;
+}
+inline std::vector<long int> SubtitleItem::getPhonemeEndTimes()
+{
+    return _phonemeEndTime;
+}
+inline long int SubtitleItem::getPhonemeStartTimeByIndex(int index)
+{
+    return _phonemeStartTime[index];
+}
+inline long int SubtitleItem::getPhonemeEndTimeByIndex(int index)
+{
+    return _phonemeEndTime[index];
+}
+
 inline std::vector<std::string> SubtitleItem::getStyleTags()
 {
     return _styleTag;
