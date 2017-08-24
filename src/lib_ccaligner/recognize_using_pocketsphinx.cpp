@@ -51,6 +51,8 @@ bool PocketsphinxAligner::processFiles()
     _file->read();
     _samples = _file->getSamples();
 
+    return true;
+
 }
 
 bool PocketsphinxAligner::generateGrammar(grammarName name)
@@ -65,7 +67,7 @@ bool PocketsphinxAligner::generateGrammar(grammarName name)
         std::cout << "this may take some time, please be patient. For alternatives, see docs.\n";
     }
 
-    generate(_subtitles, name);
+    return generate(_subtitles, name);
 }
 
 bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath)
@@ -144,22 +146,22 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
 
     if (_configWord == NULL)
     {
-        fprintf(stderr, "Failed to create config object, see log for  details\n");
-        return -1;
+        FATAL(EXIT_FAILURE, "Failed to create config object, see log for  details" );
     }
 
     _psWordDecoder = ps_init(_configWord);
 
     if (_psWordDecoder == NULL)
     {
-        fprintf(stderr, "Failed to create recognizer, see log for  details\n");
-        return -1;
+        FATAL(EXIT_FAILURE, "Failed to create recognizer, see log for  details" );
     }
 
     if(_parameters->searchPhonemes)
     {
         initPhonemeDecoder(_parameters->phoneticlmPath, _parameters->phonemeLogPath);
     }
+
+    return true;
 }
 
 
@@ -189,17 +191,17 @@ bool PocketsphinxAligner::initPhonemeDecoder(std::string phoneticlmPath, std::st
 
     if (_configPhoneme == NULL)
     {
-        fprintf(stderr, "Failed to create config object, see log for  details\n");
-        return -1;
+        FATAL(EXIT_FAILURE, "Failed to create config object, see log for  details" );
     }
 
     _psPhonemeDecoder = ps_init(_configPhoneme);
 
     if (_psPhonemeDecoder == NULL)
     {
-        fprintf(stderr, "Failed to create recognizer, see log for  details\n");
-        return -1;
+        FATAL(EXIT_FAILURE, "Failed to create phoneme recognizer, see log for  details" );
     }
+
+    return true;
 
 }
 
@@ -272,6 +274,8 @@ bool PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t 
      skipSearchingThisPhoneme:
         iter = ps_seg_next(iter);
     }
+
+    return true;
 }
 
 recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
@@ -409,6 +413,8 @@ bool PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
                ((float) ef / frame_rate));
         iter = ps_seg_next(iter);
     }
+
+    return true;
 }
 
 bool PocketsphinxAligner::recognise()
@@ -532,6 +538,8 @@ bool PocketsphinxAligner::recognise()
     printFileEnd(_outputFileName, _parameters->outputFormat);
 
     std::cout << "Finished recognition and alignment..\n";
+
+    return true;
 }
 
 bool PocketsphinxAligner::align()
@@ -553,6 +561,8 @@ bool PocketsphinxAligner::align()
         else
             recognise();
     }
+
+    return true;
 
 }
 
@@ -579,6 +589,8 @@ bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit
 
         findAndSetPhonemeTimes(_configPhoneme,_psPhonemeDecoder, sub);
     }
+
+    return true;
 }
 
 int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index)
@@ -688,11 +700,14 @@ bool PocketsphinxAligner::transcribe()
     printTranscriptionFooter(_outputFileName, _parameters->outputFormat);
 
     std::cout << "Finished transcription.\n";
+
+    return true;
 }
 
 bool PocketsphinxAligner::reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps)
 {
     ps_reinit(_psWordDecoder, _configWord);
+    return true;
 }
 
 bool PocketsphinxAligner::alignWithFSG()
@@ -830,6 +845,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
 
+    return true;
 }
 
 bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats format)
@@ -848,10 +864,10 @@ bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats
         case karaoke:   printKaraoke(outputFileName, _subtitles, _parameters->printOption);
                         break;
 
-        default:        std::cout<<"An error occurred while choosing output format!";
-                        exit(2);
+        default:        FATAL(EXIT_FAILURE, "An error occurred while choosing output format!");
     }
-    return false;
+
+    return true;
 }
 
 

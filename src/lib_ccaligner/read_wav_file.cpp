@@ -264,6 +264,7 @@ bool WaveFileData::openFile ()
         FATAL(EXIT_INVALID_FILE, "Invalid WAV file!");
     }
 
+    return true;
 }
 
 int WaveFileData::processStreamHeader()
@@ -568,6 +569,8 @@ bool WaveFileData::readStreamUsingBuffer()
         FATAL(EXIT_INVALID_FILE, "Invalid WAV file : SubChunk2 ('data') not found!");
     }
 
+    return true;
+
 }
 
 bool WaveFileData::read()   //decided the function based on set mode
@@ -585,6 +588,8 @@ bool WaveFileData::read()   //decided the function based on set mode
         default                   : FATAL(EXIT_INVALID_FILE, "Error choosing opening mode, please report!");
 
     }
+
+    return true;
 }
 
 /* Convert 4 bytes to int
