@@ -300,6 +300,8 @@ public:
 
     void setWordTimes(std::vector<long int> wordStartTime, std::vector<long int> wordEndTime, std::vector<long int> wordDuration);  //assign time to individual words
     void setWordTimesByIndex(long int startTime, long int endTime, int index);
+    void setWordStartTimeByIndex(long int startTime, int index);
+    void setWordEndTimeByIndex(long int endTime, int index);
     void setWordRecognisedStatusByIndex(bool status, int index); //return boolean vector containing status of each word if it's recognised or not
 
     void addPhoneme(std::string phoneme, long int startTime, long int endTime);
@@ -564,6 +566,16 @@ inline void SubtitleItem::setWordTimesByIndex(long int startTime, long int endTi
     _wordStartTime[index] = startTime;
     _wordEndTime[index] = endTime;
     _wordDuration[index] = endTime - startTime;
+}
+inline void SubtitleItem::setWordStartTimeByIndex(long int startTime, int index)
+{
+    _wordStartTime[index] = startTime;
+    _wordDuration[index] = _wordEndTime[index] - startTime;
+}
+inline void SubtitleItem::setWordEndTimeByIndex(long int endTime, int index)
+{
+    _wordEndTime[index] = endTime;
+    _wordDuration[index] = endTime - _wordStartTime[index];
 }
 inline void SubtitleItem::setWordRecognisedStatusByIndex(bool status, int index)
 {

@@ -509,7 +509,11 @@ bool PocketsphinxAligner::recognise()
             std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
         }
 
+        //finding and aligning words from subtitle
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
+
+        //trying to align non recognised words
+        currSub->alignNonRecognised(currBlock);
 
         if(_parameters->searchPhonemes)
             recognisePhonemes(sample + samplesAlreadyRead, samplesToBeRead, sub);
@@ -883,11 +887,9 @@ PocketsphinxAligner::~PocketsphinxAligner()
         cmd_ln_free_r(_configPhoneme);
     }
 
-
     delete(_file);
 
     delete(_parser);
     delete(_subParserFactory);
     delete(_alignedData);
 }
-

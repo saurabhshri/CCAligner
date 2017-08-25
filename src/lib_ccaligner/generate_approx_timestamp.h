@@ -12,6 +12,15 @@
 #include "params.h"
 #include "output_handler.h"
 
+class NonAlignedBlock   //find non aligned blocks after alignment
+{
+public:
+    long int startTime, endTime, timespan;
+    int wordLength, startIndex, endIndex;
+
+    NonAlignedBlock();
+};
+
 class CurrentSub    //processing one subtitle at a time
 {
     int _sentenceLength, _wordCount;    //length of the dialogue, number of words in that dialogue
