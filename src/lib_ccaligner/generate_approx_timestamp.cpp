@@ -130,54 +130,53 @@ void CurrentSub::run()
     _sub->setWordTimes(wordStartTime, wordEndTime, wordDuration);
 }
 
-void CurrentSub::alignNonRecognised(recognisedBlock currBlock)  //TODO
+
+NonAlignedBlock::NonAlignedBlock()
+{
+    wordLength = 0;
+    startTime = 0;
+    endTime = 0;
+    startIndex = 0;
+    endIndex = 0;
+}
+
+void CurrentSub::alignNonRecognised(recognisedBlock currBlock)
 {
     long int startTime = _sub->getStartTime(), endTime = _sub->getEndTime(), duration = startTime - endTime;
 
-    long int breakPoints [_sub->getWordCount() * 2 + 1][3];   //suppose there are silence after each word + start and end silence
 
-    for(int r = 0; r < _sub->getWordCount() * 2 + 1; r++)
-    {
-        for(int c = 0; c < 3; c++)
-        {
-            breakPoints[r][c] = 0;      //init with 0
-        }
-    }
-    //trimming starting and ending silences
-
-    if(currBlock.recognisedString[0] == "<s>")
-    {
-        startTime += currBlock.recognisedWordStartTimes[0];
-    }
-
-    if(currBlock.recognisedString[currBlock.recognisedString.size()] == "</s>")
-    {
-        endTime -= currBlock.recognisedWordEndTimes[currBlock.recognisedString.size()];
-    }
-
-    //creating breakpoints in the timeline for recognised words and silences
-
-    long int breakPointCounter = 0;
+    NonAlignedBlock nonAlignedBlock;
+    nonAlignedBlock.startTime = startTime;
+    nonAlignedBlock.endTime = startTime;
 
     for(int i=0;i<_sub->getWordCount();i++)
     {
-        if(_sub->getWordRecognisedStatusByIndex(i))
+        if(!_sub->getWordRecognisedStatusByIndex(i))
         {
-            breakPoints[breakPointCounter][0] = _sub->getWordStartTimeByIndex(i);
-            breakPoints[breakPointCounter][1] = _sub->getWordEndTimeByIndex(i);
-            breakPoints[breakPointCounter][2] = i;
-            breakPointCounter++;
+            nonAlignedBlock.wordLength += _sub->getWordByIndex(i).size();
+            nonAlignedBlock.endIndex = i;
         }
-    }
 
-    for(int i=0;i<currBlock.recognisedString.size();i++)
-    {
-        if(currBlock.recognisedString[i] == "<sil>")
+        else
         {
-            breakPoints[breakPointCounter][0] = currBlock.recognisedWordStartTimes[i];
-            breakPoints[breakPointCounter][1] =  currBlock.recognisedWordEndTimes[i];
-            breakPoints[breakPointCounter][2] = -1;
-            breakPointCounter++;
+            if(nonAlignedBlock.wordLength > 0)
+            {
+                nonAlignedBlock.endTime = _sub->getWordStartTimeByIndex(i);
+                nonAlignedBlock.timespan = nonAlignedBlock.endTime - nonAlignedBlock.startTime;
+
+                for(int j = nonAlignedBlock.startIndex; j <= nonAlignedBlock.endIndex ; j++)
+                {
+                    int indi = _sub->getWordByIndex(j).size() / nonAlignedBlock.wordLength * nonAlignedBlock.timespan;
+                    _sub->setWordTimesByIndex(nonAlignedBlock.startTime, nonAlignedBlock.startTime + indi, j);
+                    nonAlignedBlock.startTime = nonAlignedBlock.startTime + indi;
+                }
+            }
+
+            nonAlignedBlock.startTime = _sub->getWordEndTimeByIndex(i);
+            nonAlignedBlock.endTime = nonAlignedBlock.startTime;
+
+            nonAlignedBlock.wordLength = 0;
+            nonAlignedBlock.startIndex = i+1;
         }
     }
 
@@ -252,3 +251,4 @@ ApproxAligner::~ApproxAligner()
 {
 
 }
+
