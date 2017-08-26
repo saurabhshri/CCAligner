@@ -140,15 +140,65 @@ Complete documentation of the API will be written under docs.
 
 === Some Previews ===
 
-- _Obtaining output in Karaoke format :_
+- Click on video thumbnail or link to watch the video on YouTube.
 
-image::https://github.com/saurabhshri/saurabhshri.github.io/raw/master/images/karaoke.gif?raw=true[align="center", "Synced output in Karaoke Style", height = "360px"]
+[cols="1,5"]
+|===
+a|
+[link=https://www.youtube.com/watch?v=38_27E1PxXA]
+image::https://img.youtube.com/vi/38_27E1PxXA/0.jpg[height = "100px"]
+| Word by Word Audio Subtitle Synchronization - Karaoke Demo 1  
+
+_(https://www.youtube.com/watch?v=38_27E1PxXA)_
+
+_[Sitcom]_
+
+a|
+[link=https://www.youtube.com/watch?v=6VnhC8u_d40]
+image::https://img.youtube.com/vi/6VnhC8u_d40/0.jpg[height = "100px"]
+| Word by Word Audio Subtitle Synchronization - Karaoke Demo 2  
+
+_(https://www.youtube.com/watch?v=6VnhC8u_d40)_
+
+_[Ted Talk]_
 
 
-- _Here's a quick video showing the output of approximated alignment :_
+a|
+[link=https://www.youtube.com/watch?v=j_zeixo-zJY]
+image::https://img.youtube.com/vi/j_zeixo-zJY/0.jpg[height = "100px"]
+| Word by Word Audio Subtitle Synchronization - Karaoke Demo 3  
 
+_(https://www.youtube.com/watch?v=j_zeixo-zJY)_
+
+_[Cartoon Show]_
+
+a| 
+[link=https://www.youtube.com/watch?v=8tTDX6NZGsU]
+image::https://img.youtube.com/vi/8tTDX6NZGsU/0.jpg[height = "100px"]
+| Word by Word Audio Subtitle Synchronization - Karaoke Demo 1  
+
+_(https://www.youtube.com/watch?v=8tTDX6NZGsU)_
+
+_[Discussion Video]_
+
+a|
+[link=https://www.youtube.com/watch?v=tFrf0TVnqIQ]
+image::https://img.youtube.com/vi/tFrf0TVnqIQ/0.jpg[height = "100px"]
+|  Word by Word Audio Video Transcription Demo   
+
+_(https://www.youtube.com/watch?v=tFrf0TVnqIQ)_
+
+_[Reality Show]_
+
+a|
 [link=https://www.youtube.com/watch?v=km1iHe_mGuo]
-image::https://img.youtube.com/vi/km1iHe_mGuo/0.jpg["Click to watch the video on YouTube!", align="center"]
+image::https://img.youtube.com/vi/km1iHe_mGuo/0.jpg[height = "100px"]
+| Approximate Word by Word Audio Subtitle Synchronization  
+
+_(https://www.youtube.com/watch?v=km1iHe_mGuo)_
+
+|===
+
 == Usage Parameters ==
 
 The following is a complete list of available parameters that can be passed to CCAligner. Feel free to open a PR if you spot a missing parameter.
