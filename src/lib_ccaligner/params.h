@@ -9,8 +9,11 @@
 
 #include "commons.h"
 
+const std::string currentTime();
+
 class Params
 {
+    std::string localTime;
 public:
     std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
     unsigned long searchWindow, sampleWindow, audioWindow;
