@@ -24,7 +24,7 @@ To automatically generate language models, dictionaries and grammars, following 
 
 1. cmuclmtk : to generate vocab and LM.
     _(https://sourceforge.net/projects/cmusphinx/files/cmuclmtk/0.7/cmuclmtk-0.7.tar.gz/download)_
-2. g2p-seq2seq  (to generate dictionary)
+2. g2p-seq2seq  (to generate dictionary).  
     _(https://github.com/cmusphinx/g2p-seq2seq)_
 
 *Steps :*
@@ -66,7 +66,7 @@ To install g2p-seq2seq :
 
     `./install_grammar_tools.sh`
 
-In case you have some trouble with dependencies, I have mirrored the last known working versions of them in the repository at : _(ttps://github.com/saurabhshri/mirror/)_ .
+In case you have some trouble with dependencies, I have mirrored the last known working versions of them in the repository at : _(https://github.com/saurabhshri/mirror/)_ .
 
 The alternate ways of generating language models, dictionaries and grammars are covered later in the docs.
 
