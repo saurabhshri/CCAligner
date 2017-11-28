@@ -86,7 +86,7 @@ The alternate ways of generating language models, dictionaries and grammars are 
 
 1. Clone the repository from Github using :
 
-    git clone https://www.github.com/saurabhshri/ccextractor.git
+    git clone https://www.github.com/saurabhshri/CCAligner.git
 
 2. Navigate to `install` directory and run `build.sh`.
 
