@@ -43,7 +43,7 @@ To install cmuclmtk :
 
     ./configure
     make
-    sudo make install/
+    sudo make install
 
 You may have to run `sudo ldconfig` to fix errors such as missing shared library.
 
