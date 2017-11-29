@@ -46,7 +46,7 @@ To install g2p-seq2seq :
     sudo python setup.py install
 
 
-*I have incorporated above the steps into a bash script located inside `install/` directory. You may call it simply by using :*
+*I have incorporated the steps above into a bash script located inside `install/` directory. You may call it simply by using :*
 
     `./install_grammar_tools.sh`
 
