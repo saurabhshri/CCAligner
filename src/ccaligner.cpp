@@ -48,7 +48,7 @@ CCAligner::CCAligner(Params * paramters)
 
 int CCAligner::initAligner()
 {
-    if(_parameters->chosenAlignerType == approxAligner)
+    if(_parameters->chosenAlignerType == ApproxAligner)
     {
         ApproxAligner * aligner = new ApproxAligner(_parameters->subtitleFileName,srt);
         aligner->align();
