@@ -464,7 +464,7 @@ void Params::inputParams(int argc, char *argv[])
             }
 
             if(subParam  == "yes")
-                chosenAlignerType = approxAligner;
+                chosenAlignerType = ApproxAligner;
 
             i++;
         }
