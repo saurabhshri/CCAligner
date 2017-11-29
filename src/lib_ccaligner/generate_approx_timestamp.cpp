@@ -6,13 +6,13 @@
 
 #include "generate_approx_timestamp.h"
 
-int CurrentSub::_wordNumber;    //defining static data member
+int CurrentSub::_wordNumber;    //defining a static data member
 
 CurrentSub::CurrentSub(SubtitleItem *sub)
 {
     _sub = sub;
     _wordNumber = 0;
-    _sentenceLength = _sub->getDialogue().size();   //length of complete dialogue in current subtitle
+    _sentenceLength = _sub->getDialogue().size();   //length of a complete dialogue in current subtitle
     _wordCount = _sub->getWordCount();              //no. of words in current subtitle
     _dialogueDuration = getDuration(_sub->getStartTime(), _sub->getEndTime());
 
@@ -251,4 +251,3 @@ ApproxAligner::~ApproxAligner()
 {
 
 }
-

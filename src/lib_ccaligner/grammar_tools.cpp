@@ -23,7 +23,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     }
 
     //create temporary directories in case it doesn't exist
-    LOG("Creating temp directories at tempFiles/");
+    LOG("Creating temporary directories at tempFiles/");
 
     int rv = std::system("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
 
@@ -57,7 +57,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == corpus || name == complete_grammar)
     {
-        std::cout<<"Creating Corpus : tempFiles/corpus/corpus.txt\n";
+        std::cout<<"Creating Corpus: tempFiles/corpus/corpus.txt\n";
 
         try
         {
@@ -74,7 +74,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == phone_lm || name == complete_grammar)
     {
-        std::cout<<"Creating Phonetic Corpus : tempFiles/corpus/phoneticCorpus.txt\n";
+        std::cout<<"Creating Phonetic Corpus: tempFiles/corpus/phoneticCorpus.txt\n";
 
         try
         {
@@ -238,13 +238,13 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         else
         {
-            std::cout<<"Creating Dictionary, this might take a little time depending "
+            std::cout<<"Creating a dictionary, this might take a little time depending "
                 "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
             rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 
             if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
             {
-                FATAL(EXIT_FAILURE, "Something went wrong while creating dictionary!");
+                FATAL(EXIT_FAILURE, "Something went wrong while creating the dictionary!");
             }
         }
 
@@ -252,21 +252,21 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == lm || name == complete_grammar )
     {
-        std::cout<<"Creating Biased Language Model : tempFiles/lm/complete.lm\n";
+        std::cout<<"Creating Biased Language Model: tempFiles/lm/complete.lm\n";
 
         if(generateQuickLM)
         {
             rv = std::system("perl quick_lm.pl -s tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log");
             if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
             {
-                FATAL(EXIT_FAILURE, "Something went wrong while creating Phonetic Language Model!");
+                FATAL(EXIT_FAILURE, "Something went wrong while creating a Phonetic Language Model!");
             }
 
             rv = std::system("mv tempFiles/corpus/corpus.txt.arpabo tempFiles/lm/complete.lm 2>tempFiles/grammar.log");
 
             if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
             {
-                FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!s");
+                FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!");
             }
         }
 
@@ -304,7 +304,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
         {
-            FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!s");
+            FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!");
         }
     }
 
