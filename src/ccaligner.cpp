@@ -13,7 +13,7 @@ void printUsage()
         "                 ccaligner -wav /path/to/wav/file -srt /path/to/srt/file -out /path/to/output/file -oFormat <output_format>\n"
         "                                                                                                     (srt/xml/json/karaoke)\n"
         "                 e.g. ccaligner -wav tbbt.wav -srt tbbt.srt -out tbbt-karaoke.srt -oFormat karaoke\n"
-        "\nFor complete list of available parameters and documentation, refer to readme file.\n";
+        "\nFor a complete list of available parameters and documentation, refer to the README.\n";
 }
 
 void printHeader(std::string version)
