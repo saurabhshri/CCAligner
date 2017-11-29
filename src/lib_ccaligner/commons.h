@@ -21,7 +21,7 @@ extern bool should_log;
 
 enum alignerType
 {
-    approxAligner,          //approximation based alignment
+    ApproxAligner,          //approximation based alignment
     asrAligner,             //using pocketsphinx as ASR
     alignerUnassigned       //no aligner is specified
 };
