@@ -6,6 +6,16 @@
 
 #include "params.h"
 
+const std::string currentTime()
+{
+    time_t now = time(0);
+    struct tm tstruct = * localtime(&now);
+    std::string localTime;
+    localTime.resize(19);   //len(%d-%m-%Y-%H-%M-%S)
+    strftime(&localTime[0], localTime.size(), "%d-%m-%Y-%H-%M-%S", &tstruct);
+    return localTime;
+}
+
 
 Params::Params()
 {
@@ -20,11 +30,8 @@ Params::Params()
     phoneticlmPath = "model/en-us-phone.lm.bin";
 
     //using date and time for log file name
-    std::time_t t = std::time(NULL);
-    std::tm * lt = std::localtime(&t);
-    char buffer [18];
-    std::strftime(buffer, 15, "%d-%m-%Y_%H%M", lt);
-    std::string localTime(buffer);
+    localTime = currentTime();
+
     logPath = "tempFiles/" + localTime + ".log";
     phonemeLogPath = "tempFiles/phoneme-" + localTime + ".log";
 

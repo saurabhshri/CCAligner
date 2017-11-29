@@ -23,19 +23,16 @@ CCAligner can be used as both standalone tool or a library in your own project.
 To automatically generate language models, dictionaries and grammars, following dependencies need to be met. The tool has capability to generate them without these dependencies, but the accuracy in that case is not guarenteed. It is highly recommended to work with the dependencies installed.
 
 1. cmuclmtk : to generate vocab and LM.
-    _(https://github.com/saurabhshri/mirror/raw/master/cmuclmtk-0.7.tar.gz)_
-2. g2p-seq2seq  (to generate dictionary)
-    _(https://github.com/saurabhshri/mirror/raw/master/g2p-seq2seq-master.zip)_
-
-The above links are from a mirror Github repository.
+    _(https://sourceforge.net/projects/cmusphinx/files/cmuclmtk/0.7/cmuclmtk-0.7.tar.gz/download)_
+2. g2p-seq2seq  (to generate dictionary).  
+    _(https://github.com/cmusphinx/g2p-seq2seq)_
 
 *Steps :*
 
 To install cmuclmtk :
 
-1. Download and uncompress `cmuclmtk-0.7.tar.gz` while preserving the permissions :
+1. Download cmuclmtk from the link mentioned above and uncompress `cmuclmtk-0.7.tar.gz` while preserving the permissions :
 
-    wget https://github.com/saurabhshri/mirror/raw/master/cmuclmtk-0.7.tar.gz
     tar xvpzf cmuclmtk-0.7.tar.gz
 
 2. Navigate to `cmumltk-0.7` directory :
@@ -46,7 +43,7 @@ To install cmuclmtk :
 
     ./configure
     make
-    sudo make install/
+    sudo make install
 
 You may have to run `sudo ldconfig` to fix errors such as missing shared library.
 
@@ -56,9 +53,8 @@ To install g2p-seq2seq :
 
     sudo pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0-cp27-none-linux_x86_64.whl
 
-2. Download and uncompress `g2p-seq2seq-master.zip` while preserving the permissions :
+2. Download g2p-seq2seq from the link mentioned above and uncompress `g2p-seq2seq-master.zip` while preserving the permissions :
 
-    wget https://github.com/saurabhshri/mirror/raw/master/g2p-seq2seq-master.zip
     unzip g2p-seq2seq-master.zip
 
 3. Navigate to `g2p-seq2seq-master` directory and run :
@@ -70,13 +66,15 @@ To install g2p-seq2seq :
 
     `./install_grammar_tools.sh`
 
+In case you have some trouble with dependencies, I have mirrored the last known working versions of them in the repository at : _(https://github.com/saurabhshri/mirror/)_ .
+
 The alternate ways of generating language models, dictionaries and grammars are covered later in the docs.
 
 === Before You Run ===
 
-1. Please make sure you have all the dependencies installed in case you want to use grammar tools. To disable generating grammar by ccaligner, issue `--generate-grammar no`.
+1. Please make sure you have all the dependencies installed in case you want to use grammar tools. To disable generating grammar by CCAligner, issue `--generate-grammar no`.
 
-2. Make sure the `model` folder and `g2p-seq2seq-cmudict` are in the directory where you are compiling ccaligner.
+2. Make sure the `model` folder and `g2p-seq2seq-cmudict` are in the directory where you are compiling CCAligner.
 
 3. Make sure the subtitles are clean and are in propar SRT format.
 
@@ -88,7 +86,7 @@ The alternate ways of generating language models, dictionaries and grammars are 
 
 1. Clone the repository from Github using :
 
-    git clone https://www.github.com/saurabhshri/ccextractor.git
+    git clone https://www.github.com/saurabhshri/CCAligner.git
 
 2. Navigate to `install` directory and run `build.sh`.
 
@@ -104,6 +102,45 @@ The alternate ways of generating language models, dictionaries and grammars are 
 The default output of CCAligner is stored as an XML file. For example, the next command will generate `file.xml` :
 
     ./ccaligner -wav /path/to/file.wav -srt /path/to/file.srt
+
+Generated Output Snippet :
+    
+    .
+    .
+    <subtitle>
+        <start>12780</start>
+        <dialogue>I was offered a summer research      fellowship at Princeton.    </dialogue>
+        <edited_dialogue>I was offered a summer research fellowship at Princeton</edited_dialogue>
+            <words>
+                <word>
+                    <recognised>0</recognised>
+                    <text>I</text>
+                    <start>12780</start>
+                    <end>12911</end>
+                    <duration>131</duration>
+                </word>
+                <word>
+                    <recognised>1</recognised>
+                    <text>was</text>
+                    <start>13030</start>
+                    <end>13330</end>
+                    <duration>300</duration>
+                </word>
+                <word>
+                    <recognised>1</recognised>
+                    <text>offered</text>
+                    <start>13400</start>
+                    <end>13770</end>
+                    <duration>370</duration>
+                </word>
+                .
+                .
+                .
+            </words>
+        <end>16382</end>
+    </subtitle>
+    .
+    .
 
 === API or Library usage ===
 
@@ -140,15 +177,65 @@ Complete documentation of the API will be written under docs.
 
 === Some Previews ===
 
-- _Obtaining output in Karaoke format :_
+- Click on video thumbnail or link to watch the video on YouTube.
 
-image::https://github.com/saurabhshri/saurabhshri.github.io/raw/master/images/karaoke.gif?raw=true[align="center", "Synced output in Karaoke Style", height = "360px"]
+[cols="1,5"]
+|===
+a|
+[link=https://www.youtube.com/watch?v=38_27E1PxXA]
+image::https://img.youtube.com/vi/38_27E1PxXA/0.jpg[height = "100px"]
+| Word by Word Audio Subtitle Synchronization - Karaoke Demo 1  
+
+_(https://www.youtube.com/watch?v=38_27E1PxXA)_
+
+_[Sitcom]_
+
+a|
+[link=https://www.youtube.com/watch?v=6VnhC8u_d40]
+image::https://img.youtube.com/vi/6VnhC8u_d40/0.jpg[height = "100px"]
+| Word by Word Audio Subtitle Synchronization - Karaoke Demo 2  
+
+_(https://www.youtube.com/watch?v=6VnhC8u_d40)_
+
+_[Ted Talk]_
 
 
-- _Here's a quick video showing the output of approximated alignment :_
+a|
+[link=https://www.youtube.com/watch?v=j_zeixo-zJY]
+image::https://img.youtube.com/vi/j_zeixo-zJY/0.jpg[height = "100px"]
+| Word by Word Audio Subtitle Synchronization - Karaoke Demo 3  
 
+_(https://www.youtube.com/watch?v=j_zeixo-zJY)_
+
+_[Cartoon Show]_
+
+a| 
+[link=https://www.youtube.com/watch?v=8tTDX6NZGsU]
+image::https://img.youtube.com/vi/8tTDX6NZGsU/0.jpg[height = "100px"]
+| Word by Word Audio Subtitle Synchronization - Karaoke Demo 1  
+
+_(https://www.youtube.com/watch?v=8tTDX6NZGsU)_
+
+_[Discussion Video]_
+
+a|
+[link=https://www.youtube.com/watch?v=tFrf0TVnqIQ]
+image::https://img.youtube.com/vi/tFrf0TVnqIQ/0.jpg[height = "100px"]
+|  Word by Word Audio Video Transcription Demo   
+
+_(https://www.youtube.com/watch?v=tFrf0TVnqIQ)_
+
+_[Reality Show]_
+
+a|
 [link=https://www.youtube.com/watch?v=km1iHe_mGuo]
-image::https://img.youtube.com/vi/km1iHe_mGuo/0.jpg["Click to watch the video on YouTube!", align="center"]
+image::https://img.youtube.com/vi/km1iHe_mGuo/0.jpg[height = "100px"]
+| Approximate Word by Word Audio Subtitle Synchronization  
+
+_(https://www.youtube.com/watch?v=km1iHe_mGuo)_
+
+|===
+
 == Usage Parameters ==
 
 The following is a complete list of available parameters that can be passed to CCAligner. Feel free to open a PR if you spot a missing parameter.

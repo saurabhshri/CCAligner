@@ -207,8 +207,8 @@ bool PocketsphinxAligner::initPhonemeDecoder(std::string phoneticlmPath, std::st
 
 int levenshtein_distance(const std::string &firstWord, const std::string &secondWord)
 {
-    const int length1 = firstWord.size();
-    const int length2 = secondWord.size();
+    const unsigned long int length1 = firstWord.size();
+    const unsigned long int length2 = secondWord.size();
 
     std::vector<int> currentColumn(length2 + 1);
     std::vector<int> previousColumn(length2 + 1);
