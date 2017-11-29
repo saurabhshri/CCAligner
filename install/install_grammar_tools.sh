@@ -1,5 +1,5 @@
 echo "You must be root to install grammar tool dependencies. Alterntively, you may install them manually." 2>&1
-echo "Following dependencies must be met for generating grammars and language models : "
+echo "The following dependencies must be met for generating grammar and language models : "
 echo "CMUCLMTK : https://sourceforge.net/projects/cmusphinx/files/cmuclmtk/0.7/"
 echo "g2p-seq2seq : https://github.com/cmusphinx/g2p-seq2seq"
 
