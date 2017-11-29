@@ -72,9 +72,9 @@ The alternate ways of generating language models, dictionaries and grammars are 
 
 === Before You Run ===
 
-1. Please make sure you have all the dependencies installed in case you want to use grammar tools. To disable generating grammar by ccaligner, issue `--generate-grammar no`.
+1. Please make sure you have all the dependencies installed in case you want to use grammar tools. To disable generating grammar by CCAligner, issue `--generate-grammar no`.
 
-2. Make sure the `model` folder and `g2p-seq2seq-cmudict` are in the directory where you are compiling ccaligner.
+2. Make sure the `model` folder and `g2p-seq2seq-cmudict` are in the directory where you are compiling CCAligner.
 
 3. Make sure the subtitles are clean and are in propar SRT format.
 
