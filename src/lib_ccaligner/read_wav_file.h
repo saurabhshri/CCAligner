@@ -26,6 +26,7 @@ class WaveFileData
     std::vector<unsigned char> _fileData;   //content of the wave file
     std::vector<int16_t> _samples;          //the raw samples containing audio data : PCM, 16 bit, Sampled at 16Khz, mono
     openMode _openMode;                     //mode of reading file
+    bool _isRawFile;                        //if the audio is raw audio file
 
     //when reading from file / buffer
     bool checkValidWave (std::vector<unsigned char>& fileData); //check if wave file is valid by reading the RIFF header
@@ -44,8 +45,8 @@ class WaveFileData
     double twoBytesToDouble (int sample);                                           //convert 2 bytes to double; not required rn
 
 public:
-    WaveFileData(std::string fileName);                 //initialize wave file for file on disk mode; pass file name
-    WaveFileData(openMode mode = readStreamDirectly);   //initialize wave file for stream mode; optionally store in buffer
+    WaveFileData(std::string fileName, bool isRawFile = false);                    //initialize wave file for file on disk mode; pass file name
+    WaveFileData(openMode mode = readStreamDirectly, bool isRawFile = false);   //initialize wave file for stream mode; optionally store in buffer
 
     bool openFile();                //open file using file name
     bool readStream();              //process stream directly

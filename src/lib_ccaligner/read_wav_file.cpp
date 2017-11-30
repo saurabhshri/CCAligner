@@ -12,17 +12,19 @@ int findIndex(std::vector<unsigned char>& fileData, std::string chunk)
     return (int)(it-fileData.begin());  //returns beginning of the string passed through "chunk" ('fmt' / 'data')
 }
 
-WaveFileData::WaveFileData(std::string fileName)    //file is stored on disk
+WaveFileData::WaveFileData(std::string fileName, bool isRawFile)    //file is stored on disk
 {
     _fileName = fileName;
     _samples.resize(0);
     _openMode = readFile;
+    _isRawFile = isRawFile;
 }
 
-WaveFileData::WaveFileData(openMode mode)           //data being read from stream;
+WaveFileData::WaveFileData(openMode mode, bool isRawFile)           //data being read from stream;
 {
     _samples.resize(0);
     _openMode = mode;
+    _isRawFile = isRawFile;
 }
 
 bool WaveFileData::checkValidWave (std::vector<unsigned char>& fileData)
@@ -215,7 +217,6 @@ bool WaveFileData::decode()     //decodes the wave file
     return true;    //successfully decoded
 }
 
-
 bool WaveFileData::openFile ()
 {
     std::ifstream infile (_fileName, std::ios::binary);
@@ -239,9 +240,16 @@ bool WaveFileData::openFile ()
 
     LOG("Reading file data");
 
+    if (_isRawFile) {
+        _samples = std::vector<int16_t>(begin, end);
+        LOG("File data read");
+        LOG("Decoding is skipped since it is raw audio file");
+        return true;
+    }
     std::vector<unsigned char> fileData (begin, end);   //read complete file content
 
     LOG("File data read and stored in buffer");
+
     LOG("Processing data and extracting samples");
 
     if(checkValidWave(fileData))
@@ -532,6 +540,10 @@ bool WaveFileData::readSamplesFromStream(int numberOfSamples)
 bool WaveFileData::readStream()
 {
     LOG("Reading WAV file from stream");
+    if (_isRawFile) {
+        LOG("Raw audio mode is enabled. Turn to read stream using buffer...");
+        return readStreamUsingBuffer();
+    }
 
     int remainingBytes = processStreamHeader();                 //processing wave header
     remainingBytes -= seekToEndOfSubChunk1ID(remainingBytes);   //searching 'fmt' subchunk
@@ -551,6 +563,14 @@ bool WaveFileData::readStream()
 
 bool WaveFileData::readStreamUsingBuffer()
 {
+    if (_isRawFile) {
+        int16_t byteData;
+        while (std::cin >> std::noskipws >> byteData) {
+            _samples.push_back(byteData);  //storing the stream into sample directly
+        }
+        return true;
+    }
+
     unsigned char byteData;
 
     while(std::cin >> std::noskipws >> byteData)

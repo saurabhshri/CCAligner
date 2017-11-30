@@ -44,9 +44,9 @@ bool PocketsphinxAligner::processFiles()
 
     std::cout << "Reading and decoding audio samples..\n";
     if(_parameters->readStream)
-        _file = new WaveFileData(readStreamDirectly);
+        _file = new WaveFileData(readStreamDirectly, _parameters->audioIsRaw);
     else
-        _file=  new WaveFileData(_audioFileName);
+        _file = new WaveFileData(_audioFileName, _parameters->audioIsRaw);
 
     _file->read();
     _samples = _file->getSamples();
@@ -518,7 +518,7 @@ bool PocketsphinxAligner::recognise()
         if(_parameters->searchPhonemes)
             recognisePhonemes(sample + samplesAlreadyRead, samplesToBeRead, sub);
 
-        switch (_parameters->outputFormat)  //decide on based of set output format
+        switch (_parameters->outputFormat)  //decide on basis of set output format
         {
             case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
@@ -822,7 +822,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
         recognisedBlock currBlock = findAndSetWordTimes(subConfig, _psWordDecoder, sub);
 
-        switch (_parameters->outputFormat)  //decide on based of set output format
+        switch (_parameters->outputFormat)  //decide on basis of set output format
         {
             case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
@@ -854,7 +854,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
 bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats format)
 {
-    switch (format)  //decide on based of set output format
+    switch (format)  //decide on basis of set output format
     {
         case srt:       printSRT(outputFileName, _subtitles, _parameters->printOption);
                         break;
