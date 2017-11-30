@@ -7,13 +7,13 @@
 #include "grammar_tools.h"
 
 static int systemGetStatus(const char* command) {
-	int rv = std::system(command);
+    int rv = std::system(command);
 
 #ifndef WIN32
-	if (WIFEXITED(rv) == 0) return 0;
-	return WEXITSTATUS(rv);
+    if (WIFEXITED(rv) == 0) return 0;
+    return WEXITSTATUS(rv);
 #else
-	return rv;
+    return rv;
 #endif
 }
 
@@ -36,9 +36,9 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     //create temporary directories in case it doesn't exist
     LOG("Creating temp directories at tempFiles/");
 
-	int rv = systemGetStatus("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
-	if (rv != 0)
-	{
+    int rv = systemGetStatus("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
+    if (rv != 0)
+    {
         FATAL(EXIT_FAILURE, "Unable to create directory tempFiles/ : %s", strerror(errno));
     }
 
@@ -197,7 +197,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     {
         rv = systemGetStatus("text2wfreq < tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log | wfreq2vocab > tempFiles/vocab/complete.vocab 2>tempFiles/grammar.log");
 
-		if (rv != 0)
+        if (rv != 0)
         {
             FATAL(EXIT_FAILURE, "Something went wrong while creating vocabulary!");
         }

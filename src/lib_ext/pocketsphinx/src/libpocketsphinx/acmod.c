@@ -538,8 +538,8 @@ acmod_process_full_raw(acmod_t *acmod,
 
     /* Write to logging file if any. */
     if (*inout_n_samps + acmod->rawdata_pos < acmod->rawdata_size) {
-	memcpy(acmod->rawdata + acmod->rawdata_pos, *inout_raw, *inout_n_samps * sizeof(int16));
-	acmod->rawdata_pos += *inout_n_samps;
+    memcpy(acmod->rawdata + acmod->rawdata_pos, *inout_raw, *inout_n_samps * sizeof(int16));
+    acmod->rawdata_pos += *inout_n_samps;
     }
     if (acmod->rawfh)
         fwrite(*inout_raw, sizeof(int16), *inout_n_samps, acmod->rawfh);
@@ -635,15 +635,15 @@ acmod_process_raw(acmod_t *acmod,
             if (fe_process_frames(acmod->fe, inout_raw, inout_n_samps,
                                   acmod->mfc_buf + inptr, &ncep1, &out_frameidx) < 0)
                 return -1;
-	    
-	    if (out_frameidx > 0)
-		acmod->utt_start_frame = out_frameidx;
+        
+        if (out_frameidx > 0)
+        acmod->utt_start_frame = out_frameidx;
 
-    	    processed_samples = *inout_raw - prev_audio_inptr;
-	    if (processed_samples + acmod->rawdata_pos < acmod->rawdata_size) {
-		memcpy(acmod->rawdata + acmod->rawdata_pos, prev_audio_inptr, processed_samples * sizeof(int16));
-		acmod->rawdata_pos += processed_samples;
-	    }
+            processed_samples = *inout_raw - prev_audio_inptr;
+        if (processed_samples + acmod->rawdata_pos < acmod->rawdata_size) {
+        memcpy(acmod->rawdata + acmod->rawdata_pos, prev_audio_inptr, processed_samples * sizeof(int16));
+        acmod->rawdata_pos += processed_samples;
+        }
             /* Write to logging file if any. */
             if (acmod->rawfh) {
                 fwrite(prev_audio_inptr, sizeof(int16),
@@ -664,7 +664,7 @@ acmod_process_raw(acmod_t *acmod,
             inptr += ncep1;
             inptr %= acmod->n_mfc_alloc;
             if (ncep1 == 0)
-        	goto alldone;
+            goto alldone;
         }
 
         assert(inptr + ncep <= acmod->n_mfc_alloc);        
@@ -672,11 +672,11 @@ acmod_process_raw(acmod_t *acmod,
                               acmod->mfc_buf + inptr, &ncep, &out_frameidx) < 0)
             return -1;
 
-	if (out_frameidx > 0)
-	    acmod->utt_start_frame = out_frameidx;
+    if (out_frameidx > 0)
+        acmod->utt_start_frame = out_frameidx;
 
-	
-	processed_samples = *inout_raw - prev_audio_inptr;
+    
+    processed_samples = *inout_raw - prev_audio_inptr;
 	if (processed_samples + acmod->rawdata_pos < acmod->rawdata_size) {
 	    memcpy(acmod->rawdata + acmod->rawdata_pos, prev_audio_inptr, processed_samples * sizeof(int16));
 	    acmod->rawdata_pos += processed_samples;

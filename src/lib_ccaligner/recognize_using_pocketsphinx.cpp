@@ -44,9 +44,9 @@ bool PocketsphinxAligner::processFiles()
 
     std::cout << "Reading and decoding audio samples..\n";
     if(_parameters->readStream)
-        _file = new WaveFileData(readStreamDirectly);
+        _file = new WaveFileData(readStreamDirectly, _parameters->audioIsRaw);
     else
-        _file=  new WaveFileData(_audioFileName);
+        _file = new WaveFileData(_audioFileName, _parameters->audioIsRaw);
 
     _file->read();
     _samples = _file->getSamples();

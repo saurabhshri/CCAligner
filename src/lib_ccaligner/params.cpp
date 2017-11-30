@@ -55,6 +55,7 @@ Params::Params()
     readStream = false;
     quickDict = false;
     quickLM = false;
+    audioIsRaw = false;
 }
 
 void Params::inputParams(int argc, char *argv[])
@@ -79,7 +80,19 @@ void Params::inputParams(int argc, char *argv[])
             audioFileName = subParam;
             i++;
         }
+        else if (paramPrefix == "-raw") {
+            if (i + 1 > argc) {
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-raw requires a path to valid raw wave!");
+            }
 
+            audioFileName = subParam;
+            audioIsRaw = true;
+            i++;
+        }
+        else if (paramPrefix == "--raw-stream") {
+            audioIsRaw = true;
+            readStream = true;
+        }
         else if(paramPrefix== "-srt")
         {
             if(i+1 > argc)
