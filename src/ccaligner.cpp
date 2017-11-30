@@ -16,6 +16,17 @@ void printUsage()
         "\nFor complete list of available parameters and documentation, refer to readme file.\n";
 }
 
+void fatal(int exit_code, const char *fileName, const int lineNumber, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    fprintf(stderr, "\r\n\n\n[ERROR] %s : %d \n\t\t ", fileName, lineNumber);
+    vfprintf(stderr, format, args);
+    fprintf(stderr, "\n\n\n");
+    va_end(args);
+    std::exit(exit_code);
+}
+
 void printHeader(std::string version)
 {
     std::cout<<"\n";
