@@ -6,6 +6,17 @@
 
 #include "grammar_tools.h"
 
+static int systemGetStatus(const char* command) {
+    int rv = std::system(command);
+
+#ifndef WIN32
+    if (WIFEXITED(rv) == 0) return 0;
+    return WEXITSTATUS(rv);
+#else
+    return rv;
+#endif
+}
+
 bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 {
     bool generateQuickDict = false, generateQuickLM = false;
@@ -25,9 +36,8 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     //create temporary directories in case it doesn't exist
     LOG("Creating temporary directories at tempFiles/");
 
-    int rv = std::system("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
-
-    if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+    int rv = systemGetStatus("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
+    if (rv != 0)
     {
         FATAL(EXIT_FAILURE, "Unable to create directory tempFiles/ : %s", strerror(errno));
     }
