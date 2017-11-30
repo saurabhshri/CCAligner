@@ -11,7 +11,7 @@ const std::string currentTime()
     time_t now = time(0);
     struct tm tstruct = * localtime(&now);
     std::string localTime;
-    localTime.resize(19);   //len(%d-%m-%Y-%H-%M-%S)
+    localTime.resize(32);   //len(%d-%m-%Y-%H-%M-%S)
     strftime(&localTime[0], localTime.size(), "%d-%m-%Y-%H-%M-%S", &tstruct);
     return localTime;
 }
@@ -55,6 +55,7 @@ Params::Params()
     readStream = false;
     quickDict = false;
     quickLM = false;
+    audioIsRaw = false;
 }
 
 void Params::inputParams(int argc, char *argv[])
@@ -79,7 +80,19 @@ void Params::inputParams(int argc, char *argv[])
             audioFileName = subParam;
             i++;
         }
+        else if (paramPrefix == "-raw") {
+            if (i + 1 > argc) {
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-raw requires a path to valid raw wave!");
+            }
 
+            audioFileName = subParam;
+            audioIsRaw = true;
+            i++;
+        }
+        else if (paramPrefix == "--raw-stream") {
+            audioIsRaw = true;
+            readStream = true;
+        }
         else if(paramPrefix== "-srt")
         {
             if(i+1 > argc)

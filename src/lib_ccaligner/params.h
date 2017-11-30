@@ -16,6 +16,7 @@ class Params
     std::string localTime;
 public:
     std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
+    bool audioIsRaw;
     unsigned long searchWindow, sampleWindow, audioWindow;
     alignerType chosenAlignerType;
     grammarName grammarType;

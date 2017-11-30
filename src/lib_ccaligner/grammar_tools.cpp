@@ -6,6 +6,17 @@
 
 #include "grammar_tools.h"
 
+static int systemGetStatus(const char* command) {
+    int rv = std::system(command);
+
+#ifndef WIN32
+    if (WIFEXITED(rv) == 0) return 0;
+    return WEXITSTATUS(rv);
+#else
+    return rv;
+#endif
+}
+
 bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 {
     bool generateQuickDict = false, generateQuickLM = false;
@@ -25,12 +36,12 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     //create temporary directories in case they don't exist
     LOG("Creating temp directories at tempFiles/");
 
-    int rv = std::system("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
-
-    if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+    int rv = systemGetStatus("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
+    if (rv != 0)
     {
         FATAL(EXIT_FAILURE, "Unable to create directory tempFiles/ : %s", strerror(errno));
     }
+
 
     LOG("Directories created successfully!");
 
@@ -184,14 +195,12 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == vocab || name == complete_grammar)
     {
-        rv = std::system("text2wfreq < tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log | wfreq2vocab > tempFiles/vocab/complete.vocab 2>tempFiles/grammar.log");
+        rv = systemGetStatus("text2wfreq < tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log | wfreq2vocab > tempFiles/vocab/complete.vocab 2>tempFiles/grammar.log");
 
-        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        if (rv != 0)
         {
             FATAL(EXIT_FAILURE, "Something went wrong while creating vocabulary!");
         }
-
-
     }
 
     if(name == dict || name == complete_grammar)
@@ -240,9 +249,9 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
         {
             std::cout<<"Creating Dictionary, this might take a little time depending "
                 "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
-            rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
+            rv = systemGetStatus("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 
-            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            if (rv != 0)
             {
                 FATAL(EXIT_FAILURE, "Something went wrong while creating dictionary!");
             }
@@ -256,15 +265,15 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         if(generateQuickLM)
         {
-            rv = std::system("perl quick_lm.pl -s tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log");
-            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            rv = systemGetStatus("perl quick_lm.pl -s tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log");
+            if (rv != 0)
             {
                 FATAL(EXIT_FAILURE, "Something went wrong while creating Phonetic Language Model!");
             }
 
-            rv = std::system("mv tempFiles/corpus/corpus.txt.arpabo tempFiles/lm/complete.lm 2>tempFiles/grammar.log");
+            rv = systemGetStatus("mv tempFiles/corpus/corpus.txt.arpabo tempFiles/lm/complete.lm 2>tempFiles/grammar.log");
 
-            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            if (rv != 0)
             {
                 FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!");
             }
@@ -272,16 +281,16 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         else
         {
-            rv = std::system("text2idngram -vocab tempFiles/vocab/complete.vocab -idngram tempFiles/lm/lm.idngram <  tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log");
+            rv = systemGetStatus("text2idngram -vocab tempFiles/vocab/complete.vocab -idngram tempFiles/lm/lm.idngram <  tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log");
 
-            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            if (rv != 0)
             {
                 FATAL(EXIT_FAILURE, "Something went wrong while creating idngram file!");
             }
 
-            rv = std::system("idngram2lm -vocab_type 0 -idngram tempFiles/lm/lm.idngram -vocab tempFiles/vocab/complete.vocab  -arpa tempFiles/lm/complete.lm 2>tempFiles/grammar.log");
+            rv = systemGetStatus("idngram2lm -vocab_type 0 -idngram tempFiles/lm/lm.idngram -vocab tempFiles/vocab/complete.vocab  -arpa tempFiles/lm/complete.lm 2>tempFiles/grammar.log");
 
-            if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+            if (rv != 0)
             {
                 FATAL(EXIT_FAILURE, "Something went wrong while creating biased language model!");
             }
@@ -294,15 +303,14 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     {
         std::cout<<"Creating Phonetic Language Model : tempFiles/lm/phone.lm\n";
 
-        rv = std::system("perl quick_lm.pl -s tempFiles/corpus/phoneticCorpus.txt 2>tempFiles/grammar.log");
-        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        rv = systemGetStatus("perl quick_lm.pl -s tempFiles/corpus/phoneticCorpus.txt 2>tempFiles/grammar.log");
+        if (rv != 0)
         {
             FATAL(EXIT_FAILURE, "Something went wrong while creating Phonetic Language Model!");
         }
 
-        rv = std::system("mv tempFiles/corpus/phoneticCorpus.txt.arpabo tempFiles/lm/ 2>tempFiles/grammar.log");
-
-        if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
+        rv = systemGetStatus("mv tempFiles/corpus/phoneticCorpus.txt.arpabo tempFiles/lm/ 2>tempFiles/grammar.log");
+        if (rv != 0)
         {
             FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!");
         }
