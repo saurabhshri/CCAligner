@@ -22,7 +22,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
         name = complete_grammar;
     }
 
-    //create temporary directories in case it doesn't exist
+    //create temporary directories in case they don't exist
     LOG("Creating temp directories at tempFiles/");
 
     int rv = std::system("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
@@ -266,7 +266,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
             {
-                FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!s");
+                FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!");
             }
         }
 
@@ -304,7 +304,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         if (WIFEXITED(rv) && WEXITSTATUS(rv) != 0)
         {
-            FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!s");
+            FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!");
         }
     }
 
