@@ -518,7 +518,7 @@ bool PocketsphinxAligner::recognise()
         if(_parameters->searchPhonemes)
             recognisePhonemes(sample + samplesAlreadyRead, samplesToBeRead, sub);
 
-        switch (_parameters->outputFormat)  //decide on based of set output format
+        switch (_parameters->outputFormat)  //decide on basis of set output format
         {
             case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
@@ -822,7 +822,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
         recognisedBlock currBlock = findAndSetWordTimes(subConfig, _psWordDecoder, sub);
 
-        switch (_parameters->outputFormat)  //decide on based of set output format
+        switch (_parameters->outputFormat)  //decide on basis of set output format
         {
             case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
@@ -854,7 +854,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
 bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats format)
 {
-    switch (format)  //decide on based of set output format
+    switch (format)  //decide on basis of set output format
     {
         case srt:       printSRT(outputFileName, _subtitles, _parameters->printOption);
                         break;

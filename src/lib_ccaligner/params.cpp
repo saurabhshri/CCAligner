@@ -518,7 +518,7 @@ void Params::validateParams()
     {
         outputFileName = extractFileName(audioFileName);
 
-        switch (outputFormat)  //decide on based of set output format
+        switch (outputFormat)  //decide on basis of set output format
         {
             case srt:       outputFileName += ".srt";
                 break;
