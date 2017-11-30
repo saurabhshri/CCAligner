@@ -161,7 +161,7 @@ if ( ($sent_cnt==0) && ($new==0) ) {
 open(LM,">$sentfile.arpabo") or die("can't open $senfile.arpabo for output!\n");
 
 $preface = "";
-$preface .= "Language model created by QuickLM on ".`date`;
+$preface .= "Language model created by QuickLM";
 $preface .= "Copyright (c) 1996-2002\nCarnegie Mellon University and Alexander I. Rudnicky\n\n";
 $preface .= "This model based on a corpus of $sent_cnt sentences and ".scalar (keys %unigram). " words\n";
 $preface .= "The (fixed) discount mass is $discount_mass\n\n";
