@@ -238,7 +238,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         else
         {
-            std::cout<<"Creating a dictionary, this might take a little time depending "
+            std::cout<<"Creating the dictionary, this might take a little time depending "
                 "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
             rv = std::system("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 
