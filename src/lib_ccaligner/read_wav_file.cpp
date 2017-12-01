@@ -327,7 +327,7 @@ int WaveFileData::processStreamHeader()
             }
         }
     }
-
+    FATAL(EXIT_UNKNOWN, "Error occured while processing stream header!");
     return -1;  //some error; more robust exit errors coming soon
 }
 
@@ -370,7 +370,7 @@ int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
             FATAL(EXIT_INVALID_FILE, "Invalid WAV file : SubChunk1 ('fmt') not found!");
         }
     }
-
+    FATAL(EXIT_UNKNOWN, "Error occured while checking SubChunk1ID");
     return -1;
 }
 
@@ -477,7 +477,7 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
             FATAL(EXIT_INVALID_FILE, "SubChunk2 ('data') not found!");
         }
     }
-
+    FATAL(EXIT_UNKNOWN, "Error occured while Reading SubChunk2!");
     return -1; //some error
 }
 
