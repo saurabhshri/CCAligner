@@ -228,24 +228,34 @@ bool WaveFileData::openFile ()
         FATAL(EXIT_FILE_NOT_FOUND, "Unable to open file : %s", _fileName.c_str());
     }
 
-
-    /*
-     * When reading characters, std::istream_iterator skips whitespace by default
-     * (unless disabled with std::noskipws or equivalent)..
-     * http://www.enseignement.polytechnique.fr/informatique/INF478/docs/Cpp/en/cpp/iterator/istream_iterator.html#Notes
-     */
-
-    std::noskipws(infile);
-    std::istream_iterator<unsigned char> begin (infile), end;
-
     LOG("Reading file data");
 
-    if (_isRawFile) {
-        _samples = std::vector<int16_t>(begin, end);
-        LOG("File data read");
-        LOG("Decoding is skipped since it is raw audio file");
-        return true;
+    if (_isRawFile) { // handle raw audio files
+        infile.seekg(0, std::ios::end);
+        std::streamsize size = infile.tellg();
+        infile.seekg(0, std::ios::beg);
+
+        _samples = std::vector<int16_t>(size/2); // size is in unit of byte, while one int_16 uses 2 bytes
+        if (infile.read(reinterpret_cast<char*>(_samples.data()), size)) {
+            LOG("File data read");
+            LOG("Decoding is skipped since it is raw audio file");
+            return true;
+        }
+        else {
+            FATAL(EXIT_INVALID_FILE, "Unable to read from file : %s", _fileName.c_str());
+            return false;
+        }
     }
+
+
+    /*
+    * When reading characters, std::istream_iterator skips whitespace by default
+    * (unless disabled with std::noskipws or equivalent)..
+    * http://www.enseignement.polytechnique.fr/informatique/INF478/docs/Cpp/en/cpp/iterator/istream_iterator.html#Notes
+    */
+
+    std::noskipws(infile);
+    std::istream_iterator<unsigned char> begin(infile), end;
     std::vector<unsigned char> fileData (begin, end);   //read complete file content
 
     LOG("File data read and stored in buffer");
