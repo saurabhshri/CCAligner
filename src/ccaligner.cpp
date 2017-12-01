@@ -4,9 +4,10 @@
  * Link     : https://github.com/saurabhshri
 */
 
-#include "ccaligner.h"
+#include "params.h"
+#include "recognize_using_pocketsphinx.h"
 
-void printUsage()
+static void printUsage()
 {
     std::cout<<"\n\nUsage : \n"
         "                 ccaligner -wav /path/to/wav/file -srt /path/to/srt/file\n"
@@ -16,7 +17,7 @@ void printUsage()
         "\nFor a complete list of available parameters and documentation, refer to the README.\n";
 }
 
-void printHeader(std::string version)
+static void printHeader(std::string version)
 {
     std::cout<<"\n";
     std::cout<<"  ____ ____    _    _ _                       \n";
@@ -33,61 +34,35 @@ void printHeader(std::string version)
     std::cout<<"=====================================================\n\n";
 }
 
-void printFooter()
+static void printFooter()
 {
     std::cout<<"\n\n=====================================================\n";
     std::cout<<"Issues? Open a ticket here\n";
     std::cout<<"https://github.com/saurabhshri/CCAligner/issues\n";
 }
 
-CCAligner::CCAligner(Params * parameters)
+int main(int argc, char *argv[])
 {
-    _parameters = parameters;
-    should_log = _parameters->verbosity ;
-}
+    printHeader("0.03 Alpha [Shubham]");
 
-int CCAligner::initAligner()
-{
-    if(_parameters->chosenAlignerType == approxAligner)
+    Params parameters;
+    parameters.inputParams(argc,argv);
+
+    if(parameters.chosenAlignerType == approxAligner)
     {
-        ApproxAligner * aligner = new ApproxAligner(_parameters->subtitleFileName, srt);
-        aligner->align();
-        delete aligner;
+        ApproxAligner(parameters.subtitleFileName, srt).align();
     }
 
-    else if(_parameters->chosenAlignerType == asrAligner)
+    else if(parameters.chosenAlignerType == asrAligner)
     {
-        PocketsphinxAligner * aligner = new PocketsphinxAligner(_parameters);
-        aligner->align();
-        //aligner->printAligned("Manual_Printing.json", json);
-        delete(aligner);
+        PocketsphinxAligner(&parameters).align();
     }
 
     else
     {
         FATAL(EXIT_INVALID_PARAMETERS, "Unsupported Aligner Type!");
+        return -1;
     }
-
-    return 1;
-}
-
-CCAligner::~CCAligner()
-{
-
-}
-
-int main(int argc, char *argv[])
-{
-    printHeader("0.03 Alpha [Shubham]");
-
-    Params *parameters = new Params();
-    parameters->inputParams(argc,argv);
-
-    CCAligner *ccaligner = new CCAligner(parameters);
-    ccaligner->initAligner();
-
-    delete(ccaligner);
-    delete(parameters);
 
     printFooter();
 
