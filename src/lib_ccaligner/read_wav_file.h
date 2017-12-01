@@ -28,11 +28,11 @@ class WaveFileData
     openMode _openMode;                     //mode of reading file
     bool _isRawFile;                        //if the audio is raw audio file
 
-    //when reading from file / buffer
+    //when reading from file or buffer
     bool checkValidWave (std::vector<unsigned char>& fileData); //check if wave file is valid by reading the RIFF header
     bool decode();  //decode the wave file and fill the _sample vector
 
-    //when reading from stream/pipe
+    //when reading from stream or pipe
     int processStreamHeader();                      //check if stream is valid wave stream
     int seekToEndOfSubChunk1ID(int remainingBytes); //reach till the end of 'fmt' Chunk ID + skip 1 byte (empty byte)
     int validateSubChunk1(int remainingBytes);      //check the 'fmt' chunk for required wave file config (16 bit, 16KHz, mono, PCM)
