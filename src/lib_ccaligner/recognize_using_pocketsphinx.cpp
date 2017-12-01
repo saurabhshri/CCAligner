@@ -322,6 +322,9 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
         startTime += sf * 1000 / frame_rate;
         endTime += ef * 1000 / frame_rate;
 
+        if(startTime > endTime)
+            FATAL(EXIT_INVALID_PARAMETERS, "Error setting start and end time.");
+
         //storing recognised words and their timing information
         currentBlock.recognisedString.push_back(recognisedWord);
         currentBlock.recognisedWordStartTimes.push_back(startTime);
