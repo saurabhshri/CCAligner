@@ -220,7 +220,7 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
         CurrentSub * currSub = new CurrentSub(sub);
         currSub->run();
 
-        switch (_outputFormat)  //decide on based of set output format
+        switch (_outputFormat)  //decide on basis of set output format
         {
             case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, printBothWihoutColors);
                 break;

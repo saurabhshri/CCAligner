@@ -16,6 +16,13 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt``_
 
 Required : yes.
 
+|`-raw`
+|`/path/to/raw_file`
+|Provide path to input raw audio file.
+
+_E.g.: ``ccaligner -raw tbbt.raw -srt tbbt.srt``_
+
+
 |`-srt`
 |`/path/to/subtitle_file`
 |Provide path to subtitle file in SRT format. Please ensure that the subtitle file is clean and in proper format.
@@ -29,6 +36,13 @@ Required : yes.
 |Use this parameter to pass wav file from `stdin` or pipe.
 
 _E.g.: ``cat tbbt.wav \| ccaligner -stdin -srt tbbt.srt``_
+
+|`--raw-stream`
+|Raw audio wave file from stdin or pipe.
+|Use this parameter to pass raw audio file from `stdin` or pipe.
+
+_E.g.: ``cat tbbt.raw \| ccaligner -stdin -srt tbbt.srt``_
+
 |===
 
 - *Output related parameters :*
