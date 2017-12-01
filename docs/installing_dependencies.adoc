@@ -1,6 +1,6 @@
 === Installing Dependencies ===
 
-To automatically generate language models, dictionaries and grammars, following dependencies need to be met. The tool has capability to generate them without these dependencies, but the accuracy in that case is not guarenteed. It is highly recommended to work with the dependencies installed.
+To automatically generate language models, dictionaries and grammar, the following dependencies need to be met. The tool has the capability to generate them without these dependencies, but the accuracy in such cases is not guaranteed. It is highly recommended to work with the dependencies installed.
 
 1. cmuclmtk : to generate vocab and LM.
     _(https://github.com/saurabhshri/mirror/raw/master/cmuclmtk-0.7.tar.gz)_
@@ -10,6 +10,8 @@ To automatically generate language models, dictionaries and grammars, following 
 The above links are from a mirror Github repository.
 
 *Steps :*
+
+*Linux/MacOS*
 
 To install cmuclmtk :
 
@@ -46,8 +48,30 @@ To install g2p-seq2seq :
     sudo python setup.py install
 
 
-*I have incorporated above steps into a bash script located inside `install/` directory, that you may simply call using :*
+*I have incorporated the steps above into a bash script located inside `install/` directory. You may call it simply by using :*
 
     `./install_grammar_tools.sh`
 
-The alternate ways of generating language models, dictionaries and grammars are covered later in the docs.
+Alternative ways of generating language models, dictionaries and grammar are covered later in the docs.
+
+*Windows*
+
+To install cmuclmtk :
+
+1. Download cmuclmtk from the link mentioned above and uncompress `cmuclmtk-0.7.tar.gz`. Build it with the `cmuclmtk.sln` it provides.
+
+2. Copy the compiled files (wfreq2vocab.exe, text2wfreq.exe, text2idngram.exe, idngram2lm.exe) to the same directory as the CCAligner
+   or you can set the directory contains these files to environment variable (PATH)
+
+To install g2p-seq2seq :
+
+1. First, install Python 3.5 (64-bit) and Tensorflow 1.0.0 by your preferred choice of method
+
+2. Download g2p-seq2seq from the link mentioned above and uncompress `g2p-seq2seq-master.zip`
+
+3. Navigate to `g2p-seq2seq-master` directory and run :
+
+    python setup.py install
+    
+You will also need to install http://www.perl.org/get.html[Perl] and move install/quick_lm.pl to the same directory as the CCAligner or a dictionary that is set in the environment variable PATH
+    
