@@ -396,7 +396,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-searchWindow requires a integer value to determine search scope!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-searchWindow requires an integer value to determine search scope!");
             }
 
             searchWindow = std::strtoul( subParam.c_str(), NULL, 10 );

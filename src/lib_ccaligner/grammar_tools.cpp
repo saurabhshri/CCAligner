@@ -34,7 +34,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     }
 
     //create temporary directories in case they don't exist
-    LOG("Creating temp directories at tempFiles/");
+    LOG("Creating temporary directories at tempFiles/");
 
     int rv = systemGetStatus("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
     if (rv != 0)
@@ -247,7 +247,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         else
         {
-            std::cout<<"Creating Dictionary, this might take a little time depending "
+            std::cout<<"Creating the Dictionary, this might take a little time depending "
                 "on your TensorFlow configuration : tempFiles/dict/complete.dict\n";
             rv = systemGetStatus("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 

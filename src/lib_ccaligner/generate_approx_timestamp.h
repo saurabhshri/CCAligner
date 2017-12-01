@@ -12,7 +12,7 @@
 #include "params.h"
 #include "output_handler.h"
 
-class NonAlignedBlock   //find non aligned blocks after alignment
+class NonAlignedBlock   //find non-aligned blocks after alignment
 {
 public:
     long int startTime, endTime, timespan;

@@ -35,14 +35,14 @@ PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
 bool PocketsphinxAligner::processFiles()
 {
     LOG("Initialising Aligner using PocketSphinx");
-    LOG("Audio Filename : %s Subtitle filename : %s", _audioFileName.c_str(), _subtitleFileName.c_str());
+    LOG("Audio Filename: %s Subtitle filename: %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
-    std::cout << "Reading and processing subtitles..\n";
+    std::cout << "Reading and processing subtitles...\n";
     _subParserFactory = new SubtitleParserFactory(_subtitleFileName);
     _parser = _subParserFactory->getParser();
     _subtitles = _parser->getSubtitles();
 
-    std::cout << "Reading and decoding audio samples..\n";
+    std::cout << "Reading and decoding audio samples...\n";
     if(_parameters->readStream)
         _file = new WaveFileData(readStreamDirectly, _parameters->audioIsRaw);
     else
@@ -57,13 +57,13 @@ bool PocketsphinxAligner::processFiles()
 
 bool PocketsphinxAligner::generateGrammar(grammarName name)
 {
-    LOG("Generating Grammar based on subtitles, Grammar Name : %d ", name);
+    LOG("Generating Grammar based on subtitles, Grammar Name: %d ", name);
 
-    std::cout << "Generating language model and grammar files..\n";
+    std::cout << "Generating language model and grammar files...\n";
 
     if(_parameters->grammarType == complete_grammar || _parameters->grammarType == dict)
     {
-        std::cout << "Note : You have chosen to generate dictionary. Based on your TensorFlow configuration,\n";
+        std::cout << "Note: You have chosen to generate a dictionary. Based on your TensorFlow configuration,\n";
         std::cout << "this may take some time, please be patient. For alternatives, see docs.\n";
     }
 
@@ -81,7 +81,7 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
     _fsgPath = fsgPath;
     _logPath = logPath;
 
-    LOG("Configuration : \n\tmodelPath = %s \n\tlmPath = %s \n\tdictPath = %s \n\tfsgPath = %s \n\tlogPath = %s ",
+    LOG("Configuration: \n\tmodelPath = %s \n\tlmPath = %s \n\tdictPath = %s \n\tfsgPath = %s \n\tlogPath = %s ",
         _modelPath.c_str(), _lmPath.c_str(), _dictPath.c_str(), _fsgPath.c_str(), _logPath.c_str());
 
     if(_parameters->useBatchMode)
@@ -146,14 +146,14 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
 
     if (_configWord == NULL)
     {
-        FATAL(EXIT_FAILURE, "Failed to create config object, see log for  details" );
+        FATAL(EXIT_FAILURE, "Failed to create config object, see log for details" );
     }
 
     _psWordDecoder = ps_init(_configWord);
 
     if (_psWordDecoder == NULL)
     {
-        FATAL(EXIT_FAILURE, "Failed to create recognizer, see log for  details" );
+        FATAL(EXIT_FAILURE, "Failed to create recognizer, see log for details" );
     }
 
     if(_parameters->searchPhonemes)
@@ -191,14 +191,14 @@ bool PocketsphinxAligner::initPhonemeDecoder(std::string phoneticlmPath, std::st
 
     if (_configPhoneme == NULL)
     {
-        FATAL(EXIT_FAILURE, "Failed to create config object, see log for  details" );
+        FATAL(EXIT_FAILURE, "Failed to create config object, see log for details" );
     }
 
     _psPhonemeDecoder = ps_init(_configPhoneme);
 
     if (_psPhonemeDecoder == NULL)
     {
-        FATAL(EXIT_FAILURE, "Failed to create phoneme recognizer, see log for  details" );
+        FATAL(EXIT_FAILURE, "Failed to create phoneme recognizer, see log for details" );
     }
 
     return true;
@@ -331,8 +331,8 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
         /*
          * Suppose this is the case :
          *
-         * Actual      : [Why] would you use tomato just why
-         * Recognised  : would you use tomato just [why]
+         * Actual      : [Why] would you use a tomato just why
+         * Recognised  : would you use a tomato just [why]
          *
          * So, if we search whole recognised sentence for actual words one by one, then Why[1] of Actual will get associated
          * with why[7] of recognised. Thus limiting the number of words it can look ahead.
@@ -493,7 +493,7 @@ bool PocketsphinxAligner::recognise()
             if(_parameters->displayRecognised)
             {
                 std::cout << "\n\n-----------------------------------------\n\n";
-                std::cout << "Recognised  : " << _hypWord << "\n";
+                std::cout << "Recognised: " << _hypWord << "\n";
             }
 
             continue;
@@ -583,13 +583,13 @@ bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit
         _hypPhoneme = "NULL";
 
         if(_parameters->displayRecognised)
-            std::cout << "Phonemes  : " << _hypPhoneme << "\n";
+            std::cout << "Phonemes: " << _hypPhoneme << "\n";
     }
 
     else
     {
         if(_parameters->displayRecognised)
-            std::cout<<"Phonemes : "<<_hypPhoneme<<"\n";
+            std::cout<<"Phonemes: "<<_hypPhoneme<<"\n";
 
         findAndSetPhonemeTimes(_configPhoneme,_psPhonemeDecoder, sub);
     }
@@ -635,7 +635,7 @@ int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder
 
 bool PocketsphinxAligner::transcribe()
 {
-    std::cout << "Transcribing..\n";
+    std::cout << "Transcribing...\n";
 
     //pointer to samples
     const int16_t *sample = _samples.data();
@@ -676,7 +676,7 @@ bool PocketsphinxAligner::transcribe()
             if (_hypWord != NULL)
             {
                 if(_parameters->displayRecognised)
-                    std::cout << "Recognised  : " << _hypWord << "\n";
+                    std::cout << "Recognised: " << _hypWord << "\n";
                 index = findTranscribedWordTimings(_configWord, _psWordDecoder, index);
             }
 
@@ -696,7 +696,7 @@ bool PocketsphinxAligner::transcribe()
         if (_hypWord != NULL)
         {
             if(_parameters->displayRecognised)
-                std::cout << "Recognised  : " << _hypWord << "\n";
+                std::cout << "Recognised: " << _hypWord << "\n";
             index = findTranscribedWordTimings(_configWord, _psWordDecoder, index);
         }
     }
@@ -761,7 +761,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
         if (subConfig == NULL)
         {
-            fprintf(stderr, "Failed to create config object, see log for  details\n");
+            fprintf(stderr, "Failed to create config object, see log for details\n");
             return -1;
         }
 
@@ -769,7 +769,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
         if (_psWordDecoder == NULL)
         {
-            fprintf(stderr, "Failed to create recognizer, see log for  details\n");
+            fprintf(stderr, "Failed to create recognizer, see log for details\n");
             return -1;
         }
 
@@ -804,7 +804,7 @@ bool PocketsphinxAligner::alignWithFSG()
             if(_parameters->displayRecognised)
             {
                 std::cout << "\n\n-----------------------------------------\n\n";
-                std::cout << "Recognised  : " << _hypWord << "\n";
+                std::cout << "Recognised: " << _hypWord << "\n";
             }
 
             continue;

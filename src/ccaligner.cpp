@@ -40,9 +40,9 @@ void printFooter()
     std::cout<<"https://github.com/saurabhshri/CCAligner/issues\n";
 }
 
-CCAligner::CCAligner(Params * paramters)
+CCAligner::CCAligner(Params * parameters)
 {
-    _parameters = paramters;
+    _parameters = parameters;
     should_log = _parameters->verbosity ;
 }
 
@@ -50,7 +50,7 @@ int CCAligner::initAligner()
 {
     if(_parameters->chosenAlignerType == approxAligner)
     {
-        ApproxAligner * aligner = new ApproxAligner(_parameters->subtitleFileName,srt);
+        ApproxAligner * aligner = new ApproxAligner(_parameters->subtitleFileName, srt);
         aligner->align();
         delete aligner;
     }
@@ -65,7 +65,7 @@ int CCAligner::initAligner()
 
     else
     {
-        FATAL(EXIT_INVALID_PARAMETERS, "Unsupported ALigner Type!");
+        FATAL(EXIT_INVALID_PARAMETERS, "Unsupported Aligner Type!");
     }
 
     return 1;
@@ -80,14 +80,14 @@ int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    Params *paramters = new Params();
-    paramters->inputParams(argc,argv);
+    Params *parameters = new Params();
+    parameters->inputParams(argc,argv);
 
-    CCAligner *ccaligner = new CCAligner(paramters);
+    CCAligner *ccaligner = new CCAligner(parameters);
     ccaligner->initAligner();
 
     delete(ccaligner);
-    delete(paramters);
+    delete(parameters);
 
     printFooter();
 
