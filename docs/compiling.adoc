@@ -1,5 +1,7 @@
 === Compiling / Installing ===
 
+*Linux/MacOS*
+
 1. Clone the repository from Github using :
 
     git clone https://www.github.com/saurabhshri/ccextractor.git
@@ -14,3 +16,17 @@
 4. Align!
 
     ./ccaligner <arguments>
+
+*Windows*
+
+1. Clone the repository from Github using :
+
+    git clone https://www.github.com/saurabhshri/CCAligner.git
+
+2. Make sure dependencies are installed. The instructions are located in `/docs/installing_dependencies.adoc`.
+    
+3. Use CMake to generate project files, and then build it.
+
+4. Align!
+
+    .\ccaligner <arguments>
