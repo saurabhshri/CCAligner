@@ -40,7 +40,7 @@ void printFooter()
     std::cout<<"https://github.com/saurabhshri/CCAligner/issues\n";
 }
 
-CCAligner::CCAligner(Params * parameters)
+CCAligner::CCAligner(std::shared_ptr<Params> parameters)
 {
     _parameters = parameters;
     should_log = _parameters->verbosity ;
@@ -50,17 +50,15 @@ int CCAligner::initAligner()
 {
     if(_parameters->chosenAlignerType == approxAligner)
     {
-        ApproxAligner * aligner = new ApproxAligner(_parameters->subtitleFileName, srt);
+        auto aligner = std::make_unique<ApproxAligner>(_parameters->subtitleFileName, srt);
         aligner->align();
-        delete aligner;
     }
 
     else if(_parameters->chosenAlignerType == asrAligner)
     {
-        PocketsphinxAligner * aligner = new PocketsphinxAligner(_parameters);
+        auto aligner = std::make_unique<PocketsphinxAligner>(_parameters);
         aligner->align();
         //aligner->printAligned("Manual_Printing.json", json);
-        delete(aligner);
     }
 
     else
@@ -71,23 +69,15 @@ int CCAligner::initAligner()
     return 1;
 }
 
-CCAligner::~CCAligner()
-{
-
-}
-
 int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    Params *parameters = new Params();
-    parameters->inputParams(argc,argv);
+    auto parameters = std::make_shared<Params>();
+    parameters->inputParams(argc, argv);
 
-    CCAligner *ccaligner = new CCAligner(parameters);
+    auto ccaligner = std::make_unique<CCAligner>(parameters);
     ccaligner->initAligner();
-
-    delete(ccaligner);
-    delete(parameters);
 
     printFooter();
 

@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <regex>
 #include <cstdarg>
+#include <memory>
 
 extern bool should_log;
 

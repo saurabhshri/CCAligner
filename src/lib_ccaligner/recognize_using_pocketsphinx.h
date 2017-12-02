@@ -24,13 +24,13 @@ private:
     std::string _audioFileName, _subtitleFileName, _outputFileName;          //input and output filenames
     std::vector<int16_t> _samples;
 
-    WaveFileData * _file;
-    SubtitleParserFactory * _subParserFactory;
+    std::unique_ptr<WaveFileData> _file;
+    std::unique_ptr<SubtitleParserFactory> _subParserFactory;
     SubtitleParser * _parser;
     std::vector <SubtitleItem*> _subtitles;
 
-    AlignedData * _alignedData;
-    Params * _parameters;
+    std::unique_ptr<AlignedData> _alignedData;
+    std::shared_ptr<Params> _parameters;
 
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;
     long int _audioWindow, _sampleWindow, _searchWindow;
@@ -50,7 +50,7 @@ private:
     bool initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath);
 
 public:
-    PocketsphinxAligner(Params * parameters);
+    PocketsphinxAligner(std::shared_ptr<Params> parameters);
     bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
     bool generateGrammar(grammarName name);
     bool recognise();

@@ -6,7 +6,7 @@
 
 #include "recognize_using_pocketsphinx.h"
 
-PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
+PocketsphinxAligner::PocketsphinxAligner(std::shared_ptr<Params> parameters)
 {
     _parameters = parameters;
 
@@ -27,7 +27,7 @@ PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
     _sampleWindow = _parameters->sampleWindow;
     _searchWindow = _parameters->searchWindow;
 
-    _alignedData = new AlignedData();
+    _alignedData = std::make_unique<AlignedData>();
 
     processFiles();
 }
@@ -38,15 +38,15 @@ bool PocketsphinxAligner::processFiles()
     LOG("Audio Filename: %s Subtitle filename: %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
     std::cout << "Reading and processing subtitles...\n";
-    _subParserFactory = new SubtitleParserFactory(_subtitleFileName);
+    _subParserFactory = std::make_unique<SubtitleParserFactory>(_subtitleFileName);
     _parser = _subParserFactory->getParser();
     _subtitles = _parser->getSubtitles();
 
     std::cout << "Reading and decoding audio samples...\n";
     if(_parameters->readStream)
-        _file = new WaveFileData(readStreamDirectly, _parameters->audioIsRaw);
+        _file = std::make_unique<WaveFileData>(readStreamDirectly, _parameters->audioIsRaw);
     else
-        _file = new WaveFileData(_audioFileName, _parameters->audioIsRaw);
+        _file = std::make_unique<WaveFileData>(_audioFileName, _parameters->audioIsRaw);
 
     _file->read();
     _samples = _file->getSamples();
@@ -446,7 +446,7 @@ bool PocketsphinxAligner::recognise()
 
 
         //first assigning approx timestamps
-        CurrentSub *currSub = new CurrentSub(sub);
+        auto currSub = std::make_unique<CurrentSub>(sub);
         currSub->run();
 
         //let's correct the timestamps :)
@@ -538,8 +538,6 @@ bool PocketsphinxAligner::recognise()
             default:        std::cout<<"An error occurred while choosing output format!";
                 exit(2);
         }
-
-        delete currSub;
     }
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
@@ -625,13 +623,13 @@ int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder
     }
 
     if(_parameters->outputFormat == xml)
-        printTranscriptionAsXMLContinuous(_outputFileName, _alignedData, printedTillIndex);
+        printTranscriptionAsXMLContinuous(_outputFileName, _alignedData.get(), printedTillIndex);
 
     else if(_parameters->outputFormat == json)
-        printTranscriptionAsJSONContinuous(_outputFileName, _alignedData, printedTillIndex);
+        printTranscriptionAsJSONContinuous(_outputFileName, _alignedData.get(), printedTillIndex);
 
     else if(_parameters->outputFormat == srt)
-        printTranscriptionAsSRTContinuous(_outputFileName, _alignedData, printedTillIndex);
+        printTranscriptionAsSRTContinuous(_outputFileName, _alignedData.get(), printedTillIndex);
 
     return index;
 }
@@ -741,7 +739,7 @@ bool PocketsphinxAligner::alignWithFSG()
 
 
         //first assigning approx timestamps
-        CurrentSub *currSub = new CurrentSub(sub);
+        auto currSub = std::make_unique<CurrentSub>(sub);
         currSub->run();
 
         long int dialogueStartsAt = sub->getStartTime();
@@ -846,8 +844,6 @@ bool PocketsphinxAligner::alignWithFSG()
 
         cmd_ln_free_r(subConfig);
 
-        delete (currSub);
-
     }
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
@@ -889,10 +885,4 @@ PocketsphinxAligner::~PocketsphinxAligner()
         ps_free(_psPhonemeDecoder);
         cmd_ln_free_r(_configPhoneme);
     }
-
-    delete(_file);
-
-    delete(_parser);
-    delete(_subParserFactory);
-    delete(_alignedData);
 }

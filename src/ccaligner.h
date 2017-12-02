@@ -12,13 +12,13 @@
 
 class CCAligner
 {
-    Params * _parameters;
+    std::shared_ptr<Params> _parameters;
 
 public:
 
-    CCAligner(Params * parameters);
+    CCAligner(std::shared_ptr<Params> parameters);
     int initAligner();                                  //initialize the aligner
-    ~CCAligner();
+    ~CCAligner() = default;
 };
 
 void printUsage();                                      //print usage instruction (soon to be added inside class)

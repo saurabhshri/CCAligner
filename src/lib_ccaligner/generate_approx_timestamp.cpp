@@ -208,7 +208,7 @@ ApproxAligner::ApproxAligner(Params * parameters)
 
 std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align()
 {
-    SubtitleParserFactory *subParserFactory = new SubtitleParserFactory(_fileName);
+    auto subParserFactory = std::make_unique<SubtitleParserFactory>(_fileName);
     SubtitleParser *parser = subParserFactory->getParser();
     std::vector <SubtitleItem*> subtitles = parser->getSubtitles();
 
@@ -217,7 +217,7 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
 
     for(SubtitleItem *sub : subtitles)
     {
-        CurrentSub * currSub = new CurrentSub(sub);
+        auto currSub = std::make_unique<CurrentSub>(sub);
         currSub->run();
 
         switch (_outputFormat)  //decide on basis of set output format
