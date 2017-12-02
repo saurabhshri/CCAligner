@@ -204,7 +204,7 @@ inline std::vector<std::string> &split(const std::string &s, char delim, std::ve
 
 inline bool isPunc(char ch)
 {
-    return (ch == '!' || ch == '?' || ch == '.' || ch == ',' || ch == '"' || ch == '-' || ch ==':' || !((unsigned char) ch >= 0 && (unsigned char) ch < 128));
+    return (ch == '!' || ch == '?' || ch == '.' || ch == ',' || ch == '"' || ch == '-' || ch ==':' || (unsigned char) ch >= 128);
 }
 
 /**** Class definitions ****/
