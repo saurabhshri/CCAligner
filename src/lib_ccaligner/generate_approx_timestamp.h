@@ -37,7 +37,7 @@ public:
     void printToSRT(const std::string& fileName, outputOptions printOption) const;          //prints the aligned result in SRT format
     void printToConsole(const std::string& fileName) const;      //prints the output to console/stdout
     void assignTime(long int &wordDuration, const std::string& word);  //assign the approximate duration the word is estimated to be spoken
-    ~CurrentSub();
+    ~CurrentSub() = default;
 };
 
 class ApproxAligner

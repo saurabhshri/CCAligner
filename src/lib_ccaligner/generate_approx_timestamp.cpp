@@ -237,8 +237,3 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
     printFileEnd(_outputFileName, _outputFormat);
     return subtitles;
 }
-
-ApproxAligner::~ApproxAligner()
-{
-
-}
