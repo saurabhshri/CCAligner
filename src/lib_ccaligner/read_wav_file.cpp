@@ -574,7 +574,7 @@ bool WaveFileData::readStream()
 bool WaveFileData::readStreamUsingBuffer()
 {
     if (_isRawFile) {
-        char byteData, byteData2;
+        unsigned char byteData, byteData2;
         while (std::cin >> std::noskipws >> byteData) {
             std::cin >> std::noskipws >> byteData2;
             _samples.push_back(((byteData2 << 8) | byteData));  //storing the stream into sample directly
