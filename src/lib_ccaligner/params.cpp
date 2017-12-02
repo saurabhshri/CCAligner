@@ -6,7 +6,7 @@
 
 #include "params.h"
 
-const std::string currentTime()
+std::string currentTime()
 {
     time_t now = time(0);
     struct tm tstruct = * localtime(&now);

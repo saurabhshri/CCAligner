@@ -6,13 +6,13 @@
 
 #include "read_wav_file.h"
 
-int findIndex(std::vector<unsigned char>& fileData, std::string chunk)
+int findIndex(std::vector<unsigned char>& fileData, const std::string& chunk)
 {
     auto it = std::search(fileData.begin(), fileData.end(), chunk.begin(), chunk.end());
     return (int)(it-fileData.begin());  //returns beginning of the string passed through "chunk" ('fmt' / 'data')
 }
 
-WaveFileData::WaveFileData(std::string fileName, bool isRawFile)    //file is stored on disk
+WaveFileData::WaveFileData(const std::string& fileName, bool isRawFile)    //file is stored on disk
 {
     _fileName = fileName;
     _samples.resize(0);
@@ -27,7 +27,7 @@ WaveFileData::WaveFileData(openMode mode, bool isRawFile)           //data being
     _isRawFile = isRawFile;
 }
 
-bool WaveFileData::checkValidWave (std::vector<unsigned char>& fileData)
+bool WaveFileData::checkValidWave (const std::vector<unsigned char>& fileData)
 {
     /*Offset  Size  Name             Description
      * 0         4   ChunkID          Contains the letters "RIFF" in ASCII form
@@ -617,12 +617,12 @@ bool WaveFileData::read()   //decided the function based on set mode
  * https://stackoverflow.com/a/2386134/6487831
  */
 
-unsigned long WaveFileData::fourBytesToInt (std::vector<unsigned char>& fileData, int index)
+unsigned long WaveFileData::fourBytesToInt (const std::vector<unsigned char>& fileData, int index)
 {
     return ((fileData[index + 3] << 24) | (fileData[index + 2] << 16) | (fileData[index + 1] << 8) | fileData[index]);
 }
 
-int WaveFileData::twoBytesToInt (std::vector<unsigned char>& fileData, int index)
+int WaveFileData::twoBytesToInt (const std::vector<unsigned char>& fileData, int index)
 {
     return ((fileData[index + 1] << 8) | fileData[index]);
 }

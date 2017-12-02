@@ -16,7 +16,7 @@ void printUsage()
         "\nFor a complete list of available parameters and documentation, refer to the README.\n";
 }
 
-void printHeader(std::string version)
+void printHeader(const std::string& version)
 {
     std::cout<<"\n";
     std::cout<<"  ____ ____    _    _ _                       \n";

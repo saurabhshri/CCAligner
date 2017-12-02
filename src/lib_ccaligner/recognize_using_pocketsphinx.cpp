@@ -70,7 +70,7 @@ bool PocketsphinxAligner::generateGrammar(grammarName name)
     return generate(_subtitles, name);
 }
 
-bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath)
+bool PocketsphinxAligner::initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath)
 {
     LOG("Initialising PocketSphinx decoder");
 
@@ -165,7 +165,7 @@ bool PocketsphinxAligner::initDecoder(std::string modelPath, std::string lmPath,
 }
 
 
-bool PocketsphinxAligner::initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath)
+bool PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath)
 {
     LOG("Initialising PocketSphinx phoneme decoder");
 
@@ -851,7 +851,7 @@ bool PocketsphinxAligner::alignWithFSG()
     return true;
 }
 
-bool PocketsphinxAligner::printAligned(std::string outputFileName, outputFormats format)
+bool PocketsphinxAligner::printAligned(const std::string& outputFileName, outputFormats format)
 {
     switch (format)  //decide on basis of set output format
     {

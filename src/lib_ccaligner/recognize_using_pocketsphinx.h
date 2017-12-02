@@ -47,18 +47,18 @@ private:
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
-    bool initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath);
+    bool initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath);
 
 public:
     PocketsphinxAligner(std::shared_ptr<Params> parameters);
-    bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);
+    bool initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath);
     bool generateGrammar(grammarName name);
     bool recognise();
     bool alignWithFSG();
     bool align();
     bool recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);
     bool transcribe();
-    bool printAligned(std::string outputFileName, outputFormats format);
+    bool printAligned(const std::string& outputFileName, outputFormats format);
     ~PocketsphinxAligner();
 
 };

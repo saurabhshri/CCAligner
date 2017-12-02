@@ -18,7 +18,7 @@ CurrentSub::CurrentSub(SubtitleItem *sub)
 
 }
 
-void CurrentSub::printToSRT(std::string fileName, outputOptions printOption)
+void CurrentSub::printToSRT(const std::string& fileName, outputOptions printOption)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);
@@ -58,7 +58,7 @@ void CurrentSub::printToSRT(std::string fileName, outputOptions printOption)
     out.close();
 }
 
-void CurrentSub::printToConsole(std::string fileName)
+void CurrentSub::printToConsole(const std::string& fileName)
 {
     for(int i=0;i<_sub->getWordCount();i++)
     {
@@ -82,7 +82,7 @@ inline int CurrentSub::getDuration (long startTime, long endTime)
 
 }
 
-inline double CurrentSub::getWordWeight (std::string word)
+inline double CurrentSub::getWordWeight (const std::string& word)
 {
     double weight = (double) word.size() / (double) _sentenceLength;    //word weight as function of word length : sentence length
     return weight;
@@ -191,7 +191,7 @@ CurrentSub::~CurrentSub()
     _dialogueDuration = 0;
 }
 
-ApproxAligner::ApproxAligner(std::string fileName, outputFormats outputFormat)
+ApproxAligner::ApproxAligner(const std::string& fileName, outputFormats outputFormat)
 {
     _fileName = fileName;
     _outputFormat = outputFormat;
