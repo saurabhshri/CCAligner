@@ -10,10 +10,9 @@ const std::string currentTime()
 {
     time_t now = time(0);
     struct tm tstruct = * localtime(&now);
-    std::string localTime;
-    localTime.resize(20);   //len(%d-%m-%Y-%H-%M-%S)
-    strftime(&localTime[0], localTime.size(), "%d-%m-%Y-%H-%M-%S", &tstruct);
-    return localTime;
+    char localTime[32]; //being generous
+    strftime(localTime, sizeof(localTime), "%d-%m-%Y-%H-%M-%S", &tstruct);
+    return std::string(localTime);
 }
 
 
