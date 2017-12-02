@@ -4,10 +4,9 @@
  * Link     : https://github.com/saurabhshri
 */
 
-#include "params.h"
-#include "recognize_using_pocketsphinx.h"
+#include "ccaligner.h"
 
-static void printUsage()
+void printUsage()
 {
     std::cout<<"\n\nUsage : \n"
         "                 ccaligner -wav /path/to/wav/file -srt /path/to/srt/file\n"
@@ -17,7 +16,7 @@ static void printUsage()
         "\nFor a complete list of available parameters and documentation, refer to the README.\n";
 }
 
-static void printHeader(std::string version)
+void printHeader(std::string version)
 {
     std::cout<<"\n";
     std::cout<<"  ____ ____    _    _ _                       \n";
@@ -34,11 +33,42 @@ static void printHeader(std::string version)
     std::cout<<"=====================================================\n\n";
 }
 
-static void printFooter()
+void printFooter()
 {
     std::cout<<"\n\n=====================================================\n";
     std::cout<<"Issues? Open a ticket here\n";
     std::cout<<"https://github.com/saurabhshri/CCAligner/issues\n";
+}
+
+CCAligner::CCAligner(Params * parameters)
+{
+    _parameters = parameters;
+    should_log = _parameters->verbosity ;
+}
+
+int CCAligner::initAligner()
+{
+    if(_parameters->chosenAlignerType == approxAligner)
+    {
+        ApproxAligner(_parameters->subtitleFileName, srt).align();
+    }
+
+    else if(_parameters->chosenAlignerType == asrAligner)
+    {
+        PocketsphinxAligner(&_parameters).align();
+    }
+
+    else
+    {
+        FATAL(EXIT_INVALID_PARAMETERS, "Unsupported Aligner Type!");
+    }
+
+    return 1;
+}
+
+CCAligner::~CCAligner()
+{
+
 }
 
 int main(int argc, char *argv[])
@@ -48,21 +78,8 @@ int main(int argc, char *argv[])
     Params parameters;
     parameters.inputParams(argc,argv);
 
-    if(parameters.chosenAlignerType == approxAligner)
-    {
-        ApproxAligner(parameters.subtitleFileName, srt).align();
-    }
-
-    else if(parameters.chosenAlignerType == asrAligner)
-    {
-        PocketsphinxAligner(&parameters).align();
-    }
-
-    else
-    {
-        FATAL(EXIT_INVALID_PARAMETERS, "Unsupported Aligner Type!");
-        return -1;
-    }
+    CCAligner ccaligner(&parameters);
+    ccaligner.initAligner();
 
     printFooter();
 

@@ -27,8 +27,6 @@ PocketsphinxAligner::PocketsphinxAligner(Params *parameters)
     _sampleWindow = _parameters->sampleWindow;
     _searchWindow = _parameters->searchWindow;
 
-    _alignedData = new AlignedData();
-
     processFiles();
 }
 
@@ -446,8 +444,8 @@ bool PocketsphinxAligner::recognise()
 
 
         //first assigning approx timestamps
-        CurrentSub *currSub = new CurrentSub(sub);
-        currSub->run();
+        CurrentSub currSub(sub);
+        currSub.run();
 
         //let's correct the timestamps :)
 
@@ -516,7 +514,7 @@ bool PocketsphinxAligner::recognise()
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
         //trying to align non recognised words
-        currSub->alignNonRecognised(currBlock);
+        currSub.alignNonRecognised(currBlock);
 
         if(_parameters->searchPhonemes)
             recognisePhonemes(sample + samplesAlreadyRead, samplesToBeRead, sub);
@@ -538,8 +536,6 @@ bool PocketsphinxAligner::recognise()
             default:        std::cout<<"An error occurred while choosing output format!";
                 exit(2);
         }
-
-        delete currSub;
     }
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
@@ -619,19 +615,19 @@ int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder
         std::string recognisedWord(ps_seg_word(iter));
         long startTime = sf * 1000 / frame_rate, endTime = ef * 1000 / frame_rate;
 
-        _alignedData->addNewWord(recognisedWord, startTime, endTime, conf);
+        _alignedData.addNewWord(recognisedWord, startTime, endTime, conf);
 
         iter = ps_seg_next(iter);
     }
 
     if(_parameters->outputFormat == xml)
-        printTranscriptionAsXMLContinuous(_outputFileName, _alignedData, printedTillIndex);
+        printTranscriptionAsXMLContinuous(_outputFileName, &_alignedData, printedTillIndex);
 
     else if(_parameters->outputFormat == json)
-        printTranscriptionAsJSONContinuous(_outputFileName, _alignedData, printedTillIndex);
+        printTranscriptionAsJSONContinuous(_outputFileName, &_alignedData, printedTillIndex);
 
     else if(_parameters->outputFormat == srt)
-        printTranscriptionAsSRTContinuous(_outputFileName, _alignedData, printedTillIndex);
+        printTranscriptionAsSRTContinuous(_outputFileName, &_alignedData, printedTillIndex);
 
     return index;
 }
@@ -741,8 +737,8 @@ bool PocketsphinxAligner::alignWithFSG()
 
 
         //first assigning approx timestamps
-        CurrentSub *currSub = new CurrentSub(sub);
-        currSub->run();
+        CurrentSub currSub(sub);
+        currSub.run();
 
         long int dialogueStartsAt = sub->getStartTime();
         std::string fsgname(_fsgPath + std::to_string(dialogueStartsAt));
@@ -845,9 +841,6 @@ bool PocketsphinxAligner::alignWithFSG()
 
 
         cmd_ln_free_r(subConfig);
-
-        delete (currSub);
-
     }
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
@@ -894,5 +887,4 @@ PocketsphinxAligner::~PocketsphinxAligner()
 
     delete(_parser);
     delete(_subParserFactory);
-    delete(_alignedData);
 }
