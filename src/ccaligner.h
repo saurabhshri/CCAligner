@@ -12,11 +12,11 @@
 
 class CCAligner
 {
-    Params* _parameters;
+    Params * _parameters;
 
 public:
 
-    CCAligner(Params* parameters);
+    CCAligner(Params *parameters);
     int initAligner();                                  //initialize the aligner
     ~CCAligner() = default;
 };

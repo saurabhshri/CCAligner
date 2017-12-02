@@ -70,9 +70,9 @@ int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    auto parameters = std::unique_ptr<Params>(new Params(argc, argv));
+    Params parameters(argc, argv);
 
-    CCAligner(parameters.get()).initAligner();
+    CCAligner(&parameters).initAligner();
 
     printFooter();
 
