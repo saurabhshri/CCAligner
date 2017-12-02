@@ -56,7 +56,6 @@ int CCAligner::initAligner()
     else if(_parameters->chosenAlignerType == asrAligner)
     {
         PocketsphinxAligner(_parameters).align();
-        //aligner->printAligned("Manual_Printing.json", json);
     }
 
     else
@@ -71,10 +70,10 @@ int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    auto parameters = std::make_shared<Params>();
-    parameters->inputParams(argc, argv);
+    Params parameters;
+    parameters.inputParams(argc,argv);
 
-    CCAligner(parameters).initAligner();
+    CCAligner(&parameters).initAligner();
 
     printFooter();
 

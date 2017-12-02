@@ -10,10 +10,9 @@ std::string currentTime()
 {
     time_t now = time(0);
     struct tm tstruct = * localtime(&now);
-    std::string localTime;
-    localTime.resize(32);   //len(%d-%m-%Y-%H-%M-%S)
-    strftime(&localTime[0], localTime.size(), "%d-%m-%Y-%H-%M-%S", &tstruct);
-    return localTime;
+    char localTime[32]; //being generous
+    strftime(localTime, sizeof(localTime), "%d-%m-%Y-%H-%M-%S", &tstruct);
+    return std::string(localTime);
 }
 
 
@@ -177,7 +176,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-dict requires a path to valid dictionary file!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-dict requires a path to a valid dictionary file!");
             }
 
             dictPath = subParam;
@@ -189,7 +188,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-fsg requires a path to valid directory containing FSG files!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-fsg requires a path to a valid directory containing FSG files!");
             }
 
             fsgPath = subParam;
@@ -201,7 +200,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-log requires a path to valid output log file!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-log requires a path to a valid output log file!");
             }
 
             logPath = subParam;
@@ -212,7 +211,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-phoneLM requires a path to valid phonetic language model!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-phoneLM requires a path to a valid phonetic language model!");
 
             }
 
@@ -224,7 +223,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-phoneLog requires a path to valid output log file!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-phoneLog requires a path to a valid output log file!");
 
             }
 
@@ -396,7 +395,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-searchWindow requires an integer value to determine search scope!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-searchWindow requires an integer value to determine the search scope!");
             }
 
             searchWindow = std::strtoul( subParam.c_str(), NULL, 10 );
@@ -413,7 +412,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-sampleWindow requires a valid integer value to determine recognition scope!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-sampleWindow requires a valid integer value to determine the recognition scope!");
             }
 
             sampleWindow = std::strtoul( subParam.c_str(), NULL, 10 );
@@ -430,7 +429,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-audioWindow requires a valid integer value in milliseconds to determine recognition scope!");
+                FATAL(EXIT_INCOMPLETE_PARAMETERS, "-audioWindow requires a valid integer value in milliseconds to determine the recognition scope!");
             }
 
             audioWindow = std::strtoul( subParam.c_str(), NULL, 10 );
@@ -484,7 +483,7 @@ void Params::inputParams(int argc, char *argv[])
 
         else
         {
-            FATAL(EXIT_INVALID_PARAMETERS, "Parameter '%s' not recognised!", paramPrefix.c_str());
+            FATAL(EXIT_INVALID_PARAMETERS, "Parameter '%s' is not recognised!", paramPrefix.c_str());
         }
 
     }

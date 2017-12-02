@@ -29,8 +29,8 @@ private:
     SubtitleParser * _parser;
     std::vector <SubtitleItem*> _subtitles;
 
-    std::unique_ptr<AlignedData> _alignedData;
-    std::shared_ptr<Params> _parameters;
+    AlignedData _alignedData;
+    Params * _parameters;
 
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;
     long int _audioWindow, _sampleWindow, _searchWindow;

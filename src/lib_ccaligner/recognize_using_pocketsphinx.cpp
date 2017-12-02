@@ -26,9 +26,7 @@ PocketsphinxAligner::PocketsphinxAligner(std::shared_ptr<Params> parameters)
     _audioWindow = _parameters->audioWindow;
     _sampleWindow = _parameters->sampleWindow;
     _searchWindow = _parameters->searchWindow;
-
-    _alignedData = std::unique_ptr<AlignedData>(new AlignedData);
-
+  
     processFiles();
 }
 
@@ -617,19 +615,19 @@ int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder
         std::string recognisedWord(ps_seg_word(iter));
         long startTime = sf * 1000 / frame_rate, endTime = ef * 1000 / frame_rate;
 
-        _alignedData->addNewWord(recognisedWord, startTime, endTime, conf);
+        _alignedData.addNewWord(recognisedWord, startTime, endTime, conf);
 
         iter = ps_seg_next(iter);
     }
 
     if(_parameters->outputFormat == xml)
-        printTranscriptionAsXMLContinuous(_outputFileName, _alignedData.get(), printedTillIndex);
+        printTranscriptionAsXMLContinuous(_outputFileName, &_alignedData, printedTillIndex);
 
     else if(_parameters->outputFormat == json)
-        printTranscriptionAsJSONContinuous(_outputFileName, _alignedData.get(), printedTillIndex);
+        printTranscriptionAsJSONContinuous(_outputFileName, &_alignedData, printedTillIndex);
 
     else if(_parameters->outputFormat == srt)
-        printTranscriptionAsSRTContinuous(_outputFileName, _alignedData.get(), printedTillIndex);
+        printTranscriptionAsSRTContinuous(_outputFileName, &_alignedData, printedTillIndex);
 
     return index;
 }
@@ -843,7 +841,6 @@ bool PocketsphinxAligner::alignWithFSG()
 
 
         cmd_ln_free_r(subConfig);
-
     }
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
