@@ -27,7 +27,7 @@ PocketsphinxAligner::PocketsphinxAligner(std::shared_ptr<Params> parameters)
     _sampleWindow = _parameters->sampleWindow;
     _searchWindow = _parameters->searchWindow;
 
-    _alignedData = std::make_unique<AlignedData>();
+    _alignedData = std::unique_ptr<AlignedData>(new AlignedData);
 
     processFiles();
 }
@@ -38,15 +38,15 @@ bool PocketsphinxAligner::processFiles()
     LOG("Audio Filename: %s Subtitle filename: %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
     std::cout << "Reading and processing subtitles...\n";
-    _subParserFactory = std::make_unique<SubtitleParserFactory>(_subtitleFileName);
+    _subParserFactory = std::unique_ptr<SubtitleParserFactory>(new SubtitleParserFactory(_subtitleFileName));
     _parser = _subParserFactory->getParser();
     _subtitles = _parser->getSubtitles();
 
     std::cout << "Reading and decoding audio samples...\n";
     if(_parameters->readStream)
-        _file = std::make_unique<WaveFileData>(readStreamDirectly, _parameters->audioIsRaw);
+        _file = std::unique_ptr<WaveFileData>(new WaveFileData(readStreamDirectly, _parameters->audioIsRaw));
     else
-        _file = std::make_unique<WaveFileData>(_audioFileName, _parameters->audioIsRaw);
+        _file = std::unique_ptr<WaveFileData>(new WaveFileData(_audioFileName, _parameters->audioIsRaw));
 
     _file->read();
     _samples = _file->getSamples();
@@ -446,8 +446,8 @@ bool PocketsphinxAligner::recognise()
 
 
         //first assigning approx timestamps
-        auto currSub = std::make_unique<CurrentSub>(sub);
-        currSub->run();
+        CurrentSub currSub(sub);
+        currSub.run();
 
         //let's correct the timestamps :)
 
@@ -516,7 +516,7 @@ bool PocketsphinxAligner::recognise()
         recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
         //trying to align non recognised words
-        currSub->alignNonRecognised(currBlock);
+        currSub.alignNonRecognised(currBlock);
 
         if(_parameters->searchPhonemes)
             recognisePhonemes(sample + samplesAlreadyRead, samplesToBeRead, sub);
@@ -739,8 +739,8 @@ bool PocketsphinxAligner::alignWithFSG()
 
 
         //first assigning approx timestamps
-        auto currSub = std::make_unique<CurrentSub>(sub);
-        currSub->run();
+        CurrentSub currSub(sub);
+        currSub.run();
 
         long int dialogueStartsAt = sub->getStartTime();
         std::string fsgname(_fsgPath + std::to_string(dialogueStartsAt));

@@ -50,14 +50,12 @@ int CCAligner::initAligner()
 {
     if(_parameters->chosenAlignerType == approxAligner)
     {
-        auto aligner = std::make_unique<ApproxAligner>(_parameters->subtitleFileName, srt);
-        aligner->align();
+        ApproxAligner(_parameters->subtitleFileName, srt).align();
     }
 
     else if(_parameters->chosenAlignerType == asrAligner)
     {
-        auto aligner = std::make_unique<PocketsphinxAligner>(_parameters);
-        aligner->align();
+        PocketsphinxAligner(_parameters).align();
         //aligner->printAligned("Manual_Printing.json", json);
     }
 
@@ -76,8 +74,7 @@ int main(int argc, char *argv[])
     auto parameters = std::make_shared<Params>();
     parameters->inputParams(argc, argv);
 
-    auto ccaligner = std::make_unique<CCAligner>(parameters);
-    ccaligner->initAligner();
+    CCAligner(parameters).initAligner();
 
     printFooter();
 
