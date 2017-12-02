@@ -70,10 +70,10 @@ int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    Params parameters;
-    parameters.inputParams(argc,argv);
+    auto parameters = std::make_shared<Params>();
+    parameters->inputParams(argc,argv);
 
-    CCAligner(&parameters).initAligner();
+    CCAligner(parameters).initAligner();
 
     printFooter();
 
