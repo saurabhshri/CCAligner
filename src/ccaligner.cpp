@@ -50,17 +50,12 @@ int CCAligner::initAligner()
 {
     if(_parameters->chosenAlignerType == approxAligner)
     {
-        ApproxAligner * aligner = new ApproxAligner(_parameters->subtitleFileName, srt);
-        aligner->align();
-        delete aligner;
+        ApproxAligner(_parameters->subtitleFileName, srt).align();
     }
 
     else if(_parameters->chosenAlignerType == asrAligner)
     {
-        PocketsphinxAligner * aligner = new PocketsphinxAligner(_parameters);
-        aligner->align();
-        //aligner->printAligned("Manual_Printing.json", json);
-        delete(aligner);
+        PocketsphinxAligner(_parameters).align();
     }
 
     else
@@ -80,14 +75,11 @@ int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    Params *parameters = new Params();
-    parameters->inputParams(argc,argv);
+    Params parameters;
+    parameters.inputParams(argc,argv);
 
-    CCAligner *ccaligner = new CCAligner(parameters);
-    ccaligner->initAligner();
-
-    delete(ccaligner);
-    delete(parameters);
+    CCAligner ccaligner(&parameters);
+    ccaligner.initAligner();
 
     printFooter();
 

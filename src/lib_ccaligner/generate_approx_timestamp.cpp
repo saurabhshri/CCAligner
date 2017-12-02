@@ -208,8 +208,8 @@ ApproxAligner::ApproxAligner(Params * parameters)
 
 std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align()
 {
-    SubtitleParserFactory *subParserFactory = new SubtitleParserFactory(_fileName);
-    SubtitleParser *parser = subParserFactory->getParser();
+    SubtitleParserFactory subParserFactory(_fileName);
+    SubtitleParser *parser = subParserFactory.getParser();
     std::vector <SubtitleItem*> subtitles = parser->getSubtitles();
 
     int subCount = 1;
@@ -217,8 +217,8 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
 
     for(SubtitleItem *sub : subtitles)
     {
-        CurrentSub * currSub = new CurrentSub(sub);
-        currSub->run();
+        CurrentSub currSub(sub);
+        currSub.run();
 
         switch (_outputFormat)  //decide on basis of set output format
         {
@@ -234,7 +234,7 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
             case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, printBothWihoutColors);
                 break;
 
-            case console:   currSub->printToConsole(_outputFileName);
+            case console:   currSub.printToConsole(_outputFileName);
                 break;
 
             default:        std::cout<<"An error occurred while choosing output format!";
