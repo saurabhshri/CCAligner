@@ -209,7 +209,7 @@ ApproxAligner::ApproxAligner(Params * parameters)
 std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align()
 {
     SubtitleParserFactory subParserFactory(_fileName);
-    SubtitleParser *parser = subParserFactory->getParser();
+    SubtitleParser *parser = subParserFactory.getParser();
     std::vector <SubtitleItem*> subtitles = parser->getSubtitles();
 
     int subCount = 1;

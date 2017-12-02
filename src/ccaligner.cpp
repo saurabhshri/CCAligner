@@ -55,7 +55,7 @@ int CCAligner::initAligner()
 
     else if(_parameters->chosenAlignerType == asrAligner)
     {
-        PocketsphinxAligner(&_parameters).align();
+        PocketsphinxAligner(_parameters).align();
     }
 
     else
