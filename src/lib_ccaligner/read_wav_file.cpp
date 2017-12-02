@@ -637,7 +637,7 @@ int WaveFileData::twoBytesToInt (const std::vector<unsigned char>& fileData, int
     return ((fileData[index + 1] << 8) | fileData[index]);
 }
 
-std::vector<int16_t> WaveFileData::getSamples()
+const std::vector<int16_t>& WaveFileData::getSamples() const noexcept
 {
     return _samples;    //returning sample vector
 }

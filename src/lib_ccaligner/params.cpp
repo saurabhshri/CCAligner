@@ -574,7 +574,7 @@ void Params::validateParams()
     }
 }
 
-void Params::printParams()
+void Params::printParams() const noexcept
 {
     std::cout<<"audioFileName       : "<<audioFileName<<"\n";
     std::cout<<"subtitleFileName    : "<<subtitleFileName<<"\n";

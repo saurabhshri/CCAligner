@@ -27,7 +27,7 @@ public:
 
     Params(int argc, char *argv[]);
     void validateParams();
-    void printParams();
+    void printParams() const noexcept;
     ~Params();
 
 };

@@ -53,7 +53,7 @@ public:
     bool readStreamUsingBuffer();   //first store stream into buffer, then process
     bool read();                    //the main function which decides the open method using set mode
 
-    std::vector<int16_t> getSamples();  //returns the sample vector; time based coming soon
+    const std::vector<int16_t>& getSamples() const noexcept;  //returns the sample vector; time based coming soon
     ~WaveFileData();
 };
 

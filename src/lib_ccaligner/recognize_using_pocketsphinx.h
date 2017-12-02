@@ -58,7 +58,7 @@ public:
     bool align();
     bool recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);
     bool transcribe();
-    bool printAligned(const std::string& outputFileName, outputFormats format);
+    bool printAligned(const std::string& outputFileName, outputFormats format) const noexcept;
     ~PocketsphinxAligner();
 
 };

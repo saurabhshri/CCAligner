@@ -848,7 +848,7 @@ bool PocketsphinxAligner::alignWithFSG()
     return true;
 }
 
-bool PocketsphinxAligner::printAligned(const std::string& outputFileName, outputFormats format)
+bool PocketsphinxAligner::printAligned(const std::string& outputFileName, outputFormats format) const noexcept
 {
     switch (format)  //decide on basis of set output format
     {
