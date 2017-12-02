@@ -574,9 +574,10 @@ bool WaveFileData::readStream()
 bool WaveFileData::readStreamUsingBuffer()
 {
     if (_isRawFile) {
-        int16_t byteData;
+        char byteData, byteData2;
         while (std::cin >> std::noskipws >> byteData) {
-            _samples.push_back(byteData);  //storing the stream into sample directly
+            std::cin >> std::noskipws >> byteData2;
+            _samples.push_back(((byteData2 << 8) | byteData));  //storing the stream into sample directly
         }
         return true;
     }
@@ -618,7 +619,6 @@ bool WaveFileData::read()   //decided the function based on set mode
         default                   : FATAL(EXIT_INVALID_FILE, "Error choosing opening mode, please report!");
 
     }
-
     return true;
 }
 
