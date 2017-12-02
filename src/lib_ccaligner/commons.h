@@ -79,7 +79,7 @@ void fatal(int exit_code, const char *fileName, const int lineNumber, const char
 
 void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds); //converts ms to SRT time
 std::string extractFileName(const std::string& fileName);  //extract path/to/filename from path/to/filename.extension
-std::string StringToLower(std::string strToConvert);
+std::string stringToLower(std::string strToConvert);
 
 class AlignedData
 {

@@ -6,7 +6,7 @@
 
 #include "recognize_using_pocketsphinx.h"
 
-PocketsphinxAligner::PocketsphinxAligner(std::shared_ptr<Params> parameters)
+PocketsphinxAligner::PocketsphinxAligner(Params* parameters)
 {
     _parameters = parameters;
 

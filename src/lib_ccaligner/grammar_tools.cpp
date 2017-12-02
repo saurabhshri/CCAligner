@@ -119,7 +119,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
                 FATAL(EXIT_FAILURE, e.code().message().c_str());
             }
 
-            corpusDump << "<s> " << StringToLower(sub->getDialogue()) << " </s>\n";
+            corpusDump << "<s> " << stringToLower(sub->getDialogue()) << " </s>\n";
             corpusDump.close();
         }
 
@@ -140,7 +140,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             for(int i=0;i<numberOfWords;i++)
             {
-                std::vector<Phoneme> phones = stringToPhoneme(StringToLower(sub->getWordByIndex(i)));
+                std::vector<Phoneme> phones = stringToPhoneme(stringToLower(sub->getWordByIndex(i)));
 
                 for(Phoneme ph : phones)
                     printPhoneticCourpus += ph + " ";
@@ -182,7 +182,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
             }
             for(int i=numberOfWords, counter = 1;counter<=numberOfWords;i++,counter++)
             {
-                fsgDump<<"TRANSITION "<<counter<<" "<<i+1<<" 1.0 "<<StringToLower(sub->getWordByIndex(counter-1))<<"\n";
+                fsgDump<<"TRANSITION "<<counter<<" "<<i+1<<" 1.0 "<<stringToLower(sub->getWordByIndex(counter-1))<<"\n";
             }
             for(int i=numberOfWords + 1;i<numberOfWords * 2 + 1;i++)
             {

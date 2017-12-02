@@ -30,7 +30,7 @@ private:
     std::vector <SubtitleItem*> _subtitles;
 
     AlignedData _alignedData;
-    std::shared_ptr<Params> _parameters;
+    Params* _parameters;
 
     std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;
     long int _audioWindow, _sampleWindow, _searchWindow;
@@ -50,7 +50,7 @@ private:
     bool initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath);
 
 public:
-    PocketsphinxAligner(std::shared_ptr<Params> parameters);
+    PocketsphinxAligner(Params* parameters);
     bool initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath);
     bool generateGrammar(grammarName name);
     bool recognise();

@@ -60,7 +60,7 @@ std::string extractFileName(const std::string& fileName)
         return fileName.substr(0, lastIndex);
 }
 
-std::string StringToLower(std::string& strToConvert)
+std::string stringToLower(std::string strToConvert)
 {
     std::transform(strToConvert.begin(), strToConvert.end(), strToConvert.begin(), ::tolower);
 

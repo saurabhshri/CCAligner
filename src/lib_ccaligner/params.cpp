@@ -16,7 +16,7 @@ std::string currentTime()
 }
 
 
-Params::Params()
+Params::Params(int argc, char *argv[])
 {
     audioFileName = "";
     subtitleFileName = "";
@@ -55,6 +55,8 @@ Params::Params()
     quickDict = false;
     quickLM = false;
     audioIsRaw = false;
+
+    inputParams(argc, argv);
 }
 
 void Params::inputParams(int argc, char *argv[])

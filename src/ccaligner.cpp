@@ -40,7 +40,7 @@ void printFooter()
     std::cout<<"https://github.com/saurabhshri/CCAligner/issues\n";
 }
 
-CCAligner::CCAligner(std::shared_ptr<Params> parameters)
+CCAligner::CCAligner(Params* parameters)
 {
     _parameters = parameters;
     should_log = _parameters->verbosity ;
@@ -70,10 +70,9 @@ int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    auto parameters = std::make_shared<Params>();
-    parameters->inputParams(argc,argv);
+    auto parameters = std::unique_ptr<Params>(new Params(argc, argv));
 
-    CCAligner(parameters).initAligner();
+    CCAligner(parameters.get()).initAligner();
 
     printFooter();
 
