@@ -49,7 +49,8 @@ Phoneme charToPhone(wchar_t c)
     {
         case 228: return "EY"; //L'ä'
         case 226: return "AE"; //L'â'
-		case 234: return "EH"; // L'ê'
+	case 235 return "IY"; // L'ë'
+	case 234: return "EH"; // L'ê'
         case 239: return "AY"; //L'ï'
         case 238: return "IH"; //L'î'
         case 246: return "OW"; //L'ö'
