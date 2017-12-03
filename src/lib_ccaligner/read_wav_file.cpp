@@ -12,20 +12,16 @@ int findIndex(std::vector<unsigned char>& fileData, const std::string& chunk)
     return (int)(it-fileData.begin());  //returns beginning of the string passed through "chunk" ('fmt' / 'data')
 }
 
-WaveFileData::WaveFileData(const std::string& fileName, bool isRawFile)    //file is stored on disk
-{
-    _fileName = fileName;
-    _samples.resize(0);
-    _openMode = readFile;
-    _isRawFile = isRawFile;
-}
+WaveFileData::WaveFileData(std::string fileName, bool isRawFile) noexcept    //file is stored on disk
+    : _fileName(std::move(fileName)),
+      _openMode(readFile),
+      _isRawFile(isRawFile)
+{}
 
-WaveFileData::WaveFileData(openMode mode, bool isRawFile)           //data being read from stream;
-{
-    _samples.resize(0);
-    _openMode = mode;
-    _isRawFile = isRawFile;
-}
+WaveFileData::WaveFileData(openMode mode, bool isRawFile) noexcept           //data being read from stream;
+    : _openMode(mode),
+      _isRawFile(isRawFile)
+{}
 
 bool WaveFileData::checkValidWave (const std::vector<unsigned char>& fileData)
 {
@@ -640,9 +636,4 @@ int WaveFileData::twoBytesToInt (const std::vector<unsigned char>& fileData, int
 const std::vector<int16_t>& WaveFileData::getSamples() const noexcept
 {
     return _samples;    //returning sample vector
-}
-
-WaveFileData::~WaveFileData()
-{
-
 }

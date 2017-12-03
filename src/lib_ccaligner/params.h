@@ -9,11 +9,13 @@
 
 #include "commons.h"
 
-std::string currentTime();
+#include <ctime>
 
 class Params
 {
     std::string localTime;
+
+    void validateParams();
 public:
     std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
     bool audioIsRaw;
@@ -24,11 +26,9 @@ public:
     outputOptions printOption;
     bool verbosity, useFSG, transcribe, useBatchMode, useExperimentalParams, searchPhonemes, displayRecognised, readStream, quickDict, quickLM;
 
-    Params();
+    Params() noexcept;
     void inputParams(int argc, char *argv[]);
-    void validateParams();
     void printParams() const noexcept;
-    ~Params();
 
 };
 

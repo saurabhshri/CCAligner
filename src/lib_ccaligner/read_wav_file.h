@@ -45,8 +45,8 @@ class WaveFileData
     double twoBytesToDouble (int sample);                                           //convert 2 bytes to double; not required rn
 
 public:
-    WaveFileData(const std::string& fileName, bool isRawFile = false);                    //initialize wave file for file on disk mode; pass file name
-    WaveFileData(openMode mode = readStreamDirectly, bool isRawFile = false);   //initialize wave file for stream mode; optionally store in buffer
+    WaveFileData(std::string fileName, bool isRawFile = false) noexcept;                    //initialize wave file for file on disk mode; pass file name
+    WaveFileData(openMode mode = readStreamDirectly, bool isRawFile = false) noexcept;   //initialize wave file for stream mode; optionally store in buffer
 
     bool openFile();                //open file using file name
     bool readStream();              //process stream directly
@@ -54,7 +54,6 @@ public:
     bool read();                    //the main function which decides the open method using set mode
 
     const std::vector<int16_t>& getSamples() const noexcept;  //returns the sample vector; time based coming soon
-    ~WaveFileData();
 };
 
 #endif //CCALIGNER_READ_WAV_FILE_H

@@ -18,7 +18,7 @@ public:
     long int startTime, endTime, timespan;
     int wordLength, startIndex, endIndex;
 
-    NonAlignedBlock();
+    NonAlignedBlock() noexcept;
 };
 
 class CurrentSub    //processing one subtitle at a time
@@ -31,13 +31,12 @@ class CurrentSub    //processing one subtitle at a time
 public:
     int getDuration (long startTime, long endTime) const noexcept; //return the duration in ms between ending and starting timestamp
     double getWordWeight (const std::string& word) const noexcept;        //returns the approximate weight of word
-    CurrentSub(SubtitleItem *sub);
+    CurrentSub(SubtitleItem *sub) noexcept;
     void run();                                     //run the alignment
     void alignNonRecognised(recognisedBlock currBlock);                      //run the approx alignment on unrecognised words
     void printToSRT(const std::string& fileName, outputOptions printOption) const;          //prints the aligned result in SRT format
     void printToConsole(const std::string& fileName) const;      //prints the output to console/stdout
     void assignTime(long int &wordDuration, const std::string& word);  //assign the approximate duration the word is estimated to be spoken
-    ~CurrentSub() = default;
 };
 
 class ApproxAligner
@@ -47,10 +46,9 @@ private:
     std::string _fileName,_outputFileName;          //input and output filenames
     outputFormats _outputFormat;                    //output format (xml/json/srt/stdout)
 public:
-    ApproxAligner(const std::string& fileName, outputFormats outputFormat = srt);  //default output is in SRT format
-    ApproxAligner(Params * parameters);  //default output is in SRT format
+    ApproxAligner(std::string fileName, outputFormats outputFormat = srt) noexcept;  //default output is in SRT format
+    ApproxAligner(Params * parameters) noexcept;  //default output is in SRT format
     std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> align();   //begin alignment
-    ~ApproxAligner() = default;
 };
 
 #endif //GENERATE_APPROX_TIMESTAMP_H

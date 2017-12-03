@@ -8,15 +8,12 @@
 
 int CurrentSub::_wordNumber;    //defining a static data member
 
-CurrentSub::CurrentSub(SubtitleItem *sub)
-{
-    _sub = sub;
-    _wordNumber = 0;
-    _sentenceLength = _sub->getDialogue().size();   //length of a complete dialogue in current subtitle
-    _wordCount = _sub->getWordCount();              //no. of words in current subtitle
-    _dialogueDuration = getDuration(_sub->getStartTime(), _sub->getEndTime());
-
-}
+CurrentSub::CurrentSub(SubtitleItem *sub) noexcept
+    : _sub(sub),
+      _sentenceLength(sub->getDialogue().size()),
+      _wordCount(sub->getWordCount()),
+      _dialogueDuration(getDuration(sub->getStartTime(), sub->getEndTime()))
+{}
 
 void CurrentSub::printToSRT(const std::string& fileName, outputOptions printOption) const
 {
@@ -131,14 +128,13 @@ void CurrentSub::run()
 }
 
 
-NonAlignedBlock::NonAlignedBlock()
-{
-    wordLength = 0;
-    startTime = 0;
-    endTime = 0;
-    startIndex = 0;
-    endIndex = 0;
-}
+NonAlignedBlock::NonAlignedBlock() noexcept
+    : wordLength(),
+      startTime(),
+      endTime(),
+      startIndex(),
+      endIndex()
+{}
 
 void CurrentSub::alignNonRecognised(recognisedBlock currBlock)
 {
@@ -182,20 +178,18 @@ void CurrentSub::alignNonRecognised(recognisedBlock currBlock)
 
 }
 
-ApproxAligner::ApproxAligner(const std::string& fileName, outputFormats outputFormat)
-{
-    _fileName = fileName;
-    _outputFormat = outputFormat;
-    _outputFileName = extractFileName(_fileName);
-}
+ApproxAligner::ApproxAligner(std::string fileName, outputFormats outputFormat) noexcept
+    : _fileName(std::move(fileName)),
+      _outputFormat(outputFormat),
+      _outputFileName(extractFileName(_fileName))
+{}
 
-ApproxAligner::ApproxAligner(Params * parameters)
-{
-    _parameters = parameters;
-    _fileName = _parameters->subtitleFileName;
-    _outputFormat = _parameters->outputFormat;
-    _outputFileName = _parameters->outputFileName;
-}
+ApproxAligner::ApproxAligner(Params * parameters) noexcept
+    : _parameters(parameters),
+      _fileName(parameters->subtitleFileName),
+      _outputFormat(parameters->outputFormat),
+      _outputFileName(parameters->outputFileName)
+{}
 
 std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align()
 {

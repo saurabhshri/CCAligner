@@ -6,55 +6,45 @@
 
 #include "params.h"
 
-std::string currentTime()
-{
-    time_t now = time(0);
-    struct tm tstruct = * localtime(&now);
-    char localTime[32]; //being generous
-    strftime(localTime, sizeof(localTime), "%d-%m-%Y-%H-%M-%S", &tstruct);
-    return std::string(localTime);
+// Default paths.
+namespace {
+    constexpr auto defaultModelPath = "model/";
+    constexpr auto defaultLmPath = "tempFiles/lm/complete.lm";
+    constexpr auto defaultDictPath = "tempFiles/dict/complete.dict";
+    constexpr auto defaultFsgPath = "tempFiles/fsg/";
+    constexpr auto defaultPhoneticLmPath = "model/en-us-phone.lm.bin";
 }
 
-
-Params::Params()
+Params::Params() noexcept
+    : localTime(32, '\0'),
+      modelPath(defaultModelPath),
+      lmPath(defaultLmPath),
+      dictPath(defaultDictPath),
+      fsgPath(defaultFsgPath),
+      phoneticlmPath(defaultPhoneticLmPath),
+      searchWindow(3),
+      chosenAlignerType(asrAligner),
+      grammarType(complete_grammar),
+      outputFormat(xml),
+      printOption(printBothWithDistinctColors),
+      verbosity(true),
+      useFSG(),
+      transcribe(),
+      useBatchMode(),
+      useExperimentalParams(),
+      searchPhonemes(),
+      displayRecognised(true),
+      readStream(),
+      quickDict(),
+      quickLM(),
+      audioIsRaw()
 {
-    audioFileName = "";
-    subtitleFileName = "";
-    outputFileName = "";
-    modelPath = "model/";
-    lmPath = "tempFiles/lm/complete.lm";
-    dictPath = "tempFiles/dict/complete.dict";
-    fsgPath = "tempFiles/fsg/";
-
-    phoneticlmPath = "model/en-us-phone.lm.bin";
-
-    //using date and time for log file name
-    localTime = currentTime();
+    // Using date and time for log filename.
+    const auto now = std::time(nullptr);
+    localTime.erase(std::strftime(&localTime.front(), localTime.size(), "%d-%m-%Y-%H-%M-%S", std::localtime(&now)));
 
     logPath = "tempFiles/" + localTime + ".log";
     phonemeLogPath = "tempFiles/phoneme-" + localTime + ".log";
-
-    sampleWindow = 0;
-    audioWindow = 0;
-    searchWindow = 3;
-
-
-    chosenAlignerType = asrAligner;
-    grammarType = complete_grammar;
-    outputFormat = xml;
-    printOption = printBothWithDistinctColors;
-
-    verbosity = true;
-    useFSG = false;
-    transcribe = false;
-    useBatchMode = false;
-    useExperimentalParams = false;
-    searchPhonemes = false;
-    displayRecognised = true;
-    readStream = false;
-    quickDict = false;
-    quickLM = false;
-    audioIsRaw = false;
 }
 
 void Params::inputParams(int argc, char *argv[])
@@ -609,10 +599,5 @@ void Params::printParams() const noexcept
     std::cout<<"quickLM             : " <<quickLM<<"\n";
 
     std::cout<<"\n\n=====================================================\n\n";
-
-}
-
-Params::~Params()
-{
 
 }

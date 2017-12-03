@@ -22,12 +22,12 @@ class PocketsphinxAligner
 {
 private:
     std::string _audioFileName, _subtitleFileName, _outputFileName;          //input and output filenames
-    std::vector<int16_t> _samples;
 
     std::unique_ptr<WaveFileData> _file;
-    std::unique_ptr<SubtitleParserFactory> _subParserFactory;
+    SubtitleParserFactory _subParserFactory;
     SubtitleParser * _parser;
     std::vector <SubtitleItem*> _subtitles;
+    std::vector<int16_t> _samples;
 
     AlignedData _alignedData;
     Params* _parameters;
@@ -41,7 +41,6 @@ private:
     int _rvWord, _rvPhoneme;
     int32 _scoreWord, _scorePhoneme;
 
-    bool processFiles();
     bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     int findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index);
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
@@ -50,7 +49,7 @@ private:
     bool initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath);
 
 public:
-    PocketsphinxAligner(Params* parameters);
+    PocketsphinxAligner(Params* parameters) noexcept;
     bool initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath);
     bool generateGrammar(grammarName name);
     bool recognise();
