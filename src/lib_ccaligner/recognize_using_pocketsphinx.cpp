@@ -6,51 +6,36 @@
 
 #include "recognize_using_pocketsphinx.h"
 
-PocketsphinxAligner::PocketsphinxAligner(Params* parameters)
-{
-    _parameters = parameters;
-
-    //creating local copies
-    _audioFileName = _parameters->audioFileName;
-    _subtitleFileName = _parameters->subtitleFileName;
-    _outputFileName = _parameters->outputFileName;
-
-    _modelPath = _parameters->modelPath;
-    _dictPath = _parameters->dictPath;
-    _lmPath = _parameters->lmPath;
-    _fsgPath = _parameters ->fsgPath;
-    _logPath = _parameters->logPath;
-    _phoneticlmPath = _parameters->phoneticlmPath;
-    _phonemeLogPath = _parameters->phonemeLogPath;
-
-    _audioWindow = _parameters->audioWindow;
-    _sampleWindow = _parameters->sampleWindow;
-    _searchWindow = _parameters->searchWindow;
-  
-    processFiles();
-}
-
-bool PocketsphinxAligner::processFiles()
+PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
+    : _parameters(parameters),
+      _audioFileName(parameters->audioFileName),
+      _subtitleFileName(parameters->subtitleFileName),
+      _outputFileName(parameters->outputFileName),
+      _modelPath(parameters->modelPath),
+      _dictPath(parameters->dictPath),
+      _lmPath(parameters->lmPath),
+      _fsgPath(parameters->fsgPath),
+      _logPath(parameters->logPath),
+      _phoneticlmPath(parameters->phoneticlmPath),
+      _phonemeLogPath(parameters->phonemeLogPath),
+      _audioWindow(parameters->audioWindow),
+      _sampleWindow(parameters->sampleWindow),
+      _searchWindow(parameters->searchWindow),
+      _subParserFactory(_subtitleFileName),
+      _parser(_subParserFactory.getParser()),
+      _subtitles(_parser->getSubtitles())
 {
     LOG("Initialising Aligner using PocketSphinx");
     LOG("Audio Filename: %s Subtitle filename: %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
-    std::cout << "Reading and processing subtitles...\n";
-    _subParserFactory = std::unique_ptr<SubtitleParserFactory>(new SubtitleParserFactory(_subtitleFileName));
-    _parser = _subParserFactory->getParser();
-    _subtitles = _parser->getSubtitles();
-
     std::cout << "Reading and decoding audio samples...\n";
-    if(_parameters->readStream)
-        _file = std::unique_ptr<WaveFileData>(new WaveFileData(readStreamDirectly, _parameters->audioIsRaw));
+    if (parameters->readStream)
+        _file = decltype(_file)(new WaveFileData(readStreamDirectly, parameters->audioIsRaw));
     else
-        _file = std::unique_ptr<WaveFileData>(new WaveFileData(_audioFileName, _parameters->audioIsRaw));
+        _file = decltype(_file)(new WaveFileData(_audioFileName, parameters->audioIsRaw));
 
     _file->read();
     _samples = _file->getSamples();
-
-    return true;
-
 }
 
 bool PocketsphinxAligner::generateGrammar(grammarName name)
