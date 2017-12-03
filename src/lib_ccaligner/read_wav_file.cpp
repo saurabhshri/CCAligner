@@ -282,6 +282,7 @@ bool WaveFileData::openFile ()
 
     else
     {
+        LOG("Invalid WAV file");
         FATAL(EXIT_INVALID_FILE, "Invalid WAV file!");
     }
 
@@ -404,7 +405,8 @@ int WaveFileData::validateSubChunk1(int remainingBytes)
     {
         _fileData.push_back(byteData);
         currentByteCount++;
-        fmtBlock.push_back(byteData);       //storing 'fmt' data in a buffer, processing live is dangerous
+        fmtBlock.push_back(byteData);               //storing 'fmt' data in a buffer, processing live is dangerous
+        LOG("Storing 'fmt' data in a buffer");
 
         if(currentByteCount == 19)
         {
@@ -495,6 +497,7 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
             FATAL(EXIT_INVALID_FILE, "SubChunk2 ('data') not found!");
         }
     }
+    LOG("Error occured while reading SubChunk2");
     FATAL(EXIT_UNKNOWN, "Error occured while reading SubChunk2!");
     return -1; //some error
 }
@@ -619,13 +622,13 @@ bool WaveFileData::read()   //decided the function based on set mode
 
     switch (_openMode)
     {
-        case readFile             : LOG("Opening mode chosen, proceeding")
+        case readFile             : LOG("Opening mode chosen, proceeding");
                                     openFile();             //file on disk
                                     break;
-        case readStreamDirectly   : LOG("Opening mode chosen, proceeding")
+        case readStreamDirectly   : LOG("Opening mode chosen, proceeding");
                                     readStream();           //from stream/pipe
                                     break;
-        case readStreamIntoBuffer : LOG("Opening mode chosen, proceeding")
+        case readStreamIntoBuffer : LOG("Opening mode chosen, proceeding");
                                     readStreamUsingBuffer();//from stream/pipe into buffer and then processing
                                     break;
         default                   : FATAL(EXIT_INVALID_FILE, "Error choosing opening mode, please report!");
