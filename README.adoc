@@ -507,7 +507,7 @@ https://github.com/saurabhshri/CCAligner
 
 - Weekly blog : https://saurabhshri.github.io
 
-- Milestones and deilverable checklist : https://saurabhshri.github.io/gsoc/
+- Milestones and deliverable checklist : https://saurabhshri.github.io/gsoc/
 
 - Mentors : https://github.com/cfsmp3[@cfsmp3^] and https://github.com/AlexBratosin2001[@AlexBratosin2001^]
 
