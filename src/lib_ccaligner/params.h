@@ -14,7 +14,6 @@ std::string currentTime();
 class Params
 {
     std::string localTime;
-    void inputParams(int argc, char *argv[]);
 public:
     std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
     bool audioIsRaw;
@@ -25,7 +24,8 @@ public:
     outputOptions printOption;
     bool verbosity, useFSG, transcribe, useBatchMode, useExperimentalParams, searchPhonemes, displayRecognised, readStream, quickDict, quickLM;
 
-    Params(int argc, char *argv[]);
+    Params();
+    void inputParams(int argc, char *argv[]);
     void validateParams();
     void printParams() const noexcept;
     ~Params();

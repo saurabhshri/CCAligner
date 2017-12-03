@@ -70,7 +70,8 @@ int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    Params parameters(argc, argv);
+    Params parameters;
+    parameters.inputParams(argc, argv);
 
     CCAligner(&parameters).initAligner();
 
