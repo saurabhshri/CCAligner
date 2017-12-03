@@ -41,7 +41,7 @@ Params::Params() noexcept
 {
     // Using date and time for log filename.
     const auto now = std::time(nullptr);
-    std::strftime(&localTime.front(), localTime.size(), "%d-%m-%Y-%H-%M-%S", std::localtime(&now));
+    localTime.erase(std::strftime(&localTime.front(), localTime.size(), "%d-%m-%Y-%H-%M-%S", std::localtime(&now)));
 
     logPath = "tempFiles/" + localTime + ".log";
     phonemeLogPath = "tempFiles/phoneme-" + localTime + ".log";

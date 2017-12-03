@@ -9,7 +9,7 @@
 
 #include "commons.h"
 
-#include <cstring>
+#include <ctime>
 
 class Params
 {
