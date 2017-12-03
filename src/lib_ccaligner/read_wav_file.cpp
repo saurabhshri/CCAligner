@@ -122,11 +122,13 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(fmtIndex < 0)
     {
+        LOG("FMT subchunk not found!");
         FATAL(EXIT_INVALID_FILE, "FMT subchunk not found!");
     }
 
     if(dataIndex < 0)
     {
+        LOG("Data subchunk not found!");
         FATAL(EXIT_INVALID_FILE, "Data subchunk not found!");
     }
 
@@ -143,7 +145,7 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(subChunk1Size != 16)
     {
-        FATAL(EXIT_INVALID_FILE, "Not PCM, SubChunk1Size : %lu", subChunk1Size);;
+        FATAL(EXIT_INVALID_FILE, "Not PCM, SubChunk1Size : %lu", subChunk1Size);
     }
 
     int audioFormat = twoBytesToInt(_fileData, fmtIndex + 8);
@@ -536,6 +538,7 @@ bool WaveFileData::readSamplesFromStream(int numberOfSamples)
         {
             int16_t sample = twoBytesToInt(twoBytes, 0);    //16 bit PCM, 2 bytes = 1 sample
             _samples.push_back(sample); //storing sample
+            LOG("Storing sample");
             twoBytes.clear();
             two = 0;
         }
@@ -622,13 +625,13 @@ bool WaveFileData::read()   //decided the function based on set mode
 
     switch (_openMode)
     {
-        case readFile             : LOG("Opening mode chosen, proceeding");
+        case readFile             : LOG("Opening mode chosen as readFile, proceeding");
                                     openFile();             //file on disk
                                     break;
-        case readStreamDirectly   : LOG("Opening mode chosen, proceeding");
+        case readStreamDirectly   : LOG("Opening mode chosen readStreamDirectly, proceeding");
                                     readStream();           //from stream/pipe
                                     break;
-        case readStreamIntoBuffer : LOG("Opening mode chosen, proceeding");
+        case readStreamIntoBuffer : LOG("Opening mode chosen readStreamIntoBuffer, proceeding");
                                     readStreamUsingBuffer();//from stream/pipe into buffer and then processing
                                     break;
         default                   : FATAL(EXIT_INVALID_FILE, "Error choosing opening mode, please report!");
