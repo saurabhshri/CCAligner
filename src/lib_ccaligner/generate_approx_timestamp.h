@@ -29,15 +29,15 @@ class CurrentSub    //processing one subtitle at a time
     SubtitleItem *_sub;                 //the subtitle itself (SubtitleItem is defined in srtparser.h)
 
 public:
-    int getDuration (long startTime, long endTime); //return the duration in ms between ending and starting timestamp
-    double getWordWeight (std::string word);        //returns the approximate weight of word
+    int getDuration (long startTime, long endTime) const noexcept; //return the duration in ms between ending and starting timestamp
+    double getWordWeight (const std::string& word) const noexcept;        //returns the approximate weight of word
     CurrentSub(SubtitleItem *sub);
     void run();                                     //run the alignment
     void alignNonRecognised(recognisedBlock currBlock);                      //run the approx alignment on unrecognised words
-    void printToSRT(std::string fileName, outputOptions printOption);          //prints the aligned result in SRT format
-    void printToConsole(std::string fileName);      //prints the output to console/stdout
-    void assignTime(long int &wordDuration, const std::string &word );  //assign the approximate duration the word is estimated to be spoken
-    ~CurrentSub();
+    void printToSRT(const std::string& fileName, outputOptions printOption) const;          //prints the aligned result in SRT format
+    void printToConsole(const std::string& fileName) const;      //prints the output to console/stdout
+    void assignTime(long int &wordDuration, const std::string& word);  //assign the approximate duration the word is estimated to be spoken
+    ~CurrentSub() = default;
 };
 
 class ApproxAligner
@@ -47,10 +47,10 @@ private:
     std::string _fileName,_outputFileName;          //input and output filenames
     outputFormats _outputFormat;                    //output format (xml/json/srt/stdout)
 public:
-    ApproxAligner(std::string fileName, outputFormats outputFormat = srt);  //default output is in SRT format
+    ApproxAligner(const std::string& fileName, outputFormats outputFormat = srt);  //default output is in SRT format
     ApproxAligner(Params * parameters);  //default output is in SRT format
     std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> align();   //begin alignment
-    ~ApproxAligner();
+    ~ApproxAligner() = default;
 };
 
 #endif //GENERATE_APPROX_TIMESTAMP_H

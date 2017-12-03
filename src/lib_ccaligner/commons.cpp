@@ -50,7 +50,7 @@ void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *mi
     *hours = (int)ms;
 }
 
-std::string extractFileName(std::string fileName)
+std::string extractFileName(const std::string& fileName)
 {
     int lastIndex = fileName.find_last_of(".");
 
@@ -60,14 +60,14 @@ std::string extractFileName(std::string fileName)
         return fileName.substr(0, lastIndex);
 }
 
-std::string StringToLower(std::string strToConvert)
+std::string stringToLower(std::string strToConvert)
 {
     std::transform(strToConvert.begin(), strToConvert.end(), strToConvert.begin(), ::tolower);
 
     return strToConvert;
 }
 
-bool AlignedData::addNewWord(std::string word, long int startTime, long int endTime, float conf)
+bool AlignedData::addNewWord(const std::string& word, long int startTime, long int endTime, float conf)
 {
     _words.push_back(word);
     _wordStartTimes.push_back(startTime);

@@ -6,7 +6,7 @@
 
 #include "params.h"
 
-const std::string currentTime()
+std::string currentTime()
 {
     time_t now = time(0);
     struct tm tstruct = * localtime(&now);
@@ -398,7 +398,7 @@ void Params::inputParams(int argc, char *argv[])
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-searchWindow requires an integer value to determine the search scope!");
             }
 
-            searchWindow = std::strtoul( subParam.c_str(), NULL, 10 );
+            searchWindow = std::strtoul( subParam.c_str(), nullptr, 10 );
 
             if ( errno )
             {
@@ -415,7 +415,7 @@ void Params::inputParams(int argc, char *argv[])
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-sampleWindow requires a valid integer value to determine the recognition scope!");
             }
 
-            sampleWindow = std::strtoul( subParam.c_str(), NULL, 10 );
+            sampleWindow = std::strtoul( subParam.c_str(), nullptr, 10 );
 
             if ( errno )
             {
@@ -432,7 +432,7 @@ void Params::inputParams(int argc, char *argv[])
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-audioWindow requires a valid integer value in milliseconds to determine the recognition scope!");
             }
 
-            audioWindow = std::strtoul( subParam.c_str(), NULL, 10 );
+            audioWindow = std::strtoul( subParam.c_str(), nullptr, 10 );
 
             if ( errno )
             {
@@ -572,7 +572,7 @@ void Params::validateParams()
     }
 }
 
-void Params::printParams()
+void Params::printParams() const noexcept
 {
     std::cout<<"audioFileName       : "<<audioFileName<<"\n";
     std::cout<<"subtitleFileName    : "<<subtitleFileName<<"\n";

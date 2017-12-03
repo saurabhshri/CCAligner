@@ -9,7 +9,7 @@
 
 #include "commons.h"
 
-const std::string currentTime();
+std::string currentTime();
 
 class Params
 {
@@ -27,7 +27,7 @@ public:
     Params();
     void inputParams(int argc, char *argv[]);
     void validateParams();
-    void printParams();
+    void printParams() const noexcept;
     ~Params();
 
 };

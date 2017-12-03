@@ -16,9 +16,9 @@ class CCAligner
 
 public:
 
-    CCAligner(Params * parameters);
+    CCAligner(Params *parameters);
     int initAligner();                                  //initialize the aligner
-    ~CCAligner();
+    ~CCAligner() = default;
 };
 
 void printUsage();                                      //print usage instruction (soon to be added inside class)
