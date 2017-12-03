@@ -495,7 +495,7 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
 
         if(readBytes > remainingBytes)
         {
-            LOG("SubChunk2 ('data') not found")
+            LOG("SubChunk2 ('data') not found");
             FATAL(EXIT_INVALID_FILE, "SubChunk2 ('data') not found!");
         }
     }
@@ -625,13 +625,13 @@ bool WaveFileData::read()   //decided the function based on set mode
 
     switch (_openMode)
     {
-        case readFile             : LOG("Opening mode chosen as readFile, proceeding");
+        case readFile             : LOG("Opening mode chosen: readFile, proceeding");
                                     openFile();             //file on disk
                                     break;
-        case readStreamDirectly   : LOG("Opening mode chosen readStreamDirectly, proceeding");
+        case readStreamDirectly   : LOG("Opening mode chosen: readStreamDirectly, proceeding");
                                     readStream();           //from stream/pipe
                                     break;
-        case readStreamIntoBuffer : LOG("Opening mode chosen readStreamIntoBuffer, proceeding");
+        case readStreamIntoBuffer : LOG("Opening mode chosen: readStreamIntoBuffer, proceeding");
                                     readStreamUsingBuffer();//from stream/pipe into buffer and then processing
                                     break;
         default                   : FATAL(EXIT_INVALID_FILE, "Error choosing opening mode, please report!");
