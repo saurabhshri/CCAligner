@@ -36,7 +36,12 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     //create temporary directories in case they don't exist
     LOG("Creating temporary directories at tempFiles/");
 
+#ifndef WIN32
     int rv = systemGetStatus("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
+#else
+    int rv = systemGetStatus("if not exist tempFiles\\ mkdir tempFiles\\corpus tempFiles\\dict tempFiles\\vocab tempFiles\\fsg tempFiles\\lm");
+#endif
+  
     if (rv != 0)
     {
         FATAL(EXIT_FAILURE, "Unable to create directory tempFiles/ : %s", strerror(errno));
@@ -114,7 +119,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
                 FATAL(EXIT_FAILURE, e.code().message().c_str());
             }
 
-            corpusDump << "<s> " << StringToLower(sub->getDialogue()) << " </s>\n";
+            corpusDump << "<s> " << stringToLower(sub->getDialogue()) << " </s>\n";
             corpusDump.close();
         }
 
@@ -135,7 +140,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             for(int i=0;i<numberOfWords;i++)
             {
-                std::vector<Phoneme> phones = stringToPhoneme(StringToLower(sub->getWordByIndex(i)));
+                std::vector<Phoneme> phones = stringToPhoneme(stringToLower(sub->getWordByIndex(i)));
 
                 for(Phoneme ph : phones)
                     printPhoneticCourpus += ph + " ";
@@ -177,7 +182,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
             }
             for(int i=numberOfWords, counter = 1;counter<=numberOfWords;i++,counter++)
             {
-                fsgDump<<"TRANSITION "<<counter<<" "<<i+1<<" 1.0 "<<StringToLower(sub->getWordByIndex(counter-1))<<"\n";
+                fsgDump<<"TRANSITION "<<counter<<" "<<i+1<<" 1.0 "<<stringToLower(sub->getWordByIndex(counter-1))<<"\n";
             }
             for(int i=numberOfWords + 1;i<numberOfWords * 2 + 1;i++)
             {
@@ -195,7 +200,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == vocab || name == complete_grammar)
     {
-        rv = systemGetStatus("text2wfreq < tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log | wfreq2vocab > tempFiles/vocab/complete.vocab 2>tempFiles/grammar.log");
+        rv = systemGetStatus("text2wfreq < tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log | wfreq2vocab > tempFiles/vocab/complete.vocab 2>tempFiles/grammar_wfreq2vocab.log");
 
         if (rv != 0)
         {
@@ -270,8 +275,11 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
             {
                 FATAL(EXIT_FAILURE, "Something went wrong while creating Phonetic Language Model!");
             }
-
+#ifndef WIN32
             rv = systemGetStatus("mv tempFiles/corpus/corpus.txt.arpabo tempFiles/lm/complete.lm 2>tempFiles/grammar.log");
+#else
+            rv = systemGetStatus("move tempFiles\\corpus\\corpus.txt.arpabo tempFiles\\lm\\complete.lm 2>tempFiles\\grammar.log");
+#endif
 
             if (rv != 0)
             {
@@ -308,8 +316,11 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
         {
             FATAL(EXIT_FAILURE, "Something went wrong while creating Phonetic Language Model!");
         }
-
+#ifndef WIN32
         rv = systemGetStatus("mv tempFiles/corpus/phoneticCorpus.txt.arpabo tempFiles/lm/ 2>tempFiles/grammar.log");
+#else
+        rv = systemGetStatus("move tempFiles\\corpus\\phoneticCorpus.txt.arpabo tempFiles\\lm\\ 2>tempFiles\\grammar.log");
+#endif
         if (rv != 0)
         {
             FATAL(EXIT_FAILURE, "Something went wrong while moving phonetic model!");

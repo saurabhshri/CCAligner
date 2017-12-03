@@ -47,45 +47,45 @@ Phoneme charToPhone(wchar_t c)
 
     switch (c)
     {
-        case L'ä': return "EY";
-        case L'â': return "AE";
-        case L'ë': return "IY";
-        case L'ê': return "EH";
-        case L'ï': return "AY";
-        case L'î': return "IH";
-        case L'ö': return "OW";
-        case L'ô': return "AA"; // could also be AO/AH
-        case L'ü': return "UW"; // really Y+UW
-        case L'û': return "AH"; // [ʌ] as in b[u]t
-        case L'u': return "UW";
-        case L'ò': return "AO";
-        case L'ù': return "UH";
-        case L'@': return "AH"; // [ə] as in [a]lone
-        case L'Ω': return "AW";
-        case L'ω': return "OY";
-        case L'y': return "Y";
-        case L'w': return "W";
-        case L'ɝ': return "ER";
-        case L'p': return "P";
-        case L'b': return "B";
-        case L't': return "T";
-        case L'd': return "D";
-        case L'g': return "G";
-        case L'k': return "K";
-        case L'm': return "M";
-        case L'n': return "N";
-        case L'ñ': return "NG";
-        case L'f': return "F";
-        case L'v': return "V";
-        case L'+': return "TH"; // also covers DH
-        case L's': return "S";
-        case L'z': return "Z";
-        case L'$': return "SH"; // also covers ZH
-        case L'ç': return "CH";
-        case L'j': return "JH";
-        case L'r': return "R";
-        case L'l': return "L";
-        case L'h': return "HH";
+        case 228: return "EY"; //L'ä'
+        case 226: return "AE"; //L'â'
+	case 235: return "IY"; // L'ë'
+	case 234: return "EH"; // L'ê'
+        case 239: return "AY"; //L'ï'
+        case 238: return "IH"; //L'î'
+        case 246: return "OW"; //L'ö'
+        case 244: return "AA"; //L'ô'// could also be AO/AH
+        case 252: return "UW"; //L'ü' // really Y+UW
+        case 251: return "AH"; //L'û' // [ʌ] as in b[u]t
+        case 117: return "UW"; //L'u'
+        case 242: return "AO"; //L'ò'
+        case 249: return "UH"; //L'ù'
+        case 64: return "AH"; //L'@' // [ə] as in [a]lone
+        case 934: return "AW"; // L'Ω'
+        case 969: return "OY"; //L'ω'
+        case 121: return "Y"; //L'y'
+        case 119: return "W"; //L'w'
+        case 605: return "ER"; //L'ɝ'
+        case 112: return "P"; //L'p'
+        case 98: return "B"; //L'b'
+        case 116: return "T"; //L't'
+        case 100: return "D"; //L'd'
+        case 103: return "G"; //L'g'
+        case 107: return "K"; //L'k'
+        case 109: return "M"; //L'm'
+        case 110: return "N"; //L'n'
+        case 241: return "NG"; //L'ñ'
+        case 102: return "F"; //L'f'
+        case 118: return "V"; //L'v'
+        case 43: return "TH"; // L'+'// also covers DH
+        case 115: return "S"; //L's'
+        case 122: return "Z"; //L'z'
+        case 36: return "SH"; //L'$' // also covers ZH
+        case 231: return "CH"; //L'ç'
+        case 106: return "JH"; //L'j'
+        case 114: return "R"; //L'r'
+        case 108: return "L"; //L'l'
+        case 104: return "HH"; //L'h'
     }
 
     return " "; // treating noise as silence
