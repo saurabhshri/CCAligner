@@ -20,7 +20,7 @@ CCAligner can be used as both standalone tool or a library in your own project.
 
 === Installing Dependencies ===
 
-To automatically generate language models, dictionaries and grammars, following dependencies need to be met. The tool has capability to generate them without these dependencies, but the accuracy in that case is not guarenteed. It is highly recommended to work with the dependencies installed.
+To automatically generate language models, dictionaries and grammars, following dependencies need to be met. The tool has capability to generate them without these dependencies, but the accuracy in that case is not guaranteed. It is highly recommended to work with the dependencies installed.
 
 1. cmuclmtk : to generate vocab and LM.
     _(https://sourceforge.net/projects/cmusphinx/files/cmuclmtk/0.7/cmuclmtk-0.7.tar.gz/download)_
@@ -395,7 +395,7 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -audioWindow 500``_
 
 |`-sampleWindow`
 |An integer
-|Determine the frontal and rear window from current subtitle timimng to perform recognition. The value should be in number of samples. Default value is 0.
+|Determine the frontal and rear window from current subtitle timing to perform recognition. The value should be in number of samples. Default value is 0.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -sampleWindow 500``_
 |===
