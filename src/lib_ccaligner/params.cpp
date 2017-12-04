@@ -63,14 +63,18 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-wav requires a path to valid wave!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-wav requires a path to valid wave!");
             }
 
             audioFileName = subParam;
             i++;
         }
-        else if (paramPrefix == "-raw") {
-            if (i + 1 > argc) {
+        else if (paramPrefix == "-raw") 
+        {
+            if (i + 1 > argc) 
+            {
+                LOG("-raw requires a path to valid raw wave!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-raw requires a path to valid raw wave!");
             }
 
@@ -86,6 +90,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-srt requires a path to valid SubRip subtitle file!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-srt requires a path to valid SubRip subtitle file!");
             }
 
@@ -102,6 +107,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-out requires a valid output filename!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-out requires a valid output filename!");
             }
 
@@ -113,6 +119,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-oFormat requires a valid output format");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-oFormat requires a valid output format");
             }
 
@@ -133,6 +140,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
+                LOG("-oFormat requires a valid output format!");
                 FATAL(EXIT_INVALID_PARAMETERS, "-oFormat requires a valid output format!");
             }
 
@@ -143,6 +151,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-model requires a path to valid acoustic model!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-model requires a path to valid acoustic model!");
             }
 
@@ -154,6 +163,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-lm requires a path to language model!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-lm requires a path to language model!");
             }
 
@@ -166,6 +176,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-dict requires a path to a valid dictionary file!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-dict requires a path to a valid dictionary file!");
             }
 
@@ -178,6 +189,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-fsg requires a path to a valid directory containing FSG files!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-fsg requires a path to a valid directory containing FSG files!");
             }
 
@@ -190,6 +202,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-log requires a path to a valid output log file!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-log requires a path to a valid output log file!");
             }
 
@@ -201,6 +214,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-phoneLM requires a path to a valid phonetic language model!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-phoneLM requires a path to a valid phonetic language model!");
 
             }
@@ -213,6 +227,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-phoneLog requires a path to a valid output log file!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-phoneLog requires a path to a valid output log file!");
 
             }
@@ -225,6 +240,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("--enable-phonemes requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--enable-phonemes requires a valid response!");
 
             }
@@ -239,6 +255,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("--generate-grammar requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--generate-grammar requires a valid response!");
 
             }
@@ -266,6 +283,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
+                LOG("--generate-grammar requires a valid response!");
                 FATAL(EXIT_INVALID_PARAMETERS, "--generate-grammar requires a valid response!");
             }
 
@@ -276,6 +294,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("--quick-dict requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--quick-dict requires a valid response!");
             }
 
@@ -289,6 +308,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("--quick-lm requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--quick-lm requires a valid response!");
             }
 
@@ -302,6 +322,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("--print-aligned requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--print-aligned requires a valid response!");
             }
 
@@ -322,6 +343,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
+                LOG("--print-aligned requires a valid response!");
                 FATAL(EXIT_INVALID_PARAMETERS, "--print-aligned requires a valid response!");
             }
 
@@ -332,6 +354,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("--use-fsg requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--use-fsg requires a valid response!");
             }
 
@@ -345,6 +368,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-transcribe requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-transcribe requires a valid response!");
             }
 
@@ -359,6 +383,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-verbose requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-verbose requires a valid response!");
             }
 
@@ -372,6 +397,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("--display-recognised requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--display-recognised requires a valid response!");
             }
 
@@ -385,6 +411,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-searchWindow requires an integer value to determine the search scope!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-searchWindow requires an integer value to determine the search scope!");
             }
 
@@ -392,6 +419,7 @@ void Params::inputParams(int argc, char *argv[])
 
             if ( errno )
             {
+                LOG("Invalid value passed to -searchWindow : %s", strerror(errno));
                 FATAL(EXIT_FAILURE, "Invalid value passed to -searchWindow : %s", strerror(errno));
             }
 
@@ -402,6 +430,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-sampleWindow requires a valid integer value to determine the recognition scope!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-sampleWindow requires a valid integer value to determine the recognition scope!");
             }
 
@@ -409,6 +438,7 @@ void Params::inputParams(int argc, char *argv[])
 
             if ( errno )
             {
+                LOG("Invalid value passed to -sampleWindow : %s", strerror(errno));
                 FATAL(EXIT_FAILURE, "Invalid value passed to -sampleWindow : %s", strerror(errno));
             }
 
@@ -419,6 +449,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-audioWindow requires a valid integer value in milliseconds to determine the recognition scope!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-audioWindow requires a valid integer value in milliseconds to determine the recognition scope!");
             }
 
@@ -426,6 +457,7 @@ void Params::inputParams(int argc, char *argv[])
 
             if ( errno )
             {
+                LOG("Invalid value passed to -audioWindow : %s", strerror(errno));
                 FATAL(EXIT_FAILURE, "Invalid value passed to -audioWindow : %s", strerror(errno));
             }
 
@@ -436,6 +468,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-useBatchMode requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-useBatchMode requires a valid response!");
             }
 
@@ -449,6 +482,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-experiment requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-experiment requires a valid response!");
             }
 
@@ -462,6 +496,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
+                LOG("-approx requires a valid response!");
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-approx requires a valid response!");
             }
 
@@ -473,6 +508,7 @@ void Params::inputParams(int argc, char *argv[])
 
         else
         {
+            LOG("Parameter '%s' is not recognised!", paramPrefix.c_str());
             FATAL(EXIT_INVALID_PARAMETERS, "Parameter '%s' is not recognised!", paramPrefix.c_str());
         }
 
@@ -485,10 +521,16 @@ void Params::inputParams(int argc, char *argv[])
 void Params::validateParams()
 {
     if(audioFileName.empty() && !readStream)
+    {
+        LOG("Audio file name is empty!");
         FATAL(EXIT_INVALID_PARAMETERS, "Audio file name is empty!");
+    }
 
     if(subtitleFileName.empty())
+    {
+        LOG("Subtitle file name is empty!");
         FATAL(EXIT_INVALID_PARAMETERS, "Subtitle file name is empty!");
+    }
 
     if(modelPath.empty())
         LOG("Using default Model Path.");
@@ -534,7 +576,9 @@ void Params::validateParams()
             case karaoke:   outputFileName += ".srt";
                 break;
 
-            default:        FATAL(EXIT_UNKNOWN, "An error occurred while choosing output format!");
+            default:     
+                LOG("An error occurred while choosing output format!");
+                FATAL(EXIT_UNKNOWN, "An error occurred while choosing output format!");
                 exit(2);
         }
     }
@@ -547,11 +591,13 @@ void Params::validateParams()
 
     if(useFSG && transcribe)
     {
+        LOG("FSG and Transcribing are not compatible!");
         FATAL(EXIT_INCOMPATIBLE_PARAMETERS , "FSG and Transcribing are not compatible!");
     }
 
     if(searchPhonemes && transcribe)
     {
+        LOG("Sorry, currently phoneme transcribing is not supported!");
         FATAL(EXIT_INCOMPATIBLE_PARAMETERS , "Sorry, currently phoneme transcribing is not supported!");
     }
 
