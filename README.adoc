@@ -92,7 +92,7 @@ To install g2p-seq2seq :
 
     python setup.py install
     
-You will also need to install http://www.perl.org/get.html[Perl] and move install/quick_lm.pl to the same directory as the CCAligner or a dictionary that is set in the environment variable PATH
+You will also need to install http://www.perl.org/get.html[Perl] and move install/quick_lm.pl to the same directory as the CCAligner or a dictionary that is set in the environment variable (PATH)
     
 === Before You Run ===
 
