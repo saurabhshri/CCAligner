@@ -13,7 +13,9 @@ CurrentSub::CurrentSub(SubtitleItem *sub) noexcept
       _sentenceLength(sub->getDialogue().size()),
       _wordCount(sub->getWordCount()),
       _dialogueDuration(getDuration(sub->getStartTime(), sub->getEndTime()))
-{}
+{
+    _wordNumber = 0;
+}
 
 void CurrentSub::printToSRT(const std::string& fileName, outputOptions printOption) const
 {
