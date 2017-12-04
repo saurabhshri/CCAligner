@@ -11,12 +11,14 @@ void performVAD(std::vector<int16_t>& sample)
     VadInst* vad = WebRtcVad_Create();  //Creating VAD handle
     if (!vad)
     {
+        LOG("Couldn't create WebRTC VAD handle");
         throw std::runtime_error("Can't create WebRTC VAD handle.");
     }
 
     int error = WebRtcVad_Init(vad);    //Initializing VAD handle
     if (error)
     {
+        LOG("Couldn't initialize WebRTC VAD handle");
         throw std::runtime_error("Can't initialize WebRTC VAD handle.");
     }
 
@@ -24,6 +26,7 @@ void performVAD(std::vector<int16_t>& sample)
     error = WebRtcVad_set_mode(vad, aggressiveness);
     if (error)
     {
+        LOG("Can't set WebRTC VAD aggressiveness.");
         throw std::runtime_error("Can't set WebRTC VAD aggressiveness.");
     }
 
