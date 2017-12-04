@@ -10,6 +10,11 @@ bool initFile(const std::string& fileName, outputFormats outputFormat)
 
     std::ofstream out;
     out.open(fileName, std::ofstream::binary);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     if(outputFormat == xml)
     {
@@ -31,6 +36,11 @@ bool printFileEnd(const std::string& fileName, outputFormats outputFormat)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     if(outputFormat == xml)
     {
@@ -52,6 +62,11 @@ bool printTranscriptionHeader(const std::string& fileName, outputFormats outputF
     std::ofstream out;
     out.open(fileName, std::ofstream::binary);
 
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
+    
     if(outputFormat == xml)
     {
         out<<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
@@ -72,6 +87,11 @@ bool printTranscriptionFooter(const std::string& fileName, outputFormats outputF
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     if(outputFormat == xml)
     {
@@ -112,6 +132,11 @@ int printSRTContinuous(const std::string& fileName, int subCount, SubtitleItem *
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     for(int i=0;i<sub->getWordCount();i++)
     {
@@ -153,6 +178,11 @@ int printTranscriptionAsSRTContinuous(const std::string& fileName, AlignedData *
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     std::string outputString;
 
@@ -207,6 +237,11 @@ bool printXMLContinuous(const std::string& fileName, SubtitleItem *sub)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     out<<"\t<subtitle>\r\n";
     out<<"\t\t<start>"<<sub->getStartTime()<<"</start>\r\n";
@@ -250,6 +285,11 @@ bool printTranscriptionAsXMLContinuous(const std::string& fileName, AlignedData 
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     for(int i=printedTillIndex;i<alignedData->_words.size();i++)
     {
@@ -284,6 +324,11 @@ bool printJSONContinuous(const std::string& fileName, SubtitleItem *sub)
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     out<<"\t{\r\n";
 
@@ -331,6 +376,11 @@ bool printTranscriptionAsJSONContinuous(const std::string& fileName, AlignedData
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     for(int i=printedTillIndex;i<alignedData->_words.size();i++)
     {
@@ -365,6 +415,11 @@ int printKaraokeContinuous(const std::string& fileName, int subCount, SubtitleIt
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file");
+    }
 
     for(int i=0;i<sub->getWordCount();i++)
     {
