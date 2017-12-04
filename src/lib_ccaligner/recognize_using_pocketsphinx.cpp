@@ -8,9 +8,12 @@
 
 PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
     : _parameters(parameters),
+
+      //creating local copies
       _audioFileName(parameters->audioFileName),
       _subtitleFileName(parameters->subtitleFileName),
       _outputFileName(parameters->outputFileName),
+
       _modelPath(parameters->modelPath),
       _dictPath(parameters->dictPath),
       _lmPath(parameters->lmPath),
@@ -18,9 +21,12 @@ PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
       _logPath(parameters->logPath),
       _phoneticlmPath(parameters->phoneticlmPath),
       _phonemeLogPath(parameters->phonemeLogPath),
+
       _audioWindow(parameters->audioWindow),
       _sampleWindow(parameters->sampleWindow),
       _searchWindow(parameters->searchWindow),
+
+      //processing subtitles file
       _subParserFactory(_subtitleFileName),
       _parser(_subParserFactory.getParser()),
       _subtitles(_parser->getSubtitles())
@@ -29,6 +35,7 @@ PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
     LOG("Audio Filename: %s Subtitle filename: %s", _audioFileName.c_str(), _subtitleFileName.c_str());
 
     std::cout << "Reading and decoding audio samples...\n";
+
     if (parameters->readStream)
         _file = decltype(_file)(new WaveFileData(readStreamDirectly, parameters->audioIsRaw));
     else
@@ -160,17 +167,17 @@ bool PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticlmPath, 
     LOG("Configuration : \n\tphoneticlmPath = %s \n\tphonemeLogPath = %s", _phoneticlmPath.c_str(), _phonemeLogPath.c_str());
 
     _configPhoneme = cmd_ln_init(nullptr,
-                             ps_args(), TRUE,
-                             "-hmm", _modelPath.c_str(),
-                             "-lm", _lmPath.c_str(),
-                             "-logfn", _phonemeLogPath.c_str(),
-                             "-allphone", _phoneticlmPath.c_str(),
-                             "-beam", "1e-20",
-                             "-pbeam", "1e-10",
-                             "-allphone_ci", "no",
-                             "-backtrace", "yes",
-                             "-lw", "2.0",
-                             nullptr);
+                                 ps_args(), TRUE,
+                                 "-hmm", _modelPath.c_str(),
+                                 "-lm", _lmPath.c_str(),
+                                 "-logfn", _phonemeLogPath.c_str(),
+                                 "-allphone", _phoneticlmPath.c_str(),
+                                 "-beam", "1e-20",
+                                 "-pbeam", "1e-10",
+                                 "-allphone_ci", "no",
+                                 "-backtrace", "yes",
+                                 "-lw", "2.0",
+                                 nullptr);
 
     if (_configPhoneme == nullptr)
     {
@@ -254,7 +261,7 @@ bool PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t 
         endTime += ef * 1000 / frame_rate;
 
         sub->addPhoneme(recognisedPhoneme,startTime,endTime);
-     skipSearchingThisPhoneme:
+    skipSearchingThisPhoneme:
         iter = ps_seg_next(iter);
     }
 
@@ -375,7 +382,7 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
 
         }
 
-skipSearchingThisWord:
+    skipSearchingThisWord:
         iter = ps_seg_next(iter);
     }
 

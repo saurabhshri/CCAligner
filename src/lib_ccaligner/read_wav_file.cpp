@@ -16,12 +16,16 @@ WaveFileData::WaveFileData(std::string fileName, bool isRawFile) noexcept    //f
     : _fileName(std::move(fileName)),
       _openMode(readFile),
       _isRawFile(isRawFile)
-{}
+{
+    _samples.resize(0);
+}
 
 WaveFileData::WaveFileData(openMode mode, bool isRawFile) noexcept           //data being read from stream;
     : _openMode(mode),
       _isRawFile(isRawFile)
-{}
+{
+    _samples.resize(0);
+}
 
 bool WaveFileData::checkValidWave (const std::vector<unsigned char>& fileData)
 {

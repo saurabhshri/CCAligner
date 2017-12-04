@@ -7,7 +7,8 @@
 #include "params.h"
 
 // Default paths.
-namespace {
+namespace
+{
     constexpr auto defaultModelPath = "model/";
     constexpr auto defaultLmPath = "tempFiles/lm/complete.lm";
     constexpr auto defaultDictPath = "tempFiles/dict/complete.dict";
@@ -17,16 +18,22 @@ namespace {
 
 Params::Params() noexcept
     : localTime(32, '\0'),
+
       modelPath(defaultModelPath),
       lmPath(defaultLmPath),
       dictPath(defaultDictPath),
       fsgPath(defaultFsgPath),
       phoneticlmPath(defaultPhoneticLmPath),
+
       searchWindow(3),
+      audioWindow(0),
+      sampleWindow(0),
+
       chosenAlignerType(asrAligner),
       grammarType(complete_grammar),
       outputFormat(xml),
       printOption(printBothWithDistinctColors),
+
       verbosity(true),
       useFSG(),
       transcribe(),
