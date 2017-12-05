@@ -129,7 +129,6 @@ bool PocketsphinxAligner::initDecoder(const std::string& modelPath, const std::s
 
     if (_configWord == nullptr)
     {
-        LOG("Failed to create config object, see log for details");
         FATAL(EXIT_FAILURE, "Failed to create config object, see log for details" );
     }
 
@@ -137,7 +136,6 @@ bool PocketsphinxAligner::initDecoder(const std::string& modelPath, const std::s
 
     if (_psWordDecoder == nullptr)
     {
-        LOG("Failed to create recognizer, see log for details" );
         FATAL(EXIT_FAILURE, "Failed to create recognizer, see log for details" );
     }
 
@@ -176,7 +174,6 @@ bool PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticlmPath, 
 
     if (_configPhoneme == nullptr)
     {
-        LOG("Failed to create config object, see log for details" );
         FATAL(EXIT_FAILURE, "Failed to create config object, see log for details" );
     }
 
@@ -184,7 +181,6 @@ bool PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticlmPath, 
 
     if (_psPhonemeDecoder == nullptr)
     {
-        LOG("Failed to create phoneme recognizer, see log for details" );
         FATAL(EXIT_FAILURE, "Failed to create phoneme recognizer, see log for details" );
     }
 
@@ -424,7 +420,6 @@ bool PocketsphinxAligner::recognise()
         recognitionWindow = _sampleWindow;
     }
     
-    LOG("Recognising and aligning");
     std::cout << "Recognising and aligning..\n";
 
     for (SubtitleItem *sub : _subtitles)
@@ -524,7 +519,6 @@ bool PocketsphinxAligner::recognise()
                 break;
 
             default: 
-                LOG("An error occured while choosing output format");
                 std::cout<<"An error occurred while choosing output format!";
                 exit(2);
         }
@@ -532,7 +526,6 @@ bool PocketsphinxAligner::recognise()
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
 
-    LOG("Finished recognition and alignment");
     std::cout << "Finished recognition and alignment..\n";
 
     return true;
@@ -628,7 +621,6 @@ int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder
 
 bool PocketsphinxAligner::transcribe()
 {
-    LOG("Transcribing...");
     std::cout << "Transcribing...\n";
 
     //pointer to samples
@@ -697,7 +689,6 @@ bool PocketsphinxAligner::transcribe()
 
     printTranscriptionFooter(_outputFileName, _parameters->outputFormat);
     
-    LOG("Finished transcription");
     std::cout << "Finished transcription.\n";
 
     return true;
@@ -756,7 +747,6 @@ bool PocketsphinxAligner::alignWithFSG()
 
         if (subConfig == nullptr)
         {
-            LOG("Failed to create config object, see log for details");
             fprintf(stderr, "Failed to create config object, see log for details\n");
             return -1;
         }
@@ -765,7 +755,6 @@ bool PocketsphinxAligner::alignWithFSG()
 
         if (_psWordDecoder == nullptr)
         {
-            LOG("Failed to create recognizer, see log for details");
             fprintf(stderr, "Failed to create recognizer, see log for details\n");
             return -1;
         }
@@ -834,7 +823,6 @@ bool PocketsphinxAligner::alignWithFSG()
                 break;
 
             default:
-                LOG("An error occurred while choosing output format!");
                 std::cout<<"An error occurred while choosing output format!";
                 exit(2);
         }
@@ -865,7 +853,6 @@ bool PocketsphinxAligner::printAligned(const std::string& outputFileName, output
                         break;
 
         default:  
-            LOG("An error occured while choosing output format!");
             FATAL(EXIT_FAILURE, "An error occurred while choosing output format!");
     }
 
