@@ -228,7 +228,7 @@ bool WaveFileData::openFile ()
 
     if (!infile)
     {
-        LOG("Error occured while opening file");
+        LOG("Error occurred while opening file");
         FATAL(EXIT_FILE_NOT_FOUND, "Unable to open file : %s", _fileName.c_str());
     }
 
@@ -344,8 +344,8 @@ int WaveFileData::processStreamHeader()
             }
         }
     }
-    LOG("Error occured while processing stream header!");
-    FATAL(EXIT_UNKNOWN, "Error occured while processing stream header!");
+    LOG("Error occurred while processing stream header!");
+    FATAL(EXIT_UNKNOWN, "Error occurred while processing stream header!");
     return -1;  //some error; more robust exit errors coming soon
 }
 
@@ -389,8 +389,8 @@ int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
             FATAL(EXIT_INVALID_FILE, "Invalid WAV file: SubChunk1 ('fmt') not found!");
         }
     }
-    LOG("Error occured while checking SubChunk1ID");
-    FATAL(EXIT_UNKNOWN, "Error occured while checking SubChunk1ID");
+    LOG("Error occurred while checking SubChunk1ID");
+    FATAL(EXIT_UNKNOWN, "Error occurred while checking SubChunk1ID");
     return -1;
 }
 
@@ -499,8 +499,8 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
             FATAL(EXIT_INVALID_FILE, "SubChunk2 ('data') not found!");
         }
     }
-    LOG("Error occured while reading SubChunk2");
-    FATAL(EXIT_UNKNOWN, "Error occured while reading SubChunk2!");
+    LOG("Error occurred while reading SubChunk2");
+    FATAL(EXIT_UNKNOWN, "Error occurred while reading SubChunk2!");
     return -1; //some error
 }
 

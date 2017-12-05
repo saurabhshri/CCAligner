@@ -17,7 +17,7 @@ class Params
 
     void validateParams();
 public:
-    std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
+    std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticLmPath, phonemeLogPath;
     bool audioIsRaw;
     unsigned long searchWindow, sampleWindow, audioWindow;
     alignerType chosenAlignerType;

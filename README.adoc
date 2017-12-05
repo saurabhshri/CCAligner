@@ -189,9 +189,9 @@ Generated Output Snippet :
 
 2. Place the `CCAligner` folder in appropriate directory in your project.
 
-3. In your project, simply include the directories and source file you wish to use. You may refer to CMakeLists.txt in the `src/` directory to get an idea. The CCAligner tool is built arround the CCAligner API.
+3. In your project, simply include the directories and source file you wish to use. You may refer to CMakeLists.txt in the `src/` directory to get an idea. The CCAligner tool is built around the CCAligner API.
 
-For example : If you want to use the audio based alignement in your project
+For example : If you want to use the audio based alignment in your project
 
 ```cpp
 
@@ -389,7 +389,7 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -searchWindow 6``_
 
 |`-audioWindow`
 |An integer
-|Determine the frontal and rear window from current subtitle timimng to perform recognition. The value should be in milliseconds. Default value is 0.
+|Determine the frontal and rear window from current subtitle timing to perform recognition. The value should be in milliseconds. Default value is 0.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -audioWindow 500``_
 
@@ -432,7 +432,7 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -dict custom.dict``_
 
 |`-fsg`
 |`path/to/fsg/directory`
-|Enter path of the directory containg FSGs, each FSG with name as starting timestamp of dialogue.
+|Enter path of the directory containing FSGs, each FSG with name as starting timestamp of dialogue.
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt -fsg fsg/``_
 
