@@ -8,6 +8,8 @@
 bool initFile(const std::string& fileName, outputFormats outputFormat)
 {
 
+    LOG("Initializing file);
+        
     std::ofstream out;
     out.open(fileName, std::ofstream::binary);
     
