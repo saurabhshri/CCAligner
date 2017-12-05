@@ -426,7 +426,7 @@ bool PocketsphinxAligner::recognise()
     {
         recognitionWindow = _sampleWindow;
     }
-
+    
     std::cout << "Recognising and aligning..\n";
 
     for (SubtitleItem *sub : _subtitles)
@@ -525,7 +525,8 @@ bool PocketsphinxAligner::recognise()
             case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
 
-            default:        std::cout<<"An error occurred while choosing output format!";
+            default: 
+                std::cout<<"An error occurred while choosing output format!";
                 exit(2);
         }
     }
@@ -563,6 +564,7 @@ bool PocketsphinxAligner::align()
 
 bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub)
 {
+    LOG("Recognising Phonemes");
     _rvPhoneme = ps_start_utt(_psPhonemeDecoder);
     _rvPhoneme = ps_process_raw(_psPhonemeDecoder, sample, readLimit, FALSE, FALSE);
     _rvPhoneme = ps_end_utt(_psPhonemeDecoder);
@@ -693,7 +695,7 @@ bool PocketsphinxAligner::transcribe()
     }
 
     printTranscriptionFooter(_outputFileName, _parameters->outputFormat);
-
+    
     std::cout << "Finished transcription.\n";
 
     return true;
@@ -827,7 +829,8 @@ bool PocketsphinxAligner::alignWithFSG()
             case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
 
-            default:        std::cout<<"An error occurred while choosing output format!";
+            default:
+                std::cout<<"An error occurred while choosing output format!";
                 exit(2);
         }
 
@@ -856,7 +859,8 @@ bool PocketsphinxAligner::printAligned(const std::string& outputFileName, output
         case karaoke:   printKaraoke(outputFileName, _subtitles, _parameters->printOption);
                         break;
 
-        default:        FATAL(EXIT_FAILURE, "An error occurred while choosing output format!");
+        default:  
+            FATAL(EXIT_FAILURE, "An error occurred while choosing output format!");
     }
 
     return true;

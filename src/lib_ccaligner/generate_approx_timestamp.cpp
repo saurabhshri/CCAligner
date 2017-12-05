@@ -21,6 +21,11 @@ void CurrentSub::printToSRT(const std::string& fileName, outputOptions printOpti
 {
     std::ofstream out;
     out.open(fileName, std::ofstream::app);
+    
+    if(!out.good())
+    {
+        LOG("Couldn't open file %s", filename);
+    }
 
     for(int i=0;i<_sub->getWordCount();i++)
     {
@@ -91,7 +96,9 @@ inline double CurrentSub::getWordWeight (const std::string& word) const noexcept
 void CurrentSub::assignTime(long int &wordDuration, const std::string &word )
 {
     if(_wordNumber>_wordCount)
+    {
         std::cout<<"Oops! Something went wrong!\n";
+    }
 
     double wordWeight = getWordWeight(word);
     wordDuration = wordWeight * _dialogueDuration;

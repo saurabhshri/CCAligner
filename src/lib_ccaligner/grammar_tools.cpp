@@ -23,12 +23,14 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name==quick_dict)
     {
+        LOG("Generating QuickDict");
         generateQuickDict = true;
         name = complete_grammar;
     }
 
     else if(name==quick_lm)
     {
+        LOG("Generating QuickLM");
         generateQuickLM = true;
         name = complete_grammar;
     }
@@ -78,6 +80,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
         try
         {
             corpusDump.open("tempFiles/corpus/corpus.txt",std::ios::binary);
+            LOG("Corpus created succesfully");
             corpusDump.close();
         }
 
@@ -95,6 +98,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
         try
         {
             phoneticCorpusDump.open("tempFiles/corpus/phoneticCorpus.txt",std::ios::binary);
+            LOG("Phonetic Corpus created succesfully");
             phoneticCorpusDump.close();
         }
 
@@ -220,14 +224,15 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
             }
 
             catch(std::system_error& e)
-            {
+            {              
                 FATAL(EXIT_FAILURE, e.code().message().c_str());
             }
 
             std::string word;
             std::vector<std::string> phonemes;
             bool beginWriting = false;
-
+            
+            LOG("Writing to dictDump");
             while (std::getline(vocabInput, word))
             {
                 if(beginWriting)

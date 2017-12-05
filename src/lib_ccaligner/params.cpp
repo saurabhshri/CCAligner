@@ -76,8 +76,10 @@ void Params::inputParams(int argc, char *argv[])
             audioFileName = subParam;
             i++;
         }
-        else if (paramPrefix == "-raw") {
-            if (i + 1 > argc) {
+        else if (paramPrefix == "-raw") 
+        {
+            if (i + 1 > argc) 
+            {
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-raw requires a path to valid raw wave!");
             }
 
@@ -233,7 +235,6 @@ void Params::inputParams(int argc, char *argv[])
             if(i+1 > argc)
             {
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--enable-phonemes requires a valid response!");
-
             }
 
             if(subParam == "yes")
@@ -247,7 +248,6 @@ void Params::inputParams(int argc, char *argv[])
             if(i+1 > argc)
             {
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "--generate-grammar requires a valid response!");
-
             }
 
             if(subParam  == "yes")
@@ -492,10 +492,14 @@ void Params::inputParams(int argc, char *argv[])
 void Params::validateParams()
 {
     if(audioFileName.empty() && !readStream)
+    {
         FATAL(EXIT_INVALID_PARAMETERS, "Audio file name is empty!");
+    }
 
     if(subtitleFileName.empty())
+    {
         FATAL(EXIT_INVALID_PARAMETERS, "Subtitle file name is empty!");
+    }
 
     if(modelPath.empty())
         LOG("Using default Model Path.");
@@ -529,19 +533,28 @@ void Params::validateParams()
 
         switch (outputFormat)  //decide on basis of set output format
         {
-            case srt:       outputFileName += ".srt";
+            case srt:       
+                LOG("Chosen .srt as output format");
+                outputFileName += ".srt";
                 break;
 
-            case xml:       outputFileName += ".xml";
+            case xml:      
+                LOG("Chosen .xml as output format");
+                outputFileName += ".xml";
                 break;
 
-            case json:      outputFileName += ".json";
+            case json:     
+                LOG("Chosen .json as output format");
+                outputFileName += ".json";
                 break;
 
-            case karaoke:   outputFileName += ".srt";
+            case karaoke:  
+                LOG("Chosen .srt as output format");
+                outputFileName += ".srt";
                 break;
 
-            default:        FATAL(EXIT_UNKNOWN, "An error occurred while choosing output format!");
+            default:     
+                FATAL(EXIT_UNKNOWN, "An error occurred while choosing output format!");
                 exit(2);
         }
     }
