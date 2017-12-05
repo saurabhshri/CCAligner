@@ -95,6 +95,7 @@ bool WaveFileData::decode()     //decodes the wave file
                See : L#108
 
      */
+    LOG("Decoding");
 
     std::string format(_fileData.begin() + 8, _fileData.begin() + 12);
 
@@ -118,13 +119,11 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(fmtIndex < 0)
     {
-        LOG("FMT subchunk not found!");
         FATAL(EXIT_INVALID_FILE, "FMT subchunk not found!");
     }
 
     if(dataIndex < 0)
     {
-        LOG("Data subchunk not found!");
         FATAL(EXIT_INVALID_FILE, "Data subchunk not found!");
     }
 
@@ -134,7 +133,6 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(subChunk1ID != "fmt ")
     {
-        LOG("Invalid SubChunk1ID : " + subChunk1ID.c_str());
         FATAL(EXIT_INVALID_FILE, "Invalid SubChunk1ID : %s", subChunk1ID.c_str());
     }
 
@@ -142,7 +140,6 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(subChunk1Size != 16)
     {
-        LOG("Not PCM, SubChunk1Size : " + subChunk1Size);
         FATAL(EXIT_INVALID_FILE, "Not PCM, SubChunk1Size : %lu", subChunk1Size);
     }
 
@@ -150,7 +147,6 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(audioFormat != 1)
     {
-        LOG("Not PCM, AudioFormat : %d", audioFormat);
         FATAL(EXIT_INVALID_FILE, "Not PCM, AudioFormat : %d", audioFormat);
     }
 
@@ -160,7 +156,6 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(numChannels != 1)
     {
-        LOG("Not Mono, NumChannels : %d", numChannels);
         FATAL(EXIT_INVALID_FILE, "Not Mono, NumChannels : %d", numChannels);
     }
 
@@ -170,7 +165,6 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(sampleRate != 16000)
     {
-        LOG("Not 16000Hz SampleRate, SampleRate : %lu", sampleRate);
         FATAL(EXIT_INVALID_FILE, "Not 16000Hz SampleRate, SampleRate : %lu", sampleRate);
     }
 
@@ -184,7 +178,6 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(bitRate != 16)
     {
-        LOG("BitRate is not 16 bits/sec, BitRate : %d", bitRate);
         FATAL(EXIT_INVALID_FILE, "Not 16 bits/sec, BitRate : %d", bitRate);
     }
 
@@ -192,7 +185,6 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if((byteRate != sampleRate * numChannels * bitRate/8) || (blockAlign != numChannels * bitRate/8))
     {
-        LOG("Incorrect header, ByteRate and/or BlockAlign values do not match!");
         FATAL(EXIT_INVALID_FILE, "Incorrect header, ByteRate and/or BlockAlign values do not match!");
     }
 
@@ -200,7 +192,6 @@ bool WaveFileData::decode()     //decodes the wave file
 
     if(subChunk2ID != "data")
     {
-        LOG("Invalid SubChunk2ID : %s", subChunk2ID.c_str());
         FATAL(EXIT_INVALID_FILE, "Invalid SubChunk2ID : %s", subChunk2ID.c_str());
     }
 
@@ -232,7 +223,6 @@ bool WaveFileData::openFile ()
 
     if (!infile)
     {
-        LOG("Error occured while opening file");
         FATAL(EXIT_FILE_NOT_FOUND, "Unable to open file : %s", _fileName.c_str());
     }
 
@@ -250,7 +240,6 @@ bool WaveFileData::openFile ()
             return true;
         }
         else {
-            LOG("Unable to read from file : %s", _fileName.c_str());
             FATAL(EXIT_INVALID_FILE, "Unable to read from file : %s", _fileName.c_str());
             return false;
         }
@@ -288,7 +277,6 @@ bool WaveFileData::openFile ()
 
     else
     {
-        LOG("Invalid WAV file");
         FATAL(EXIT_INVALID_FILE, "Invalid WAV file!");
     }
 
@@ -313,7 +301,6 @@ int WaveFileData::processStreamHeader()
         {
             if (riff[currentByteCount] != byteData)     //checking RIFF header
             {
-                LOG("Invalid WAV file");
                 FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Incorrect subChunk1ID!");
             }
 
@@ -332,7 +319,6 @@ int WaveFileData::processStreamHeader()
             {
                 if (wave[currentByteCount - 8] != byteData) //checking WAVE format
                 {
-                    LOG("Error: Incorrect header");
                     FATAL(EXIT_INVALID_FILE, "Invalid WAV file : Incorrect Header!");
                 }
 
@@ -349,7 +335,6 @@ int WaveFileData::processStreamHeader()
             }
         }
     }
-    LOG("Error occured while processing stream header!");
     FATAL(EXIT_UNKNOWN, "Error occured while processing stream header!");
     return -1;  //some error; more robust exit errors coming soon
 }
@@ -390,11 +375,9 @@ int WaveFileData::seekToEndOfSubChunk1ID(int remainingBytes)
 
         if(readBytes > remainingBytes)
         {
-            LOG("SubChunk1 ('fmt') not found");
             FATAL(EXIT_INVALID_FILE, "Invalid WAV file: SubChunk1 ('fmt') not found!");
         }
     }
-    LOG("Error occured while checking SubChunk1ID");
     FATAL(EXIT_UNKNOWN, "Error occured while checking SubChunk1ID");
     return -1;
 }
@@ -490,6 +473,7 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
             dataCount++;
 
             if(dataCount == 4)  //definitely 'data' subchunk
+                LOG("Subchunk read succesfully");
                 return readBytes; //return end of 'data' subchunk ID
         }
 
@@ -500,11 +484,9 @@ int WaveFileData::seekToEndOfSubChunk2ID(int remainingBytes)
 
         if(readBytes > remainingBytes)
         {
-            LOG("SubChunk2 ('data') not found");
             FATAL(EXIT_INVALID_FILE, "SubChunk2 ('data') not found!");
         }
     }
-    LOG("Error occured while reading SubChunk2");
     FATAL(EXIT_UNKNOWN, "Error occured while reading SubChunk2!");
     return -1; //some error
 }
@@ -584,7 +566,6 @@ bool WaveFileData::readStream()
     if(remainingBytes != 2 * numberOfSamples)
     {
         std::cout<<"\nLooks like there is some error in reading samples from the file. Still proceeding.";
-        LOG("Potential error(s) in reading samples, still proceeding");
     }
 
     return readSamplesFromStream(numberOfSamples);              //reading samples
