@@ -69,8 +69,10 @@ public:
 template<typename T>
 class FatalOutput
 {
-    std::stringstream _stream;
+    std::unique_ptr<std::stringstream> _stream;
 public:
+    FatalOutput() noexcept;
+
     // Yes, the destructor needs to throw an exception.
     // This is safe, because throwing *another* exception calls std::terminate,
     // and fatally aborting the program is the correct action because
@@ -80,7 +82,6 @@ public:
     template<typename U>
     FatalOutput& operator<<(const U& variable) noexcept;
 
-    FatalOutput() = default;
     FatalOutput(FatalOutput&&) = default;
     FatalOutput& operator=(FatalOutput&&) = default;
 };
@@ -100,9 +101,15 @@ Logger::Output& Logger::Output::operator<<(const T& variable) noexcept
 }
 
 template<typename T>
+FatalOutput<T>::FatalOutput() noexcept
+    : _stream(new std::stringstream())
+{}
+
+
+template<typename T>
 FatalOutput<T>::~FatalOutput() noexcept(false)
 {
-    std::string message = _stream.str();
+    std::string message = _stream->str();
     Log(Level::Fatal) << message;
     throw T(std::move(message));
 }
@@ -111,7 +118,7 @@ template<typename T>
 template<typename U>
 FatalOutput<T>& FatalOutput<T>::operator<<(const U& variable) noexcept
 {
-    _stream << variable;
+    *_stream << variable;
     return *this;
 }
 
