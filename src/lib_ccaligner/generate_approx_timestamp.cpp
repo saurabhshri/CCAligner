@@ -73,7 +73,7 @@ inline unsigned long CurrentSub::getDuration (long startTime, long endTime) cons
 {
     if(endTime < startTime)
     {
-        fatal<std::invalid_argument>() << "Incorrect start time and end time of the dialogue.";
+        Fatal<std::invalid_argument>() << "Incorrect start time and end time of the dialogue.";
     }
 
     return endTime - startTime;

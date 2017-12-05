@@ -64,7 +64,7 @@ public:
     Logger() = default;
     Logger(const Logger&) = delete;
     Logger& operator=(const Logger&) = delete;
-} log;
+} Log;
 
 template<typename T>
 class FatalOutput
@@ -86,7 +86,7 @@ public:
 };
 
 template<typename T>
-FatalOutput<T> fatal()
+FatalOutput<T> Fatal()
 {
     return FatalOutput<T>();
 }
@@ -103,7 +103,7 @@ template<typename T>
 FatalOutput<T>::~FatalOutput() noexcept(false)
 {
     std::string message = _stream.str();
-    log(Level::Fatal) << message;
+    Log(Level::Fatal) << message;
     throw T(std::move(message));
 }
 

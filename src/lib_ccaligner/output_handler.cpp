@@ -10,7 +10,7 @@ void initFile(const std::string& fileName, outputFormats outputFormat)
 
     std::ofstream out(fileName, std::ofstream::binary);
     if (!out.is_open())
-        fatal<std::runtime_error>() << "Could not open file '" << fileName << "'!";
+        Fatal<std::runtime_error>() << "Could not open file '" << fileName << "'!";
 
     if(outputFormat == xml)
     {
@@ -29,7 +29,7 @@ void printFileEnd(const std::string& fileName, outputFormats outputFormat)
 {
     std::ofstream out(fileName, std::ofstream::binary | std::ofstream::app);
     if (!out.is_open())
-        fatal<std::runtime_error>() << "Could not open file '" << fileName << "'!";
+        Fatal<std::runtime_error>() << "Could not open file '" << fileName << "'!";
 
     if(outputFormat == xml)
     {
@@ -47,7 +47,7 @@ void printTranscriptionHeader(const std::string& fileName, outputFormats outputF
 {
     std::ofstream out(fileName, std::ofstream::binary);
     if (!out.is_open())
-        fatal<std::runtime_error>() << "Could not open file '" << fileName << "'!";
+        Fatal<std::runtime_error>() << "Could not open file '" << fileName << "'!";
 
     if(outputFormat == xml)
     {
@@ -66,7 +66,7 @@ void printTranscriptionFooter(const std::string& fileName, outputFormats outputF
 {
     std::ofstream out(fileName, std::ofstream::binary | std::ofstream::app);
     if (!out.is_open())
-        fatal<std::runtime_error>() << "Could not open file '" << fileName << "'!";
+        Fatal<std::runtime_error>() << "Could not open file '" << fileName << "'!";
 
     if(outputFormat == xml)
     {

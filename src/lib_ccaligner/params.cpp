@@ -70,7 +70,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-wav requires a path to valid wave!";
+                Fatal<incomplete_parameters_exception>() << "-wav requires a path to valid wave!";
             }
 
             audioFileName = subParam;
@@ -78,7 +78,7 @@ void Params::inputParams(int argc, char *argv[])
         }
         else if (paramPrefix == "-raw") {
             if (i + 1 > argc) {
-                fatal<incomplete_parameters_exception>() << "-raw requires a path to valid raw wave!";
+                Fatal<incomplete_parameters_exception>() << "-raw requires a path to valid raw wave!";
             }
 
             audioFileName = subParam;
@@ -93,7 +93,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-srt requires a path to valid SubRip subtitle file!";
+                Fatal<incomplete_parameters_exception>() << "-srt requires a path to valid SubRip subtitle file!";
             }
 
             subtitleFileName = subParam;
@@ -109,7 +109,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-out requires a valid output filename!";
+                Fatal<incomplete_parameters_exception>() << "-out requires a valid output filename!";
             }
 
             outputFileName = subParam;
@@ -120,7 +120,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-oFormat requires a valid output format";
+                Fatal<incomplete_parameters_exception>() << "-oFormat requires a valid output format";
             }
 
             if(subParam  == "srt")
@@ -140,7 +140,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
-                fatal<std::invalid_argument>() << "-oFormat requires a valid output format!";
+                Fatal<std::invalid_argument>() << "-oFormat requires a valid output format!";
             }
 
             i++;
@@ -150,7 +150,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-model requires a path to valid acoustic model!";
+                Fatal<incomplete_parameters_exception>() << "-model requires a path to valid acoustic model!";
             }
 
             modelPath = subParam;
@@ -161,7 +161,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-lm requires a path to language model!";
+                Fatal<incomplete_parameters_exception>() << "-lm requires a path to language model!";
             }
 
             lmPath = subParam;
@@ -173,7 +173,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-dict requires a path to a valid dictionary file!";
+                Fatal<incomplete_parameters_exception>() << "-dict requires a path to a valid dictionary file!";
             }
 
             dictPath = subParam;
@@ -185,7 +185,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-fsg requires a path to a valid directory containing FSG files!";
+                Fatal<incomplete_parameters_exception>() << "-fsg requires a path to a valid directory containing FSG files!";
             }
 
             fsgPath = subParam;
@@ -197,7 +197,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-log requires a path to a valid output log file!";
+                Fatal<incomplete_parameters_exception>() << "-log requires a path to a valid output log file!";
             }
 
             logPath = subParam;
@@ -208,7 +208,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-phoneLM requires a path to a valid phonetic language model!";
+                Fatal<incomplete_parameters_exception>() << "-phoneLM requires a path to a valid phonetic language model!";
 
             }
 
@@ -220,7 +220,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-phoneLog requires a path to a valid output log file!";
+                Fatal<incomplete_parameters_exception>() << "-phoneLog requires a path to a valid output log file!";
 
             }
 
@@ -232,7 +232,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "--enable-phonemes requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "--enable-phonemes requires a valid response!";
 
             }
 
@@ -246,7 +246,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "--generate-grammar requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "--generate-grammar requires a valid response!";
 
             }
 
@@ -273,7 +273,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
-                fatal<std::invalid_argument>() << "--generate-grammar requires a valid response!";
+                Fatal<std::invalid_argument>() << "--generate-grammar requires a valid response!";
             }
 
             i++;
@@ -283,7 +283,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "--quick-dict requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "--quick-dict requires a valid response!";
             }
 
             if(subParam == "yes")
@@ -296,7 +296,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "--quick-lm requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "--quick-lm requires a valid response!";
             }
 
             if(subParam == "yes")
@@ -309,7 +309,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "--print-aligned requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "--print-aligned requires a valid response!";
             }
 
             if(subParam  == "yes")
@@ -329,7 +329,7 @@ void Params::inputParams(int argc, char *argv[])
 
             else
             {
-                fatal<std::invalid_argument>() << "--print-aligned requires a valid response!";
+                Fatal<std::invalid_argument>() << "--print-aligned requires a valid response!";
             }
 
             i++;
@@ -339,7 +339,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "--use-fsg requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "--use-fsg requires a valid response!";
             }
 
             if(subParam  == "yes")
@@ -352,7 +352,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-transcribe requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "-transcribe requires a valid response!";
             }
 
             if(subParam  == "yes")
@@ -366,7 +366,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-verbose requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "-verbose requires a valid response!";
             }
 
             if(subParam  == "no")
@@ -379,7 +379,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "--display-recognised requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "--display-recognised requires a valid response!";
             }
 
             if(subParam  == "no")
@@ -392,14 +392,14 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-searchWindow requires an integer value to determine the search scope!";
+                Fatal<incomplete_parameters_exception>() << "-searchWindow requires an integer value to determine the search scope!";
             }
 
             searchWindow = std::strtoul( subParam.c_str(), nullptr, 10 );
 
             if ( errno )
             {
-                fatal<std::invalid_argument>() << "Invalid value passed to -searchWindow : " << strerror(errno);
+                Fatal<std::invalid_argument>() << "Invalid value passed to -searchWindow : " << strerror(errno);
             }
 
             i++;
@@ -409,14 +409,14 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-sampleWindow requires a valid integer value to determine the recognition scope!";
+                Fatal<incomplete_parameters_exception>() << "-sampleWindow requires a valid integer value to determine the recognition scope!";
             }
 
             sampleWindow = std::strtoul( subParam.c_str(), nullptr, 10 );
 
             if ( errno )
             {
-                fatal<std::invalid_argument>() << "Invalid value passed to -sampleWindow : " << strerror(errno);
+                Fatal<std::invalid_argument>() << "Invalid value passed to -sampleWindow : " << strerror(errno);
             }
 
             i++;
@@ -426,14 +426,14 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-audioWindow requires a valid integer value in milliseconds to determine the recognition scope!";
+                Fatal<incomplete_parameters_exception>() << "-audioWindow requires a valid integer value in milliseconds to determine the recognition scope!";
             }
 
             audioWindow = std::strtoul( subParam.c_str(), nullptr, 10 );
 
             if ( errno )
             {
-                fatal<std::invalid_argument>() << "Invalid value passed to -audioWindow : " << strerror(errno);
+                Fatal<std::invalid_argument>() << "Invalid value passed to -audioWindow : " << strerror(errno);
             }
 
             i++;
@@ -443,7 +443,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-useBatchMode requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "-useBatchMode requires a valid response!";
             }
 
             if(subParam  == "yes")
@@ -456,7 +456,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-experiment requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "-experiment requires a valid response!";
             }
 
             if(subParam  == "yes")
@@ -469,7 +469,7 @@ void Params::inputParams(int argc, char *argv[])
         {
             if(i+1 > argc)
             {
-                fatal<incomplete_parameters_exception>() << "-approx requires a valid response!";
+                Fatal<incomplete_parameters_exception>() << "-approx requires a valid response!";
             }
 
             if(subParam  == "yes")
@@ -480,7 +480,7 @@ void Params::inputParams(int argc, char *argv[])
 
         else
         {
-            fatal<std::invalid_argument>() << "Parameter " << paramPrefix << " is not recognised!";
+            Fatal<std::invalid_argument>() << "Parameter " << paramPrefix << " is not recognised!";
         }
 
     }
@@ -492,31 +492,31 @@ void Params::inputParams(int argc, char *argv[])
 void Params::validateParams()
 {
     if(audioFileName.empty() && !readStream)
-        fatal<std::invalid_argument>() << "Audio file name is empty!";
+        Fatal<std::invalid_argument>() << "Audio file name is empty!";
 
     if(subtitleFileName.empty())
-        fatal<std::invalid_argument>() << "Subtitle file name is empty!";
+        Fatal<std::invalid_argument>() << "Subtitle file name is empty!";
 
     if(modelPath.empty())
-        log() << "Using default Model Path.";
+        Log() << "Using default Model Path.";
 
     if(dictPath.empty())
-        log() << "Using default Dictionary Path.";
+        Log() << "Using default Dictionary Path.";
 
     if(lmPath.empty())
-        log() << "Using default LM Path.";
+        Log() << "Using default LM Path.";
 
     if(logPath.empty())
-        log() << "Using default Log Path.";
+        Log() << "Using default Log Path.";
 
     if(fsgPath.empty())
-        log() << "Using default FSG Path.";
+        Log() << "Using default FSG Path.";
 
     if(phoneticlmPath.empty())
-        log() << "Using default Phonetic LM Path.";
+        Log() << "Using default Phonetic LM Path.";
 
     if(phonemeLogPath.empty())
-        log() << "Using default Phoneme Log Path.";
+        Log() << "Using default Phoneme Log Path.";
 
     if(readStream)
     {
@@ -541,7 +541,7 @@ void Params::validateParams()
             case karaoke:   outputFileName += ".srt";
                 break;
 
-            default:    fatal<std::invalid_argument>() << "Invalid format for output!";
+            default:    Fatal<std::invalid_argument>() << "Invalid format for output!";
         }
     }
 
@@ -553,7 +553,7 @@ void Params::validateParams()
 
     if(useFSG && transcribe)
     {
-        fatal<incompatible_parameters_exception>() << "FSG and Transcribing are not compatible!";
+        Fatal<incompatible_parameters_exception>() << "FSG and Transcribing are not compatible!";
     }
 
     if(searchPhonemes && transcribe)
@@ -563,7 +563,7 @@ void Params::validateParams()
 
     if(verbosity)
     {
-        log.filter(Level::None);
+        Log.filter(Level::None);
         printParams();
     }
 }

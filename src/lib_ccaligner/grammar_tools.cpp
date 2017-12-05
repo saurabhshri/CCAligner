@@ -34,7 +34,7 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
     }
 
     //create temporary directories in case they don't exist
-    log() << "Creating temporary directories at tempFiles/";
+    Log() << "Creating temporary directories at tempFiles/";
 
 #ifndef WIN32
     int rv = systemGetStatus("mkdir -p tempFiles/corpus tempFiles/dict tempFiles/vocab tempFiles/fsg tempFiles/lm");
@@ -44,11 +44,11 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
   
     if (rv != 0)
     {
-        fatal<std::runtime_error>() << "Unable to create directory tempFiles/ :" << strerror(errno);
+        Fatal<std::runtime_error>() << "Unable to create directory tempFiles/ :" << strerror(errno);
     }
 
 
-    log() << "Directories created successfully!";
+    Log() << "Directories created successfully!";
 
     std::ofstream corpusDump, phoneticCorpusDump, fsgDump, vocabDump, dictDump, logDump;
 
@@ -68,12 +68,12 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     catch(std::system_error& e)
     {
-        fatal<std::runtime_error>() << e.code().message();
+        Fatal<std::runtime_error>() << e.code().message();
     }
 
     if(name == corpus || name == complete_grammar)
     {
-        log(Level::Info) << "Creating Corpus : tempFiles/corpus/corpus.txts";
+        Log(Level::Info) << "Creating Corpus : tempFiles/corpus/corpus.txts";
 
         try
         {
@@ -83,14 +83,14 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         catch(std::system_error& e)
         {
-            fatal<std::runtime_error>() << e.code().message();
+            Fatal<std::runtime_error>() << e.code().message();
         }
 
     }
 
     if(name == phone_lm || name == complete_grammar)
     {
-        log(Level::Info) << "Creating Phonetic Corpus : tempFiles/corpus/phoneticCorpus.txt\n";
+        Log(Level::Info) << "Creating Phonetic Corpus : tempFiles/corpus/phoneticCorpus.txt\n";
 
         try
         {
@@ -100,7 +100,7 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         catch(std::system_error& e)
         {
-            fatal<std::runtime_error>() << e.code().message();
+            Fatal<std::runtime_error>() << e.code().message();
         }
 
     }
@@ -116,7 +116,7 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             catch(std::system_error& e)
             {
-                fatal<std::runtime_error>() << e.code().message();
+                Fatal<std::runtime_error>() << e.code().message();
             }
 
             corpusDump << "<s> " << stringToLower(sub->getDialogue()) << " </s>\n";
@@ -132,7 +132,7 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             catch(std::system_error& e)
             {
-                fatal<std::runtime_error>() << e.code().message();
+                Fatal<std::runtime_error>() << e.code().message();
             }
 
             int numberOfWords = sub->getWordCount();
@@ -165,7 +165,7 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             catch(std::system_error& e)
             {
-                fatal<std::runtime_error>() << e.code().message();
+                Fatal<std::runtime_error>() << e.code().message();
             }
 
             int numberOfWords = sub->getWordCount();
@@ -204,7 +204,7 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         if (rv != 0)
         {
-            fatal<std::runtime_error>() << "Something went wrong while creating vocabulary!";
+            Fatal<std::runtime_error>() << "Something went wrong while creating vocabulary!";
         }
     }
 
@@ -221,7 +221,7 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             catch(std::system_error& e)
             {
-                fatal<std::runtime_error>() << e.code().message();
+                Fatal<std::runtime_error>() << e.code().message();
             }
 
             std::string word;
@@ -252,13 +252,13 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
         else
         {
-            log(Level::Info) << "Creating the Dictionary, this might take a little time depending "
+            Log(Level::Info) << "Creating the Dictionary, this might take a little time depending "
                 "on your TensorFlow configuration : tempFiles/dict/complete.dict";
             rv = systemGetStatus("g2p-seq2seq --decode tempFiles/vocab/complete.vocab --model g2p-seq2seq-cmudict/ > tempFiles/dict/complete.dict");
 
             if (rv != 0)
             {
-                fatal<std::runtime_error>() << "Something went wrong while creating dictionary!";
+                Fatal<std::runtime_error>() << "Something went wrong while creating dictionary!";
             }
         }
 
@@ -266,14 +266,14 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == lm || name == complete_grammar )
     {
-        log(Level::Info) << "Creating Biased Language Model : tempFiles/lm/complete.lm";
+        Log(Level::Info) << "Creating Biased Language Model : tempFiles/lm/complete.lm";
 
         if(generateQuickLM)
         {
             rv = systemGetStatus("perl quick_lm.pl -s tempFiles/corpus/corpus.txt 2>tempFiles/grammar.log");
             if (rv != 0)
             {
-                fatal<std::runtime_error>() << "Something went wrong while creating Phonetic Language Model!";
+                Fatal<std::runtime_error>() << "Something went wrong while creating Phonetic Language Model!";
             }
 #ifndef WIN32
             rv = systemGetStatus("mv tempFiles/corpus/corpus.txt.arpabo tempFiles/lm/complete.lm 2>tempFiles/grammar.log");
@@ -283,7 +283,7 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             if (rv != 0)
             {
-                fatal<std::runtime_error>() << "Something went wrong while moving phonetic model!";
+                Fatal<std::runtime_error>() << "Something went wrong while moving phonetic model!";
             }
         }
 
@@ -293,14 +293,14 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
             if (rv != 0)
             {
-                fatal<std::runtime_error>() << "Something went wrong while creating idngram file!";
+                Fatal<std::runtime_error>() << "Something went wrong while creating idngram file!";
             }
 
             rv = systemGetStatus("idngram2lm -vocab_type 0 -idngram tempFiles/lm/lm.idngram -vocab tempFiles/vocab/complete.vocab  -arpa tempFiles/lm/complete.lm 2>tempFiles/grammar.log");
 
             if (rv != 0)
             {
-                fatal<std::runtime_error>() << "Something went wrong while creating biased language model!";
+                Fatal<std::runtime_error>() << "Something went wrong while creating biased language model!";
             }
         }
 
@@ -309,12 +309,12 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == phone_lm  || name == complete_grammar )
     {
-        log(Level::Info) << "Creating Phonetic Language Model : tempFiles/lm/phone.lm";
+        Log(Level::Info) << "Creating Phonetic Language Model : tempFiles/lm/phone.lm";
 
         rv = systemGetStatus("perl quick_lm.pl -s tempFiles/corpus/phoneticCorpus.txt 2>tempFiles/grammar.log");
         if (rv != 0)
         {
-            fatal<std::runtime_error>() << "Something went wrong while creating Phonetic Language Model!";
+            Fatal<std::runtime_error>() << "Something went wrong while creating Phonetic Language Model!";
         }
 #ifndef WIN32
         rv = systemGetStatus("mv tempFiles/corpus/phoneticCorpus.txt.arpabo tempFiles/lm/ 2>tempFiles/grammar.log");
@@ -323,9 +323,9 @@ void generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 #endif
         if (rv != 0)
         {
-            fatal<std::runtime_error>() << "Something went wrong while moving phonetic model!";
+            Fatal<std::runtime_error>() << "Something went wrong while moving phonetic model!";
         }
     }
 
-    log() << "Grammar files created!";
+    Log() << "Grammar files created!";
 }

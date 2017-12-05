@@ -6,7 +6,7 @@
 
 #include "commons.h"
 
-Logger log;
+Logger Log;
 
 Logger::Output::Output(std::ostream * stream, Level::LevelFlag level) noexcept
     : _stream(stream)

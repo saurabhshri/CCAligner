@@ -44,7 +44,7 @@ CCAligner::CCAligner(Params* parameters)
 {
     _parameters = parameters;
     if (_parameters->verbosity)
-        log.filter(Level::None);
+        Log.filter(Level::None);
 }
 
 void CCAligner::initAligner()
@@ -61,7 +61,7 @@ void CCAligner::initAligner()
 
     else
     {
-        fatal<std::invalid_argument>() << "Unsupported Aligner Type!";
+        Fatal<std::invalid_argument>() << "Unsupported Aligner Type!";
     }
 }
 

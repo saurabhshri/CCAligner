@@ -120,7 +120,7 @@ std::vector<Phoneme> stringToPhoneme(const std::string &word)
         Phoneme phone = charToPhone(c);
         if (phone == "Noise")
         {
-            log(Level::Warning) << "Error converting " << phone;
+            Log(Level::Warning) << "Error converting " << phone;
         }
 
         if (phone != lastPhoneme)
