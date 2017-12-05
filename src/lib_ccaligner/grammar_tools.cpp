@@ -75,7 +75,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == corpus || name == complete_grammar)
     {
-        LOG("Creating Corpus : tempFiles/corpus/corpus.txt\n");
+        std::cout<<"Creating Corpus : tempFiles/corpus/corpus.txt\n";
 
         try
         {
@@ -93,7 +93,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == phone_lm || name == complete_grammar)
     {
-        LOG("Creating Phonetic Corpus : tempFiles/corpus/phoneticCorpus.txt\n");
+        std::cout<<"Creating Phonetic Corpus : tempFiles/corpus/phoneticCorpus.txt\n";
 
         try
         {
@@ -271,7 +271,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == lm || name == complete_grammar )
     {
-        LOG("Creating Biased Language Model : tempFiles/lm/complete.lm\n");
+        std::cout<<"Creating Biased Language Model : tempFiles/lm/complete.lm\n";
 
         if(generateQuickLM)
         {
@@ -314,7 +314,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name)
 
     if(name == phone_lm  || name == complete_grammar )
     {
-        LOG("Creating Phonetic Language Model : tempFiles/lm/phone.lm\n");
+        std::cout<<"Creating Phonetic Language Model : tempFiles/lm/phone.lm\n";
 
         rv = systemGetStatus("perl quick_lm.pl -s tempFiles/corpus/phoneticCorpus.txt 2>tempFiles/grammar.log");
         if (rv != 0)
