@@ -17,8 +17,103 @@
 #include <regex>
 #include <cstdarg>
 #include <memory>
+#include <ostream>
+#include <fstream>
+#include <cassert>
+#include <stdexcept>
+#include <sstream>
 
-extern bool should_log;
+namespace Level {
+enum LevelFlag
+{
+    None = 0x0, // dummy flag to output nothing
+    Info = 0x1, // useful information that the user should know
+    Debug = 0x2, // useful information when the API fails for further investigation
+    Warning = 0x4, // information about a behavior of this API which might not be intended
+    Fatal = 0x8 // API cannot recover from this (but others might be able to)
+};
+}
+
+extern class Logger
+{
+    class Output
+    {
+        std::ostream * _stream;
+    public:
+        Output(std::ostream * stream, Level::LevelFlag level) noexcept;
+        ~Output();
+
+        template<typename T>
+        Output& operator<<(const T& variable) noexcept;
+    };
+
+    std::ostream * _stream = &std::cout;
+    std::ofstream _file;
+    Level::LevelFlag _filter = Level::None;
+public:
+    void turnOff() noexcept;
+    void filter(Level::LevelFlag flags) noexcept;
+
+    void writeToFile(const std::string& filename) noexcept;
+    void writeToStdout() noexcept;
+    void writeToStderr() noexcept;
+    void writeToStream(std::ostream& stream) noexcept;
+
+    Output operator()(Level::LevelFlag level = Level::Debug) const noexcept;
+
+    Logger() = default;
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+} log;
+
+template<typename T>
+class FatalOutput
+{
+    std::stringstream _stream;
+public:
+    // Yes, the destructor needs to throw an exception.
+    // This is safe, because throwing *another* exception calls std::terminate,
+    // and fatally aborting the program is the correct action because
+    // it is a programmer error.
+    ~FatalOutput() noexcept(false);
+
+    template<typename U>
+    FatalOutput& operator<<(const U& variable) noexcept;
+
+    FatalOutput() = default;
+    FatalOutput(FatalOutput&&) = default;
+    FatalOutput& operator=(FatalOutput&&) = default;
+};
+
+template<typename T>
+FatalOutput<T> fatal()
+{
+    return FatalOutput<T>();
+}
+
+template<typename T>
+Logger::Output& Logger::Output::operator<<(const T& variable) noexcept
+{
+    if (_stream)
+        *_stream << variable;
+    return *this;
+}
+
+template<typename T>
+FatalOutput<T>::~FatalOutput() noexcept(false)
+{
+    std::string message = _stream.str();
+    log(Level::Fatal) << message;
+    throw T(std::move(message));
+}
+
+template<typename T>
+template<typename U>
+FatalOutput<T>& FatalOutput<T>::operator<<(const U& variable) noexcept
+{
+    _stream << variable;
+    return *this;
+}
 
 enum alignerType
 {
@@ -61,22 +156,6 @@ enum outputOptions
 
 };
 
-// Define possible exit codes that will be passed on to the fatal function exit codes.
-#define EXIT_OK                                 0
-#define EXIT_FILE_NOT_FOUND                     2
-#define EXIT_INVALID_PARAMETERS                 3
-#define EXIT_INCOMPATIBLE_PARAMETERS            4
-#define EXIT_INCOMPLETE_PARAMETERS              5
-#define EXIT_INVALID_FILE                       6
-#define EXIT_WITH_HELP                          10
-#define EXIT_UNKNOWN                            13
-
-#define LOG(MSG, ...) log(__FILE__, __LINE__, MSG, ##__VA_ARGS__)
-void log(const char *fileName, const int lineNumber, const char *format, ...);
-
-#define FATAL(ERR_NO, MSG, ...) fatal(ERR_NO, __FILE__, __LINE__, MSG, ##__VA_ARGS__)
-void fatal(int exit_code, const char *fileName, const int lineNumber, const char *format,  ...);
-
 void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds); //converts ms to SRT time
 std::string extractFileName(const std::string& fileName);  //extract path/to/filename from path/to/filename.extension
 std::string stringToLower(std::string strToConvert);
@@ -101,5 +180,25 @@ public:
 
 };
 
+struct file_not_found_exception : std::runtime_error
+{
+    file_not_found_exception(std::string file) noexcept;
+};
+
+struct invalid_file_exception : std::runtime_error
+{
+    invalid_file_exception(std::string file) noexcept;
+};
+
+
+struct incomplete_parameters_exception : std::invalid_argument
+{
+    incomplete_parameters_exception(std::string problem) noexcept;
+};
+
+struct incompatible_parameters_exception : std::invalid_argument
+{
+    incompatible_parameters_exception(std::string problem) noexcept;
+};
 
 #endif //CCALIGNER_UTILITY_H

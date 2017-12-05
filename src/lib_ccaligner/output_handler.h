@@ -10,26 +10,26 @@
 #include "commons.h"
 #include "srtparser.h"
 
-bool initFile(const std::string& fileName, outputFormats outputFormat);
-bool printFileEnd(const std::string& fileName, outputFormats outputFormat);
+void initFile(const std::string& fileName, outputFormats outputFormat);
+void printFileEnd(const std::string& fileName, outputFormats outputFormat);
 
-bool printTranscriptionHeader(const std::string& fileName, outputFormats outputFormat);
-bool printTranscriptionFooter(const std::string& fileName, outputFormats outputFormat);
+void printTranscriptionHeader(const std::string& fileName, outputFormats outputFormat);
+void printTranscriptionFooter(const std::string& fileName, outputFormats outputFormat);
 
 
-bool printSRT(const std::string& fileName, std::vector <SubtitleItem*> subtitles, outputOptions printOption);          //prints the aligned result in SRT format
+void printSRT(const std::string& fileName, std::vector <SubtitleItem*> subtitles, outputOptions printOption);          //prints the aligned result in SRT format
 int printSRTContinuous(const std::string& fileName, int subCount, SubtitleItem* sub, outputOptions printOption); //prints the aligned result in SRT format as they are generated
-int printTranscriptionAsSRTContinuous(const std::string& fileName, AlignedData *alignedData, int printedTillIndex);        //prints the transcribed result in JSON format as they are generated
+void printTranscriptionAsSRTContinuous(const std::string& fileName, AlignedData *alignedData, int printedTillIndex);        //prints the transcribed result in JSON format as they are generated
 
-bool printJSON(const std::string& fileName, std::vector <SubtitleItem*> subtitles);    //prints the aligned result in JSON format
-bool printJSONContinuous(const std::string& fileName, SubtitleItem* sub);        //prints the aligned result in JSON format as they are generated
-bool printTranscriptionAsJSONContinuous(const std::string& fileName, AlignedData *alignedData, int printedTillIndex);        //prints the transcribed result in JSON format as they are generated
+void printJSON(const std::string& fileName, std::vector <SubtitleItem*> subtitles);    //prints the aligned result in JSON format
+void printJSONContinuous(const std::string& fileName, SubtitleItem* sub);        //prints the aligned result in JSON format as they are generated
+void printTranscriptionAsJSONContinuous(const std::string& fileName, AlignedData *alignedData, int printedTillIndex);        //prints the transcribed result in JSON format as they are generated
 
-bool printXML(const std::string& fileName, std::vector <SubtitleItem*> subtitles);     //prints the aligned information in XML format
-bool printXMLContinuous(const std::string& fileName, SubtitleItem* sub);         //prints the aligned information in XML format as they are generated
-bool printTranscriptionAsXMLContinuous(const std::string& fileName, AlignedData *alignedData, int printedTillIndex);         //prints the transcribed information in XML format as they are generated
+void printXML(const std::string& fileName, std::vector <SubtitleItem*> subtitles);     //prints the aligned information in XML format
+void printXMLContinuous(const std::string& fileName, SubtitleItem* sub);         //prints the aligned information in XML format as they are generated
+void printTranscriptionAsXMLContinuous(const std::string& fileName, AlignedData *alignedData, int printedTillIndex);         //prints the transcribed information in XML format as they are generated
 
-bool printKaraoke(const std::string& fileName, std::vector <SubtitleItem*> subtitles, outputOptions printOption);          //prints the aligned information in Karaoke format
+void printKaraoke(const std::string& fileName, std::vector <SubtitleItem*> subtitles, outputOptions printOption);          //prints the aligned information in Karaoke format
 int printKaraokeContinuous(const std::string& fileName, int subCount, SubtitleItem* sub, outputOptions printOption); //prints the aligned information in Karaoke format as they are generated
 
 #endif //CCALIGNER_OUTPUT_HANDLER_H

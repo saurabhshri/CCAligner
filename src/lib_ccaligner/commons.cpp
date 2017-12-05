@@ -6,34 +6,72 @@
 
 #include "commons.h"
 
-bool should_log;
+Logger log;
 
-/* Write formatted message to stderr and then exit. */
-void fatal(int exit_code, const char *fileName, const int lineNumber, const char *format, ...)
+Logger::Output::Output(std::ostream * stream, Level::LevelFlag level) noexcept
+    : _stream(stream)
 {
-    va_list args;
-    va_start(args, format);
-    fprintf(stderr, "\r\n\n\n[ERROR] %s : %d \n\t\t ", fileName, lineNumber);
-    vfprintf(stderr, format, args);
-    fprintf(stderr, "\n\n\n");
-    va_end(args);
-    std::exit(exit_code);
+    if (!_stream)
+        return;
+
+    std::string levelString;
+    switch (level) {
+    case Level::Debug: levelString = "Debug";
+        break;
+    case Level::Info: break;
+    case Level::Warning: levelString = "Warning";
+        break;
+    case Level::Fatal: levelString = "Fatal";
+        break;
+    default:
+        assert(!"Could not convert log level to string.");
+    }
+
+    if (!levelString.empty())
+        *_stream << '[' << levelString << "] ";
+}
+
+Logger::Output::~Output()
+{
+    if (_stream)
+        *_stream << std::endl;
+}
+
+auto Logger::operator()(Level::LevelFlag level) const noexcept -> Output
+{
+    return Output(level & _filter ? nullptr : _stream, level);
+}
+
+void Logger::turnOff() noexcept
+{
+    _stream = nullptr;
+}
+
+void Logger::filter(Level::LevelFlag flags) noexcept
+{
+    _filter = flags;
 }
 
 
-/* Shorten some debug output code. */
-void log(const char *fileName, const int lineNumber, const char *format, ...)
+void Logger::writeToFile(const std::string& filename) noexcept
 {
-    if(should_log == false)
-        return;
+    _file.open(filename);
+    _stream = &_file;
+}
 
-    va_list args;
-    va_start(args, format);
-    fprintf(stdout, "[INFO] %s : %d | ", fileName, lineNumber);
-    vfprintf(stdout, format, args);
-    fprintf(stdout, "\n");
-    fflush (stdout);
-    va_end(args);
+void Logger::writeToStdout() noexcept
+{
+    _stream = &std::cout;
+}
+
+void Logger::writeToStderr() noexcept
+{
+    _stream = &std::cerr;
+}
+
+void Logger::writeToStream(std::ostream& stream) noexcept
+{
+    _stream = &stream;
 }
 
 void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds)
@@ -76,3 +114,19 @@ bool AlignedData::addNewWord(const std::string& word, long int startTime, long i
 
     return true;
 }
+
+file_not_found_exception::file_not_found_exception(std::string file) noexcept
+    : std::runtime_error(std::move(file))
+{}
+
+invalid_file_exception::invalid_file_exception(std::string file) noexcept
+    : std::runtime_error(std::move(file))
+{}
+
+incomplete_parameters_exception::incomplete_parameters_exception(std::string problem) noexcept
+    : std::invalid_argument(std::move(problem))
+{}
+
+incompatible_parameters_exception::incompatible_parameters_exception(std::string problem) noexcept
+    : std::invalid_argument(std::move(problem))
+{}

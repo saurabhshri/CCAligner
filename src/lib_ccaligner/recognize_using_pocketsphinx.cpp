@@ -29,12 +29,23 @@ PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
       //processing subtitles file
       _subParserFactory(_subtitleFileName),
       _parser(_subParserFactory.getParser()),
-      _subtitles(_parser->getSubtitles())
-{
-    LOG("Initialising Aligner using PocketSphinx");
-    LOG("Audio Filename: %s Subtitle filename: %s", _audioFileName.c_str(), _subtitleFileName.c_str());
+      _subtitles(_parser->getSubtitles()),
 
-    std::cout << "Reading and decoding audio samples...\n";
+      _psWordDecoder(),
+      _psPhonemeDecoder(),
+      _configWord(),
+      _configPhoneme(),
+      _hypWord(),
+      _hypPhoneme(),
+      _rvWord(),
+      _rvPhoneme(),
+      _scoreWord(),
+      _scorePhoneme()
+{
+    log() << "Initialising Aligner using PocketSphinx";
+    log() << "Audio Filename: " << _audioFileName << "Subtitle filename: ";
+
+    log(Level::Info) << "Reading and decoding audio samples...";
 
     if (parameters->readStream)
         _file = decltype(_file)(new WaveFileData(readStreamDirectly, parameters->audioIsRaw));
@@ -45,34 +56,34 @@ PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
     _samples = _file->getSamples();
 }
 
-bool PocketsphinxAligner::generateGrammar(grammarName name)
+void PocketsphinxAligner::generateGrammar(grammarName name)
 {
-    LOG("Generating Grammar based on subtitles, Grammar Name: %d ", name);
+    log() << "Generating Grammar based on subtitles, Grammar Name: " << name;
 
-    std::cout << "Generating language model and grammar files...\n";
+    log(Level::Info) << "Generating language model and grammar files...";
 
     if(_parameters->grammarType == complete_grammar || _parameters->grammarType == dict)
     {
-        std::cout << "Note: You have chosen to generate a dictionary. Based on your TensorFlow configuration,\n";
-        std::cout << "this may take some time, please be patient. For alternatives, see docs.\n";
+        log(Level::Info) << "Note: You have chosen to generate a dictionary. Based on your TensorFlow configuration,";
+        log(Level::Info) << "this may take some time, please be patient. For alternatives, see docs.";
     }
 
-    return generate(_subtitles, name);
+    generate(_subtitles, name);
 }
 
-bool PocketsphinxAligner::initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath)
+void PocketsphinxAligner::initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath)
 {
-    LOG("Initialising PocketSphinx decoder");
+    log() << "Initialising PocketSphinx decoder";
 
-    std::cout << "Initialising PocketSphinx decoder..\n";
+    log(Level::Info) << "Initialising PocketSphinx decoder...";
     _modelPath = modelPath;
     _lmPath = lmPath;
     _dictPath = dictPath;
     _fsgPath = fsgPath;
     _logPath = logPath;
 
-    LOG("Configuration: \n\tmodelPath = %s \n\tlmPath = %s \n\tdictPath = %s \n\tfsgPath = %s \n\tlogPath = %s ",
-        _modelPath.c_str(), _lmPath.c_str(), _dictPath.c_str(), _fsgPath.c_str(), _logPath.c_str());
+    log() << "Configuration: \n\tmodelPath = " << _modelPath << "\n\tlmPath = " << _lmPath << "\n\tdictPath = " << _dictPath
+          << "\n\tfsgPath = " << _fsgPath << "\n\tlogPath = " << _logPath;
 
     if(_parameters->useBatchMode)
     {
@@ -136,35 +147,33 @@ bool PocketsphinxAligner::initDecoder(const std::string& modelPath, const std::s
 
     if (_configWord == nullptr)
     {
-        FATAL(EXIT_FAILURE, "Failed to create config object, see log for details" );
+        fatal<std::runtime_error>() << "Failed to create config object, see log for details";
     }
 
     _psWordDecoder = ps_init(_configWord);
 
     if (_psWordDecoder == nullptr)
     {
-        FATAL(EXIT_FAILURE, "Failed to create recognizer, see log for details" );
+        fatal<std::runtime_error>() << "Failed to create recognizer, see log for details";
     }
 
     if(_parameters->searchPhonemes)
     {
         initPhonemeDecoder(_parameters->phoneticlmPath, _parameters->phonemeLogPath);
     }
-
-    return true;
 }
 
 
-bool PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath)
+void PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath)
 {
-    LOG("Initialising PocketSphinx phoneme decoder");
+    log() << "Initialising PocketSphinx phoneme decoder";
 
-    std::cout << "Initialising PocketSphinx phoneme decoder..\n";
+    log(Level::Info) << "Initialising PocketSphinx phoneme decoder...";
 
     _phoneticlmPath = phoneticlmPath;
     _phonemeLogPath = phonemeLogPath;
 
-    LOG("Configuration : \n\tphoneticlmPath = %s \n\tphonemeLogPath = %s", _phoneticlmPath.c_str(), _phonemeLogPath.c_str());
+    log() << "Configuration : \n\tphoneticlmPath = " << _phoneticlmPath << "\n\tphonemeLogPath = " << _phonemeLogPath;
 
     _configPhoneme = cmd_ln_init(nullptr,
                                  ps_args(), TRUE,
@@ -181,18 +190,15 @@ bool PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticlmPath, 
 
     if (_configPhoneme == nullptr)
     {
-        FATAL(EXIT_FAILURE, "Failed to create config object, see log for details" );
+        fatal<std::runtime_error>() << "Failed to create config object, see log for details";
     }
 
     _psPhonemeDecoder = ps_init(_configPhoneme);
 
     if (_psPhonemeDecoder == nullptr)
     {
-        FATAL(EXIT_FAILURE, "Failed to create phoneme recognizer, see log for details" );
+        fatal<std::runtime_error>() << "Failed to create phoneme recognizer, see log for details";
     }
-
-    return true;
-
 }
 
 int levenshtein_distance(const std::string &firstWord, const std::string &secondWord)
@@ -225,7 +231,7 @@ int levenshtein_distance(const std::string &firstWord, const std::string &second
     return previousColumn[length2];
 }
 
-bool PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
+void PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
 {
     ps_start_stream(ps);
     int frame_rate = cmd_ln_int32_r(config, "-frate");
@@ -264,8 +270,6 @@ bool PocketsphinxAligner::findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t 
     skipSearchingThisPhoneme:
         iter = ps_seg_next(iter);
     }
-
-    return true;
 }
 
 recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub)
@@ -313,7 +317,7 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
         endTime += ef * 1000 / frame_rate;
 
         if(startTime > endTime)
-            FATAL(EXIT_INVALID_PARAMETERS, "Error setting start and end time.");
+            fatal<std::invalid_argument>() << "Start is bigger than end time!";
 
         //storing recognised words and their timing information
         currentBlock.recognisedString.push_back(recognisedWord);
@@ -389,7 +393,7 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
     return currentBlock;
 }
 
-bool PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
+void PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
 {
     ps_start_stream(ps);
     int frame_rate = cmd_ln_int32_r(config, "-frate");
@@ -406,11 +410,9 @@ bool PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps)
                ((float) ef / frame_rate));
         iter = ps_seg_next(iter);
     }
-
-    return true;
 }
 
-bool PocketsphinxAligner::recognise()
+void PocketsphinxAligner::recognise()
 {
     int subCount = 1;
     initFile(_outputFileName, _parameters->outputFormat);
@@ -427,7 +429,7 @@ bool PocketsphinxAligner::recognise()
         recognitionWindow = _sampleWindow;
     }
 
-    std::cout << "Recognising and aligning..\n";
+    log(Level::Info) << "Recognizing and aligning..";
 
     for (SubtitleItem *sub : _subtitles)
     {
@@ -525,19 +527,16 @@ bool PocketsphinxAligner::recognise()
             case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
 
-            default:        std::cout<<"An error occurred while choosing output format!";
-                exit(2);
+            default:        fatal<std::invalid_argument>() << "Invalid output format for recognition!";
         }
     }
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
 
-    std::cout << "Finished recognition and alignment..\n";
-
-    return true;
+    log(Level::Info) << "Finished recognition and alignment..\n";
 }
 
-bool PocketsphinxAligner::align()
+void PocketsphinxAligner::align()
 {
     if(_parameters->grammarType != no_grammar)
         generateGrammar(_parameters->grammarType);
@@ -557,11 +556,9 @@ bool PocketsphinxAligner::align()
             recognise();
     }
 
-    return true;
-
 }
 
-bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub)
+void PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub)
 {
     _rvPhoneme = ps_start_utt(_psPhonemeDecoder);
     _rvPhoneme = ps_process_raw(_psPhonemeDecoder, sample, readLimit, FALSE, FALSE);
@@ -584,8 +581,6 @@ bool PocketsphinxAligner::recognisePhonemes(const int16_t *sample, int readLimit
 
         findAndSetPhonemeTimes(_configPhoneme,_psPhonemeDecoder, sub);
     }
-
-    return true;
 }
 
 int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index)
@@ -624,9 +619,9 @@ int PocketsphinxAligner::findTranscribedWordTimings(cmd_ln_t *config, ps_decoder
     return index;
 }
 
-bool PocketsphinxAligner::transcribe()
+void PocketsphinxAligner::transcribe()
 {
-    std::cout << "Transcribing...\n";
+    log(Level::Info) << "Transcribing...";
 
     //pointer to samples
     const int16_t *sample = _samples.data();
@@ -694,18 +689,15 @@ bool PocketsphinxAligner::transcribe()
 
     printTranscriptionFooter(_outputFileName, _parameters->outputFormat);
 
-    std::cout << "Finished transcription.\n";
-
-    return true;
+    log(Level::Info) << "Finished transcription.";
 }
 
-bool PocketsphinxAligner::reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps)
+void PocketsphinxAligner::reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps)
 {
     ps_reinit(_psWordDecoder, _configWord);
-    return true;
 }
 
-bool PocketsphinxAligner::alignWithFSG()
+void PocketsphinxAligner::alignWithFSG()
 {
     int subCount = 1;
     initFile(_outputFileName, _parameters->outputFormat);
@@ -752,16 +744,14 @@ bool PocketsphinxAligner::alignWithFSG()
 
         if (subConfig == nullptr)
         {
-            fprintf(stderr, "Failed to create config object, see log for details\n");
-            return -1;
+            fatal<std::runtime_error>() << "Failed to create config object, see log for details";
         }
 
         ps_reinit(_psWordDecoder, subConfig);
 
         if (_psWordDecoder == nullptr)
         {
-            fprintf(stderr, "Failed to create recognizer, see log for details\n");
-            return -1;
+            fatal<std::runtime_error>() << "Failed to create recognizer, see log for details";
         }
 
         long int dialogueLastsFor = (sub->getEndTime() - dialogueStartsAt);
@@ -827,8 +817,7 @@ bool PocketsphinxAligner::alignWithFSG()
             case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, _parameters->printOption);
                 break;
 
-            default:        std::cout<<"An error occurred while choosing output format!";
-                exit(2);
+            default:        fatal<std::invalid_argument>() << "Invalid output format for alignment with FSG!";
         }
 
 
@@ -836,11 +825,9 @@ bool PocketsphinxAligner::alignWithFSG()
     }
 
     printFileEnd(_outputFileName, _parameters->outputFormat);
-
-    return true;
 }
 
-bool PocketsphinxAligner::printAligned(const std::string& outputFileName, outputFormats format) const noexcept
+void PocketsphinxAligner::printAligned(const std::string& outputFileName, outputFormats format) const
 {
     switch (format)  //decide on basis of set output format
     {
@@ -856,10 +843,8 @@ bool PocketsphinxAligner::printAligned(const std::string& outputFileName, output
         case karaoke:   printKaraoke(outputFileName, _subtitles, _parameters->printOption);
                         break;
 
-        default:        FATAL(EXIT_FAILURE, "An error occurred while choosing output format!");
+        default:        fatal<std::runtime_error>() << "Invalid output format for alignment printing!";
     }
-
-    return true;
 }
 
 

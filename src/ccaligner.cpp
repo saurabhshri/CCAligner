@@ -43,10 +43,11 @@ void printFooter()
 CCAligner::CCAligner(Params* parameters)
 {
     _parameters = parameters;
-    should_log = _parameters->verbosity ;
+    if (_parameters->verbosity)
+        log.filter(Level::None);
 }
 
-int CCAligner::initAligner()
+void CCAligner::initAligner()
 {
     if(_parameters->chosenAlignerType == approxAligner)
     {
@@ -60,22 +61,28 @@ int CCAligner::initAligner()
 
     else
     {
-        FATAL(EXIT_INVALID_PARAMETERS, "Unsupported Aligner Type!");
+        fatal<std::invalid_argument>() << "Unsupported Aligner Type!";
     }
-
-    return 1;
 }
 
 int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    Params parameters;
-    parameters.inputParams(argc, argv);
+    try
+    {
+        Params parameters;
+        parameters.inputParams(argc, argv);
 
-    CCAligner(&parameters).initAligner();
+        CCAligner(&parameters).initAligner();
 
-    printFooter();
+        printFooter();
+    }
+    catch (const std::exception&)
+    {
+        // No need to handle exceptions, the user should.
+        // They already got a log message, so no action needed here.
+    }
 
     return 0;
 }
