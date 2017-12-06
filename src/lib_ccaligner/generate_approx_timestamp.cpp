@@ -22,7 +22,7 @@ void CurrentSub::printToSRT(const std::string& fileName, outputOptions printOpti
     
     if(!out.good())
     {
-        LOG("Couldn't open file %s", filename);
+        LOG("Couldn't open file %s", fileName);
     }
 
     for(int i=0;i<_sub->getWordCount();i++)
