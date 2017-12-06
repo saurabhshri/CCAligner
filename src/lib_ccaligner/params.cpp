@@ -484,12 +484,10 @@ void Params::inputParams(int argc, char *argv[])
 
 void Params::validateParams()
 {
-    if(audioFileName.empty() && !readStream)
-    {
+   if(audioFileName.empty() && !readStream)
         FATAL(EXIT_INVALID_PARAMETERS, "Audio file name is empty!");
-    }
 
-    if (subtitleFileName.empty() && !usingTranscript)
+	if (subtitleFileName.empty() && !usingTranscript)
 		FATAL(EXIT_INVALID_PARAMETERS, "Subtitle file name is empty!");
 
 	if (transcriptFileName.empty() && usingTranscript)
@@ -513,7 +511,7 @@ void Params::validateParams()
     if(fsgPath.empty())
         LOG("Using default FSG Path.");
 
-    if(phoneticlmPath.empty())
+    if(phoneticLmPath.empty())
         LOG("Using default Phonetic LM Path.");
 
     if(phonemeLogPath.empty())
@@ -530,28 +528,19 @@ void Params::validateParams()
 
         switch (outputFormat)  //decide on basis of set output format
         {
-            case srt:       
-                LOG("Chosen .srt as output format");
-                outputFileName += ".srt";
+            case srt:       outputFileName += ".srt";
                 break;
 
-            case xml:      
-                LOG("Chosen .xml as output format");
-                outputFileName += ".xml";
+            case xml:       outputFileName += ".xml";
                 break;
 
-            case json:     
-                LOG("Chosen .json as output format");
-                outputFileName += ".json";
+            case json:      outputFileName += ".json";
                 break;
 
-            case karaoke:  
-                LOG("Chosen .srt as output format");
-                outputFileName += ".srt";
+            case karaoke:   outputFileName += ".srt";
                 break;
 
-            default:     
-                FATAL(EXIT_UNKNOWN, "An error occurred while choosing output format!");
+            default:        FATAL(EXIT_UNKNOWN, "An error occurred while choosing output format!");
                 exit(2);
         }
     }
