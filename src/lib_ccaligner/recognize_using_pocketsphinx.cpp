@@ -11,6 +11,7 @@ PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
 
       //creating local copies
       _audioFileName(parameters->audioFileName),
+	  _transcriptFileName(parameters->transcriptFileName),
       _subtitleFileName(parameters->subtitleFileName),
       _outputFileName(parameters->outputFileName),
 
@@ -28,11 +29,20 @@ PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
 
       //processing subtitles file
       _subParserFactory(_subtitleFileName),
-      _parser(_subParserFactory.getParser()),
-      _subtitles(_parser->getSubtitles())
+      _parser(_subParserFactory.getParser())
+      //_subtitles(_parser->getSubtitles())
 {
     LOG("Initialising Aligner using PocketSphinx");
-    LOG("Audio Filename: %s Subtitle filename: %s", _audioFileName.c_str(), _subtitleFileName.c_str());
+    
+	if (_parameters->usingTranscript)
+	{
+		LOG("Audio Filename: %s Transcript filename: %s", _audioFileName.c_str(), _transcriptFileName.c_str());
+	}
+	else
+	{
+		_subtitles = _parser->getSubtitles();
+		LOG("Audio Filename: %s Subtitle filename: %s", _audioFileName.c_str(), _subtitleFileName.c_str());
+	}
 
     std::cout << "Reading and decoding audio samples...\n";
 
@@ -56,8 +66,12 @@ bool PocketsphinxAligner::generateGrammar(grammarName name)
         std::cout << "Note: You have chosen to generate a dictionary. Based on your TensorFlow configuration,\n";
         std::cout << "this may take some time, please be patient. For alternatives, see docs.\n";
     }
-
-    return generate(_subtitles, name);
+	bool ret;
+	if (!_parameters->usingTranscript)
+		ret = generate(_subtitles, name);
+	else
+		ret = generate(_transcriptFileName, name);
+    return ret;
 }
 
 bool PocketsphinxAligner::initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath)
@@ -544,11 +558,10 @@ bool PocketsphinxAligner::align()
 
     initDecoder(_parameters->modelPath, _parameters->lmPath, _parameters->dictPath, _parameters->fsgPath, _parameters->logPath);
 
-    if(_parameters->transcribe)
+    if(_parameters->transcribe || _parameters->usingTranscript)
     {
         transcribe();
     }
-
     else
     {
         if(_parameters->useFSG)

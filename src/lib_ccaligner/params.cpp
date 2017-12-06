@@ -96,10 +96,21 @@ void Params::inputParams(int argc, char *argv[])
                 FATAL(EXIT_INCOMPLETE_PARAMETERS, "-srt requires a path to valid SubRip subtitle file!");
             }
 
+			usingTranscript = false;
             subtitleFileName = subParam;
             i++;
         }
+		else if (paramPrefix == "-txt")
+		{
+			if (i + 1 > argc)
+			{
+				FATAL(EXIT_INCOMPATIBLE_PARAMETERS, "-txt requires a path to valid transcript file!");
+			}
 
+			usingTranscript = true;
+			transcriptFileName = subParam;
+			i++;
+		}
         else if(paramPrefix== "-" || paramPrefix== "-stdin")
         {
             readStream = true;
@@ -494,8 +505,14 @@ void Params::validateParams()
     if(audioFileName.empty() && !readStream)
         FATAL(EXIT_INVALID_PARAMETERS, "Audio file name is empty!");
 
-    if(subtitleFileName.empty())
-        FATAL(EXIT_INVALID_PARAMETERS, "Subtitle file name is empty!");
+	if (subtitleFileName.empty() && !usingTranscript)
+		FATAL(EXIT_INVALID_PARAMETERS, "Subtitle file name is empty!");
+
+	if (transcriptFileName.empty() && usingTranscript)
+		FATAL(EXIT_INVALID_FILE, "Transcript file name is empty!");
+
+	if (usingTranscript && chosenAlignerType == approxAligner)
+		FATAL(EXIT_INVALID_PARAMETERS, "Approx alligner doesn't work with text files");
 
     if(modelPath.empty())
         LOG("Using default Model Path.");
@@ -572,7 +589,10 @@ void Params::validateParams()
 void Params::printParams() const noexcept
 {
     std::cout<<"audioFileName       : "<<audioFileName<<"\n";
-    std::cout<<"subtitleFileName    : "<<subtitleFileName<<"\n";
+	if (!usingTranscript)
+		std::cout << "subtitleFileName    : " << subtitleFileName << "\n";
+	else
+		std::cout << "transcriptFileName	: " << transcriptFileName << "\n";
     std::cout<<"outputFileName      : "<<outputFileName<<"\n";
     std::cout<<"modelPath           : "<<modelPath<<"\n";
     std::cout<<"lmPath              : "<<lmPath<<"\n";
