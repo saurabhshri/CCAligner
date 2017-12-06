@@ -29,7 +29,11 @@ _E.g.: ``ccaligner -raw tbbt.raw -srt tbbt.srt``_
 
 _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt``_
 
-Required : yes.
+|`-txt`
+|`/path/to/text/file`
+|Provide path to transcript file in txt format. Only transcription works with this parameter. (See: -transcribe)
+
+_E.g.: ``ccaligner -wav tbbt.wav -txt tbbt.txt``_
 
 |`-stdin` or `-`
 |Audio wave file from stdin or pipe.

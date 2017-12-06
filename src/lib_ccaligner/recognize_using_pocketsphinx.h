@@ -21,7 +21,7 @@ int levenshtein_distance(const std::string& firstWord, const std::string& second
 class PocketsphinxAligner
 {
 private:
-    std::string _audioFileName, _subtitleFileName, _outputFileName;          //input and output filenames
+    std::string _audioFileName, _subtitleFileName, _transcriptFileName, _outputFileName;          //input and output filenames
 
     std::unique_ptr<WaveFileData> _file;
     SubtitleParserFactory _subParserFactory;

@@ -34,8 +34,10 @@
 # Cmake / IDE / test Stuff
 .idea/
 build/
+src/Debug
 cmake-build-debug/
 *.wav
+.vs
 
 #mac
 .DS_Store
