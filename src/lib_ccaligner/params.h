@@ -14,7 +14,6 @@
 class Params
 {
     std::string localTime;
-
     void validateParams();
 public:
     std::string audioFileName, subtitleFileName, transcriptFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;

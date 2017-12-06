@@ -20,7 +20,7 @@ PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
       _lmPath(parameters->lmPath),
       _fsgPath(parameters->fsgPath),
       _logPath(parameters->logPath),
-      _phoneticlmPath(parameters->phoneticlmPath),
+      _phoneticLmPath(parameters->phoneticLmPath),
       _phonemeLogPath(parameters->phonemeLogPath),
 
       _audioWindow(parameters->audioWindow),
@@ -162,30 +162,30 @@ bool PocketsphinxAligner::initDecoder(const std::string& modelPath, const std::s
 
     if(_parameters->searchPhonemes)
     {
-        initPhonemeDecoder(_parameters->phoneticlmPath, _parameters->phonemeLogPath);
+        initPhonemeDecoder(_parameters->phoneticLmPath, _parameters->phonemeLogPath);
     }
 
     return true;
 }
 
 
-bool PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath)
+bool PocketsphinxAligner::initPhonemeDecoder(const std::string& phoneticLmPath, const std::string& phonemeLogPath)
 {
     LOG("Initialising PocketSphinx phoneme decoder");
 
     std::cout << "Initialising PocketSphinx phoneme decoder..\n";
 
-    _phoneticlmPath = phoneticlmPath;
+    _phoneticLmPath = phoneticLmPath;
     _phonemeLogPath = phonemeLogPath;
 
-    LOG("Configuration : \n\tphoneticlmPath = %s \n\tphonemeLogPath = %s", _phoneticlmPath.c_str(), _phonemeLogPath.c_str());
+    LOG("Configuration : \n\tphoneticLmPath = %s \n\tphonemeLogPath = %s", _phoneticLmPath.c_str(), _phonemeLogPath.c_str());
 
     _configPhoneme = cmd_ln_init(nullptr,
                                  ps_args(), TRUE,
                                  "-hmm", _modelPath.c_str(),
                                  "-lm", _lmPath.c_str(),
                                  "-logfn", _phonemeLogPath.c_str(),
-                                 "-allphone", _phoneticlmPath.c_str(),
+                                 "-allphone", _phoneticLmPath.c_str(),
                                  "-beam", "1e-20",
                                  "-pbeam", "1e-10",
                                  "-allphone_ci", "no",

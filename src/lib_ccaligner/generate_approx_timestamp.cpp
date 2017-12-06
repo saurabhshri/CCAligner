@@ -209,7 +209,7 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
 
         switch (_outputFormat)  //decide on basis of set output format
         {
-            case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, printBothWihoutColors);
+            case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, printBothWithoutColors);
                 break;
 
             case xml:       printXMLContinuous(_outputFileName, sub);
@@ -218,7 +218,7 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
             case json:      printJSONContinuous(_outputFileName, sub);
                 break;
 
-            case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, printBothWihoutColors);
+            case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, printBothWithoutColors);
                 break;
 
             case console:   currSub.printToConsole(_outputFileName);

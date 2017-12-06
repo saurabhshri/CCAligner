@@ -32,7 +32,7 @@ private:
     AlignedData _alignedData;
     Params* _parameters;
 
-    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;
+    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticLmPath, _phonemeLogPath;
     long int _audioWindow, _sampleWindow, _searchWindow;
 
     ps_decoder_t * _psWordDecoder, * _psPhonemeDecoder;
@@ -46,7 +46,7 @@ private:
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
-    bool initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath);
+    bool initPhonemeDecoder(const std::string& phoneticLmPath, const std::string& phonemeLogPath);
 
 public:
     PocketsphinxAligner(Params* parameters) noexcept;

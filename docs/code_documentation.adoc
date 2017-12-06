@@ -51,7 +51,7 @@ All the technical details are commented in the codes and the documentation is av
 
 # commons.cpp and commons.h
 
-These files contain enums, functions and classes that provide common functionalities throught the project. These include options, enums, global variables, logging and error functions, some helper functions and a class used to store aligned data.
+These files contain enums, functions and classes that provide common functionalities throughout the project. These include options, enums, global variables, logging and error functions, some helper functions and a class used to store aligned data.
 
 
 1. `should_log` 	: Boolean global variable determining whether to enable logging or not.
@@ -90,17 +90,17 @@ quick_lm,
 no_grammar
 ```
 
-5. `outputOptions`	: Enum for various output characterstics.
+5. `outputOptions`	: Enum for various output characteristics.
 
 ```
 printOnlyRecognised,
-printBothWihoutColors,
+printBothWithoutColors,
 printBothWithDistinctColors,
 printAsKaraoke,
 printAsKaraokeWithDistinctColors,
 ```
 
-6. `LOG()` and `log()` : Logger functions to help log events throught the project.
+6. `LOG()` and `log()` : Logger functions to help log events throughout the project.
 
 Example :
 
@@ -120,7 +120,7 @@ FATAL(EXIT_FAILURE, "Invalid value passed to -sampleWindow : %s", strerror(errno
 
 9. `extractFileName(std::string fileName)` : Extract path/to/filename from path/to/filename.extension and return as std::string.
 
-10. `StringToLower(std::string strToConvert)` : Convert string into lowercase. Retrun type : std::string.
+10. `StringToLower(std::string strToConvert)` : Convert string into lowercase. Return type : std::string.
 
 11. `AlignedData` : Used to store transcribed data. All members are public.
 
@@ -238,7 +238,7 @@ These files are responsible for parameter parsing, processing, validating and ha
 class Params
 {
 public:
-    std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticlmPath, phonemeLogPath;
+    std::string audioFileName, subtitleFileName, outputFileName, modelPath, lmPath, dictPath, fsgPath, logPath, phoneticLmPath, phonemeLogPath;
     unsigned long searchWindow, sampleWindow, audioWindow;
     alignerType chosenAlignerType;
     grammarName grammarType;
@@ -257,7 +257,7 @@ public:
 
 # phoneme_utils.h and phoneme_utils.cpp
 
-These files provide utitlity functions for phoneme handling. 
+These files provide utility functions for phoneme handling. 
 
 1. `std::wstring latin1ToWide(const std::string& s)` : Returns wide string from supplied std::string.
 
@@ -352,7 +352,7 @@ private:
     Params * _parameters;
 
     //configuration variables
-    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticlmPath, _phonemeLogPath;
+    std::string _modelPath, _lmPath, _dictPath, _fsgPath, _logPath, _phoneticLmPath, _phonemeLogPath;
     long int _audioWindow, _sampleWindow, _searchWindow;
 
     //decoder variables
@@ -368,15 +368,15 @@ private:
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub); //search word in sub and output it.
     bool findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);	//obtain phoneme timestamps and output it.
     bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);	//reinitialise decoder.
-    bool initPhonemeDecoder(std::string phoneticlmPath, std::string phonemeLogPath); //initialise phonectic decoder
+    bool initPhonemeDecoder(std::string phoneticLmPath, std::string phonemeLogPath); //initialise phonetic decoder
 
 public:
     PocketsphinxAligner(Params * parameters);
     bool initDecoder(std::string modelPath, std::string lmPath, std::string dictPath, std::string fsgPath, std::string logPath);	//inintialise word decoder.
     bool generateGrammar(grammarName name);	//generate grammar and LM
     bool recognise();	//begin recognition using PocketSphinx
-    bool alignWithFSG();	//perform alignement using FSG
-    bool align();	//perform alignement 
+    bool alignWithFSG();	//perform alignment using FSG
+    bool align();	//perform alignment 
     bool recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);	//recognise phonemes
     bool transcribe();	//perform transcription
     bool printAligned(std::string outputFileName, outputFormats format);	//print aligned data as

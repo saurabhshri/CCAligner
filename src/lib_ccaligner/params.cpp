@@ -23,7 +23,7 @@ Params::Params() noexcept
       lmPath(defaultLmPath),
       dictPath(defaultDictPath),
       fsgPath(defaultFsgPath),
-      phoneticlmPath(defaultPhoneticLmPath),
+      phoneticLmPath(defaultPhoneticLmPath),
 
       searchWindow(3),
       audioWindow(0),
@@ -223,7 +223,7 @@ void Params::inputParams(int argc, char *argv[])
 
             }
 
-            phoneticlmPath = subParam;
+            phoneticLmPath = subParam;
             i++;
         }
 
@@ -327,7 +327,7 @@ void Params::inputParams(int argc, char *argv[])
                 printOption = printOnlyRecognised;
 
             else if(subParam  == "no")
-                printOption = printBothWihoutColors ;
+                printOption = printBothWithoutColors ;
 
             else if(subParam  == "withColors")
                 printOption = printBothWithDistinctColors;
@@ -529,7 +529,7 @@ void Params::validateParams()
     if(fsgPath.empty())
         LOG("Using default FSG Path.");
 
-    if(phoneticlmPath.empty())
+    if(phoneticLmPath.empty())
         LOG("Using default Phonetic LM Path.");
 
     if(phonemeLogPath.empty())
@@ -599,7 +599,7 @@ void Params::printParams() const noexcept
     std::cout<<"dictPath            : "<<dictPath<<"\n";
     std::cout<<"fsgPath             : "<<fsgPath<<"\n";
 
-    std::cout<<"phoneticlmPath      : "<<phoneticlmPath<<"\n";
+    std::cout<<"phoneticLmPath      : "<<phoneticLmPath<<"\n";
 
     std::cout<<"logPath             : "<<logPath<<"\n";
     std::cout<<"phonemeLogPath      : "<<phonemeLogPath<<"\n";

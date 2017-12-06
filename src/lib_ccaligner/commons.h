@@ -54,7 +54,7 @@ enum grammarName      //various possible output formats
 enum outputOptions
 {
     printOnlyRecognised,
-    printBothWihoutColors,
+    printBothWithoutColors,
     printBothWithDistinctColors,
     printAsKaraoke,
     printAsKaraokeWithDistinctColors,
