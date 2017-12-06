@@ -489,10 +489,14 @@ void Params::validateParams()
         FATAL(EXIT_INVALID_PARAMETERS, "Audio file name is empty!");
     }
 
-    if(subtitleFileName.empty())
-    {
-        FATAL(EXIT_INVALID_PARAMETERS, "Subtitle file name is empty!");
-    }
+    if (subtitleFileName.empty() && !usingTranscript)
+		FATAL(EXIT_INVALID_PARAMETERS, "Subtitle file name is empty!");
+
+	if (transcriptFileName.empty() && usingTranscript)
+		FATAL(EXIT_INVALID_FILE, "Transcript file name is empty!");
+
+	if (usingTranscript && chosenAlignerType == approxAligner)
+		FATAL(EXIT_INVALID_PARAMETERS, "Approx alligner doesn't work with text files");
 
     if(modelPath.empty())
         LOG("Using default Model Path.");
