@@ -24,12 +24,12 @@ public:
 class CurrentSub    //processing one subtitle at a time
 {
     int _sentenceLength, _wordCount;    //length of the dialogue, number of words in that dialogue
-    long _dialogueDuration;             //duration of the dialogue in ms
+    unsigned long _dialogueDuration;             //duration of the dialogue in ms
     static int _wordNumber;             //used to maintain the information about which word is being processed
     SubtitleItem *_sub;                 //the subtitle itself (SubtitleItem is defined in srtparser.h)
 
 public:
-    int getDuration (long startTime, long endTime) const noexcept; //return the duration in ms between ending and starting timestamp
+    unsigned long getDuration (long startTime, long endTime) const noexcept; //return the duration in ms between ending and starting timestamp
     double getWordWeight (const std::string& word) const noexcept;        //returns the approximate weight of word
     CurrentSub(SubtitleItem *sub) noexcept;
     void run();                                     //run the alignment

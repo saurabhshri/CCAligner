@@ -69,12 +69,11 @@ void CurrentSub::printToConsole(const std::string& fileName) const
     }
 }
 
-inline int CurrentSub::getDuration (long startTime, long endTime) const noexcept
+inline unsigned long CurrentSub::getDuration (long startTime, long endTime) const noexcept
 {
     if(endTime < startTime)
     {
-        std::cout << "Error! Incorrect start time and end time of the dialogue.\n";
-        return -1;
+        Fatal<std::invalid_argument>() << "Incorrect start time and end time of the dialogue.";
     }
 
     return endTime - startTime;
@@ -90,8 +89,7 @@ inline double CurrentSub::getWordWeight (const std::string& word) const noexcept
 
 void CurrentSub::assignTime(long int &wordDuration, const std::string &word )
 {
-    if(_wordNumber>_wordCount)
-        std::cout<<"Oops! Something went wrong!\n";
+    assert(_wordNumber <= _wordCount && "Word index out of range.");
 
     double wordWeight = getWordWeight(word);
     wordDuration = wordWeight * _dialogueDuration;

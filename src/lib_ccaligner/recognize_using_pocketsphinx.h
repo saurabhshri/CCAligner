@@ -41,23 +41,23 @@ private:
     int _rvWord, _rvPhoneme;
     int32 _scoreWord, _scorePhoneme;
 
-    bool printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
+    void printWordTimes(cmd_ln_t *config, ps_decoder_t *ps);
     int findTranscribedWordTimings(cmd_ln_t *config, ps_decoder_t *ps, int index);
     recognisedBlock findAndSetWordTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
-    bool findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
-    bool reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
-    bool initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath);
+    void findAndSetPhonemeTimes(cmd_ln_t *config, ps_decoder_t *ps, SubtitleItem *sub);
+    void reInitDecoder(cmd_ln_t *config, ps_decoder_t *ps);
+    void initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath);
 
 public:
-    PocketsphinxAligner(Params* parameters) noexcept;
-    bool initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath);
-    bool generateGrammar(grammarName name);
-    bool recognise();
-    bool alignWithFSG();
-    bool align();
-    bool recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);
-    bool transcribe();
-    bool printAligned(const std::string& outputFileName, outputFormats format) const noexcept;
+    PocketsphinxAligner(Params* parameters);
+    void initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath);
+    void generateGrammar(grammarName name);
+    void recognise();
+    void alignWithFSG();
+    void align();
+    void recognisePhonemes(const int16_t *sample, int readLimit, SubtitleItem *sub);
+    void transcribe();
+    void printAligned(const std::string& outputFileName, outputFormats format) const;
     ~PocketsphinxAligner();
 
 };

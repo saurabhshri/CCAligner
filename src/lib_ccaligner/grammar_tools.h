@@ -11,7 +11,7 @@
 #include "commons.h"
 #include "phoneme_utils.h"
 
-bool generate(std::vector <SubtitleItem*> subtitles, grammarName name = complete_grammar);
+void generate(std::vector <SubtitleItem*> subtitles, grammarName name = complete_grammar);
 
 
 #endif //CCALIGNER_GRAMMAR_TOOLS_H

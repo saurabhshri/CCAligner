@@ -30,7 +30,7 @@ class WaveFileData
 
     //when reading from file or buffer
     bool checkValidWave (const std::vector<unsigned char>& fileData); //check if wave file is valid by reading the RIFF header
-    bool decode();  //decode the wave file and fill the _sample vector
+    void decode();  //decode the wave file and fill the _sample vector
 
     //when reading from stream or pipe
     int processStreamHeader();                      //check if stream is valid wave stream
@@ -38,7 +38,7 @@ class WaveFileData
     int validateSubChunk1(int remainingBytes);      //check the 'fmt' chunk for required wave file config (16 bit, 16KHz, mono, PCM)
     int seekToEndOfSubChunk2ID(int remainingBytes); //reach till the end of 'data' Chunk ID
     int getNumberOfSamples();                       //basically gets size of 'data' Chunk which contains size of samples
-    bool readSamplesFromStream(int numberOfSamples);//read the sample from stream and insert in the _sample vector
+    void readSamplesFromStream(int numberOfSamples);//read the sample from stream and insert in the _sample vector
 
     unsigned long fourBytesToInt (const std::vector<unsigned char>& fileData, int index); //convert 4 bytes into unsigned long int
     int twoBytesToInt (const std::vector<unsigned char>& fileData, int index);            //convert 2 bytes into signed integer
@@ -48,10 +48,10 @@ public:
     WaveFileData(std::string fileName, bool isRawFile = false) noexcept;                    //initialize wave file for file on disk mode; pass file name
     WaveFileData(openMode mode = readStreamDirectly, bool isRawFile = false) noexcept;   //initialize wave file for stream mode; optionally store in buffer
 
-    bool openFile();                //open file using file name
-    bool readStream();              //process stream directly
-    bool readStreamUsingBuffer();   //first store stream into buffer, then process
-    bool read();                    //the main function which decides the open method using set mode
+    void openFile();                //open file using file name
+    void readStream();              //process stream directly
+    void readStreamUsingBuffer();   //first store stream into buffer, then process
+    void read();                    //the main function which decides the open method using set mode
 
     const std::vector<int16_t>& getSamples() const noexcept;  //returns the sample vector; time based coming soon
 };
