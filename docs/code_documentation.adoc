@@ -51,7 +51,7 @@ All the technical details are commented in the codes and the documentation is av
 
 # commons.cpp and commons.h
 
-These files contain enums, functions and classes that provide common functionalities through the project. These include options, enums, global variables, logging and error functions, some helper functions and a class used to store aligned data.
+These files contain enums, functions and classes that provide common functionalities throughout the project. These include options, enums, global variables, logging and error functions, some helper functions and a class used to store aligned data.
 
 
 1. `should_log` 	: Boolean global variable determining whether to enable logging or not.
@@ -100,7 +100,7 @@ printAsKaraoke,
 printAsKaraokeWithDistinctColors,
 ```
 
-6. `LOG()` and `log()` : Logger functions to help log events through the project.
+6. `LOG()` and `log()` : Logger functions to help log events throughout the project.
 
 Example :
 
