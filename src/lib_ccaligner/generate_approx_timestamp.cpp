@@ -89,7 +89,7 @@ inline double CurrentSub::getWordWeight (const std::string& word) const noexcept
 
 void CurrentSub::assignTime(long int &wordDuration, const std::string &word )
 {
-    assert(_wordNumber>_wordCount && "Word index out of range.");
+    assert(_wordNumber <= _wordCount && "Word index out of range.");
 
     double wordWeight = getWordWeight(word);
     wordDuration = wordWeight * _dialogueDuration;
