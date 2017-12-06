@@ -49,7 +49,7 @@ private:
     void initPhonemeDecoder(const std::string& phoneticlmPath, const std::string& phonemeLogPath);
 
 public:
-    PocketsphinxAligner(Params* parameters) noexcept;
+    PocketsphinxAligner(Params* parameters);
     void initDecoder(const std::string& modelPath, const std::string& lmPath, const std::string& dictPath, const std::string& fsgPath, const std::string& logPath);
     void generateGrammar(grammarName name);
     void recognise();

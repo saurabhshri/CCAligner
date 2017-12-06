@@ -6,7 +6,7 @@
 
 #include "recognize_using_pocketsphinx.h"
 
-PocketsphinxAligner::PocketsphinxAligner(Params* parameters) noexcept
+PocketsphinxAligner::PocketsphinxAligner(Params* parameters)
     : _parameters(parameters),
 
       //creating local copies
