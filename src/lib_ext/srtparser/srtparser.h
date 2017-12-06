@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <iterator>
 #include <regex>
+#include "commons.h"
 
 class recognisedBlock
 {
@@ -379,6 +380,12 @@ inline std::vector<SubtitleItem*> SubtitleParser::getSubtitles()
 inline std::string SubtitleParser::getFileData()           //returns whole read file i.e. contents of input.srt
 {
     std::ifstream infile(_fileName);
+
+    if (!infile)
+    {
+        FATAL(EXIT_FILE_NOT_FOUND, "Unable to open file : %s", _fileName.c_str());
+    }
+
     std::string allData = "";
     std::string line;
     while (std::getline(infile, line))
@@ -386,6 +393,7 @@ inline std::string SubtitleParser::getFileData()           //returns whole read 
         std::istringstream iss(line);
         allData += line + "\n";
     }
+    infile.close();
     return allData;
 
 }
@@ -409,6 +417,12 @@ inline void SubRipParser::parse(std::string fileName)      //srt parser
 {
 
     std::ifstream infile(fileName);
+
+    if (!infile)
+    {
+        FATAL(EXIT_FILE_NOT_FOUND, "Unable to open file : %s", _fileName.c_str());
+    }
+
     std::string line, start, end, completeLine = "", timeLine = "";
     int subNo, turn = 0;
 
@@ -464,6 +478,8 @@ inline void SubRipParser::parse(std::string fileName)      //srt parser
             _subtitles.push_back(new SubtitleItem(subNo,start,end,completeLine));
         }
     }
+
+    infile.close();
 }
 
 inline SubRipParser::SubRipParser(std::string fileName)

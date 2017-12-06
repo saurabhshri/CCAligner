@@ -199,13 +199,21 @@ void GenerateDict(bool generateQuickDict) // Generate dictionary from tensor flo
 std::string getFileData(std::string _fileName)           //returns whole read file. Used to read text files
 {
 	std::ifstream infile(_fileName);
+
+    if (!infile)
+    {
+        FATAL(EXIT_FILE_NOT_FOUND, "Unable to open file : %s", _fileName.c_str());
+    }
+
 	std::string allData = "";
 	std::string line;
 	while (std::getline(infile, line))
 	{
 		std::istringstream iss(line);
-		allData += line + "\n";
+		allData += "<s> " + line + " </s>\n";
 	}
+
+    infile.close();
 	return allData;
 }
 
@@ -237,7 +245,7 @@ bool generate(std::string transcriptFileName, grammarName name) //Generate Gramm
 			FATAL(EXIT_FAILURE, e.code().message().c_str());
 		}
 
-		corpusDump << "<s> " << stringToLower(transcript) << " </s>\n";
+		corpusDump <<stringToLower(transcript);
 		corpusDump.close();
 	}
 
