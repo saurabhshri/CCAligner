@@ -87,6 +87,8 @@ set(SOURCE_FILES
         lib_ccaligner/phoneme_utils.h
         lib_ccaligner/output_handler.cpp
         lib_ccaligner/output_handler.h
+        lib_ccaligner/logger.cpp
+        lib_ccaligner/logger.h
         )
 
 add_executable(ccaligner ${SOURCE_FILES})

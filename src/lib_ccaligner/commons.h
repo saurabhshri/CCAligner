@@ -17,8 +17,7 @@
 #include <regex>
 #include <cstdarg>
 #include <memory>
-
-extern bool should_log;
+#include "logger.h"
 
 enum alignerType
 {
@@ -60,22 +59,6 @@ enum outputOptions
     printAsKaraokeWithDistinctColors,
 
 };
-
-// Define possible exit codes that will be passed on to the fatal function exit codes.
-#define EXIT_OK                                 0
-#define EXIT_FILE_NOT_FOUND                     2
-#define EXIT_INVALID_PARAMETERS                 3
-#define EXIT_INCOMPATIBLE_PARAMETERS            4
-#define EXIT_INCOMPLETE_PARAMETERS              5
-#define EXIT_INVALID_FILE                       6
-#define EXIT_WITH_HELP                          10
-#define EXIT_UNKNOWN                            13
-
-#define LOG(MSG, ...) log(__FILE__, __LINE__, MSG, ##__VA_ARGS__)
-void log(const char *fileName, const int lineNumber, const char *format, ...);
-
-#define FATAL(ERR_NO, MSG, ...) fatal(ERR_NO, __FILE__, __LINE__, MSG, ##__VA_ARGS__)
-void fatal(int exit_code, const char *fileName, const int lineNumber, const char *format,  ...);
 
 void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds); //converts ms to SRT time
 std::string extractFileName(const std::string& fileName);  //extract path/to/filename from path/to/filename.extension

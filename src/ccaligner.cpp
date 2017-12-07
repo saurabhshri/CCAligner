@@ -5,6 +5,7 @@
 */
 
 #include "ccaligner.h"
+#include <typeinfo>
 
 void printUsage()
 {
@@ -40,10 +41,19 @@ void printFooter()
     std::cout<<"https://github.com/saurabhshri/CCAligner/issues\n";
 }
 
-CCAligner::CCAligner(Params* parameters)
+CCAligner::CCAligner(Params* parameters) : logFile(parameters->logPath)
 {
     _parameters = parameters;
-    should_log = _parameters->verbosity ;
+  
+    Logger::Sink sink(logFile, false);
+    sink.setMinimumOutputLevel(Logger::Level::verbose);
+    getLogger().addSink(sink);
+
+    Logger::Log<>(getLogger(), __FILE__, __FUNCTION__, __LINE__, Logger::Level::verbose);
+}
+
+CCAligner::~CCAligner() {
+    logFile.close();
 }
 
 int CCAligner::initAligner()
@@ -58,7 +68,7 @@ int CCAligner::initAligner()
     }
     else
     {
-        FATAL(EXIT_INVALID_PARAMETERS, "Unsupported Aligner Type!");
+        FATAL(InvalidParameters) << "Unsupported Aligner Type!";
     }
 
     return 1;
@@ -68,11 +78,18 @@ int main(int argc, char *argv[])
 {
     printHeader("0.03 Alpha [Shubham]");
 
-    Params parameters;
-    parameters.inputParams(argc, argv);
+    try {
+        Params parameters;
+        parameters.inputParams(argc, argv);
 
-    CCAligner(&parameters).initAligner();
-
+        CCAligner(&parameters).initAligner();
+    }
+    catch (std::exception& e) {
+        std::cerr << "Program aborted because an exception has occurred." << std::endl;
+        std::cerr << "Exception details:" << std::endl
+            << "Type: " << typeid(e).name() << ". " << std::endl
+            << "Reason: " << e.what() << std::endl;
+    }
     printFooter();
 
     return 0;

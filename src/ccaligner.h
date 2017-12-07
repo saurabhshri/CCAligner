@@ -13,12 +13,13 @@
 class CCAligner
 {
     Params * _parameters;
+    std::ofstream logFile;
 
 public:
 
     CCAligner(Params *parameters);
     int initAligner();                                  //initialize the aligner
-    ~CCAligner() = default;
+    ~CCAligner();
 };
 
 void printUsage();                                      //print usage instruction (soon to be added inside class)

@@ -16,7 +16,7 @@
 #define CCALIGNER_PHONEME_UTILS_H
 
 #include "commons.h"
-typedef std::string Phoneme;
+using Phoneme = std::string;
 
 std::wstring latin1ToWide(const std::string& s);
 const std::vector<std::pair<std::wregex, std::wstring>>& getReplacementRules();

@@ -73,8 +73,7 @@ inline int CurrentSub::getDuration (long startTime, long endTime) const noexcept
 {
     if(endTime < startTime)
     {
-        std::cout << "Error! Incorrect start time and end time of the dialogue.\n";
-        return -1;
+        FATAL(InvalidFile) << "Error! Incorrect start time and end time of the dialogue.";
     }
 
     return endTime - startTime;
@@ -91,7 +90,7 @@ inline double CurrentSub::getWordWeight (const std::string& word) const noexcept
 void CurrentSub::assignTime(long int &wordDuration, const std::string &word )
 {
     if(_wordNumber>_wordCount)
-        std::cout<<"Oops! Something went wrong!\n";
+        FATAL(UnknownError) << "Oops! Something went wrong!";
 
     double wordWeight = getWordWeight(word);
     wordDuration = wordWeight * _dialogueDuration;
@@ -224,8 +223,7 @@ std::vector<SubtitleItem *, std::allocator<SubtitleItem *>> ApproxAligner::align
             case console:   currSub.printToConsole(_outputFileName);
                 break;
 
-            default:        std::cout<<"An error occurred while choosing output format!";
-                exit(2);
+            default:        FATAL(UnknownError) << "An error occurred while choosing output format!";
         }
 
     }

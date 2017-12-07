@@ -30,6 +30,8 @@ All the technical details are commented in the codes and the documentation is av
     │   ├── generate_approx_timestamp.h
     │   ├── grammar_tools.cpp
     │   ├── grammar_tools.h
+    │   ├── logger.cpp
+    │   ├── logger.h
     │   ├── output_handler.cpp
     │   ├── output_handler.h
     │   ├── params.cpp
@@ -53,10 +55,7 @@ All the technical details are commented in the codes and the documentation is av
 
 These files contain enums, functions and classes that provide common functionalities throughout the project. These include options, enums, global variables, logging and error functions, some helper functions and a class used to store aligned data.
 
-
-1. `should_log` 	: Boolean global variable determining whether to enable logging or not.
-
-2. `alignerType`	: Enum for typef of aligner to perform the force alignment.
+1. `alignerType`	: Enum for typef of aligner to perform the force alignment.
 
 ```
 approxAligner,          //approximation based alignment
@@ -64,7 +63,7 @@ asrAligner,             //using pocketsphinx as ASR
 alignerUnassigned       //no aligner is specified
 ```
 
-3. `outputFormats`	: Enum for various possible output formats.
+2. `outputFormats`	: Enum for various possible output formats.
 
 ```
 srt,
@@ -75,7 +74,7 @@ console,
 blank               //means no output format is specified
 ```
 
-4. `grammarName`	: Enum for various possible output formats.
+3. `grammarName`	: Enum for various possible output formats.
 
 ```
 corpus,
@@ -90,7 +89,7 @@ quick_lm,
 no_grammar
 ```
 
-5. `outputOptions`	: Enum for various output characteristics.
+4. `outputOptions`	: Enum for various output characteristics.
 
 ```
 printOnlyRecognised,
@@ -100,29 +99,13 @@ printAsKaraoke,
 printAsKaraokeWithDistinctColors,
 ```
 
-6. `LOG()` and `log()` : Logger functions to help log events throughout the project.
+5. `ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds)` : convert milliseconds to subtitle time format.
 
-Example :
+6. `extractFileName(std::string fileName)` : Extract path/to/filename from path/to/filename.extension and return as std::string.
 
-```
-LOG("Reading wave file from stream..");
-```
+7. `StringToLower(std::string strToConvert)` : Convert string into lowercase. Retrun type : std::string.
 
-7. `FATAL()` and `fatal()` : Error functions to exit program on catching a fatal error.
-
-Example :
-
-```
-FATAL(EXIT_FAILURE, "Invalid value passed to -sampleWindow : %s", strerror(errno));
-```
-
-8. `ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds)` : convert milliseconds to subtitle time format.
-
-9. `extractFileName(std::string fileName)` : Extract path/to/filename from path/to/filename.extension and return as std::string.
-
-10. `StringToLower(std::string strToConvert)` : Convert string into lowercase. Return type : std::string.
-
-11. `AlignedData` : Used to store transcribed data. All members are public.
+8. `AlignedData` : Used to store transcribed data. All members are public.
 
 ```
 {
@@ -145,6 +128,30 @@ public:
 };
 
 ```
+
+# logger.h and logger.cpp
+
+To initialize:
+```
+Logger::Sink sink(logFile, false); // logFile is a std::ofstrea; false means don't use color for this sink.
+sink.setMinimumOutputLevel(Logger::Level::verbose); // forward all logs to the log file.
+getLogger().addSink(sink); // add a log file. (std::cout is automatically added)
+```
+
+To log:
+```
+DEBUG << "Creating temporary directories at tempFiles/";
+INFO << "Grammar files created!";
+WARNING << "The value is "<<value<<" but it is expected to be " << exceptedValue;
+FATAL(InvalidParameters) << "Unsupported Aligner Type!";
+```
+
+- VERBOSE: Information for tracing
+- DEBUG: Information for developers
+- INFO: Information for general users
+- WARNING: Problems that may affect facility, performance or stability but may not lead the program to crash immediately
+- ERROR: Something unexpected happened but can be recovered
+- FATAL(ExceptionType): Unrecoverable error and program termination is required. `ExceptionType` will be type of exception thrown at the end of the log. It will be constructed by a std::string parameter which is the content of the log.
 
 # generate_approx_timestamp.h and generate_approx_timestamp.cpp
 
