@@ -1,0 +1,13 @@
+version: '{build}'
+platform:
+  - Win32
+  - x64
+configuration: Release
+clone_folder: C:\ccaligner
+clone_depth: 1
+install:
+  - mkdir build && cd build
+  - if %PLATFORM% equ Win32 (cmake -G "Visual Studio 14 2015" ../src/) else (cmake -G "Visual Studio 14 2015 Win64" ../src/)
+build:
+  project: build/ccaligner.sln
+  verbosity: minimal
