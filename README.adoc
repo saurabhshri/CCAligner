@@ -1,4 +1,4 @@
-# 🗼CCAligner image:https://travis-ci.org/saurabhshri/CCAligner.svg?branch=master["Build Status", link="https://travis-ci.org/saurabhshri/CCAligner"]
+# 🗼CCAligner image:http://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg[Linux,25,25,link="https://travis-ci.org/saurabhshri/CCAligner"] / image:https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg[macOS,25,25,link="https://travis-ci.org/saurabhshri/CCAligner"] image:https://travis-ci.org/saurabhshri/CCAligner.svg?branch=master["Linux/macOS Build Status", link="https://travis-ci.org/saurabhshri/CCAligner"]  image:https://upload.wikimedia.org/wikipedia/commons/e/ee/Windows_logo_%E2%80%93_2012_%28dark_blue%29.svg[Windows,25,25,link="https://ci.appveyor.com/project/saurabhshri/ccaligner"] image:https://ci.appveyor.com/api/projects/status/pojryaxnykthuy9p/branch/master?svg=true["Windows Build Status", link="https://ci.appveyor.com/project/saurabhshri/ccaligner"]
 
 Word by word audio subtitle synchronization tool and API. Being developed under Google Summer of Code 2017 with CCExtractor.
 
