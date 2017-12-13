@@ -6,44 +6,44 @@ All the technical details are commented in the codes and the documentation is av
 .
 ├── README.adoc
 ├── demo
-│   ├── ApproxAligner
-│   └── VAD
+│   ├── ApproxAligner
+│   └── VAD
 ├── docs
-│   ├── code_documentation.adoc
-│   ├── API_documentation.adoc
-│   ├── compiling.adoc
-│   ├── installing_dependencies.adoc
-│   └── usage_parameters.adoc
+│   ├── code_documentation.adoc
+│   ├── API_documentation.adoc
+│   ├── compiling.adoc
+│   ├── installing_dependencies.adoc
+│   └── usage_parameters.adoc
 ├── install
-│   ├── build.sh
-│   ├── g2p-seq2seq-cmudict
-│   ├── install_grammar_tools.sh
-│   ├── model
-│   └── quick_lm.pl
+│   ├── build.sh
+│   ├── g2p-seq2seq-cmudict
+│   ├── install_grammar_tools.sh
+│   ├── model
+│   └── quick_lm.pl
 ├── license
 └── src
     ├── lib_ccaligner
-    │   ├── commons.cpp
-    │   ├── commons.h
-    │   ├── g2p_rules.cpp
-    │   ├── generate_approx_timestamp.cpp
-    │   ├── generate_approx_timestamp.h
-    │   ├── grammar_tools.cpp
-    │   ├── grammar_tools.h
-    │   ├── logger.cpp
-    │   ├── logger.h
-    │   ├── output_handler.cpp
-    │   ├── output_handler.h
-    │   ├── params.cpp
-    │   ├── params.h
-    │   ├── phoneme_utils.cpp
-    │   ├── phoneme_utils.h
-    │   ├── read_wav_file.cpp
-    │   ├── read_wav_file.h
-    │   ├── recognize_using_pocketsphinx.cpp
-    │   ├── recognize_using_pocketsphinx.h
-    │   ├── voice_activity_detection.cpp
-    │   └── voice_activity_detection.h
+    │   ├── commons.cpp
+    │   ├── commons.h
+    │   ├── g2p_rules.cpp
+    │   ├── generate_approx_timestamp.cpp
+    │   ├── generate_approx_timestamp.h
+    │   ├── grammar_tools.cpp
+    │   ├── grammar_tools.h
+    │   ├── logger.cpp
+    │   ├── logger.h
+    │   ├── output_handler.cpp
+    │   ├── output_handler.h
+    │   ├── params.cpp
+    │   ├── params.h
+    │   ├── phoneme_utils.cpp
+    │   ├── phoneme_utils.h
+    │   ├── read_wav_file.cpp
+    │   ├── read_wav_file.h
+    │   ├── recognize_using_pocketsphinx.cpp
+    │   ├── recognize_using_pocketsphinx.h
+    │   ├── voice_activity_detection.cpp
+    │   └── voice_activity_detection.h
     └── lib_ext
         ├── pocketsphinx
         ├── sphinxbase
@@ -55,7 +55,7 @@ All the technical details are commented in the codes and the documentation is av
 
 These files contain enums, functions and classes that provide common functionalities throughout the project. These include options, enums, global variables, logging and error functions, some helper functions and a class used to store aligned data.
 
-1. `alignerType`	: Enum for typef of aligner to perform the force alignment.
+1. `alignerType`	: Enum for type of aligner to perform the forced alignment.
 
 ```
 approxAligner,          //approximation based alignment
@@ -67,7 +67,7 @@ alignerUnassigned       //no aligner is specified
 
 ```
 srt,
-xml,
+XML,
 json,
 karaoke,
 console,
@@ -276,7 +276,7 @@ These files provide utility functions for phoneme handling.
 
 # read_wav_file.h and read_wav_file.cpp
 
-These files are contain the code which performs the audio input and processing.
+These files contain the code which performs the audio input and processing.
 
 1. `openMode` : Enum for various possible file opening modes.
 

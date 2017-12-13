@@ -100,9 +100,9 @@ You will also need to install http://www.perl.org/get.html[Perl] and move instal
 
 2. Make sure the `model` folder and `g2p-seq2seq-cmudict` are in the directory where you are compiling CCAligner.
 
-3. Make sure the subtitles are clean and are in propar SRT format.
+3. Make sure the subtitles are clean and are in proper SRT format.
 
-4. The wav file should be 16 bit PCM mono sampled at 16KHz. To generate the wavefile using a video through ffmpeg, you may :
+4. The wav file should be 16 bit PCM mono sampled at 16KHz. To generate the wav file using a video through FFmpeg, you may :
 
     ./ffmpeg -i input.video -bits_per_raw_sample 16 -ar 16000 -ac 1 output.wav
 
@@ -212,7 +212,7 @@ delete(aligner);
 
 ```
 
-Complete documentation of the API will be written under docs.
+Complete documentation of the API will be written in docs.
 
 === Some Previews ===
 
@@ -477,7 +477,7 @@ _E.g.: ``ccaligner -wav tbbt.wav -srt tbbt.srt --display-recognised no``_
 
 == Project Details ==
 
-The usual subtitle files (such as SubRips) have line by line synchronization in them i.e. the subtitles containing the dialogue appear when the person starts talking and disappears when the dialogue finishes. This continues for the whole video. For example :
+The usual subtitle files (such as SubRip) have line by line synchronization in them i.e. the subtitles containing the dialogue appear when the person starts talking and disappears when the dialogue finishes. This continues for the whole video. For example :
 
 ```bash
 1274
@@ -507,7 +507,7 @@ https://github.com/saurabhshri/CCAligner
 
 - Weekly blog : https://saurabhshri.github.io
 
-- Milestones and deilverable checklist : https://saurabhshri.github.io/gsoc/
+- Milestones and deliverables checklist: https://saurabhshri.github.io/gsoc/
 
 - Mentors : https://github.com/cfsmp3[@cfsmp3^] and https://github.com/AlexBratosin2001[@AlexBratosin2001^]
 

@@ -312,7 +312,7 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
         * Suppose this is the case :
         *
         * Actual      : [Why] would you use a tomato just why
-        * Recognised  : would you use a tomato just [why]
+        * Recognised: would you use a tomato just [why]
         *
         * So, if we search whole recognised sentence for actual words one by one, then Why[1] of Actual will get associated
         * with why[7] of recognised. Thus limiting the number of words it can look ahead.
@@ -322,7 +322,7 @@ recognisedBlock PocketsphinxAligner::findAndSetWordTimes(cmd_ln_t *config, ps_de
         int searchWindowSize = _searchWindow;
 
         /*
-        Recognised  : so have you can you've brought seven
+        Recognised: so have you can you've brought seven
         |
         ---------------
         |               |
