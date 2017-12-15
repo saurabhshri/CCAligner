@@ -4,7 +4,7 @@
  * Link     : https://github.com/saurabhshri
 */
 
-#include "ccaligner.h"
+#include "lib_ccaligner/ccaligner.h"
 #include <typeinfo>
 
 void printUsage()
@@ -39,39 +39,6 @@ void printFooter()
     std::cout<<"\n\n=====================================================\n";
     std::cout<<"Issues? Open a ticket here\n";
     std::cout<<"https://github.com/saurabhshri/CCAligner/issues\n";
-}
-
-CCAligner::CCAligner(Params* parameters) : logFile(parameters->logPath)
-{
-    _parameters = parameters;
-  
-    Logger::Sink sink(logFile, false);
-    sink.setMinimumOutputLevel(Logger::Level::verbose);
-    getLogger().addSink(sink);
-
-    Logger::Log<>(getLogger(), __FILE__, __FUNCTION__, __LINE__, Logger::Level::verbose);
-}
-
-CCAligner::~CCAligner() {
-    logFile.close();
-}
-
-int CCAligner::initAligner()
-{
-    if(_parameters->chosenAlignerType == approxAligner)
-    {
-        ApproxAligner(_parameters->subtitleFileName, srt).align();
-    }
-    else if(_parameters->chosenAlignerType == asrAligner)
-    {
-        PocketsphinxAligner(_parameters).align();
-    }
-    else
-    {
-        FATAL(InvalidParameters) << "Unsupported Aligner Type!";
-    }
-
-    return 1;
 }
 
 int main(int argc, char *argv[])

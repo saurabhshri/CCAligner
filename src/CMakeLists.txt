@@ -57,6 +57,16 @@ FILE(GLOB_RECURSE SPHINXBASE_FILES "lib_ext/sphinxbase/src/libsphinxbase/*.c")
 add_library(sphinxbase ${SPHINXBASE_FILES})
 set_target_properties(sphinxbase PROPERTIES FOLDER lib)
 
+#including gtest
+include_directories(lib_ext/gtest/)
+include_directories(lib_ext/gtest/include/)
+FILE(GLOB_RECURSE GTEST_FILES "lib_ext/gtest/src/*.cc")
+add_library(gtest ${GTEST_FILES})
+set_target_properties(gtest PROPERTIES FOLDER lib)
+
+#including json
+include_directories(lib_ext/json/src/)
+
 if(UNIX)
     add_definitions(-DHAVE_UNISTD_H)
 endif(UNIX)
@@ -67,8 +77,8 @@ target_link_libraries(pocketsphinx sphinxbase)
 include_directories(lib_ccaligner/)
 
 set(SOURCE_FILES
-        ccaligner.cpp
-        ccaligner.h
+        lib_ccaligner/ccaligner.h
+        lib_ccaligner/ccaligner.cpp
         lib_ccaligner/commons.cpp
         lib_ccaligner/commons.h
         lib_ccaligner/generate_approx_timestamp.cpp
@@ -90,6 +100,17 @@ set(SOURCE_FILES
         lib_ccaligner/logger.cpp
         lib_ccaligner/logger.h
         )
+add_library(libccaligner STATIC ${SOURCE_FILES})
+        
+add_executable(ccaligner ccaligner_main.cpp)
+target_link_libraries(ccaligner webRTC pocketsphinx sphinxbase libccaligner ${EXTRA_FLAGS})
 
-add_executable(ccaligner ${SOURCE_FILES})
-target_link_libraries(ccaligner webRTC  pocketsphinx sphinxbase ${EXTRA_FLAGS})
+include_directories(../test/src)
+
+set(TEST_SOURCE_FILES
+        ../test/src/output_test.cpp
+        ../test/src/params.cpp
+        )
+add_executable(ccaligner_test ${TEST_SOURCE_FILES})
+target_link_libraries(ccaligner_test gtest webRTC pocketsphinx sphinxbase libccaligner ${EXTRA_FLAGS})
+

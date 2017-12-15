@@ -1,0 +1,42 @@
+{
+	"subtitles": [
+	{
+		"subtitle" : "Go forward ten meters",
+		"edited_text" : "Go forward ten meters",
+		"start" : "500",
+		"end" : "2469",
+		"words" : [
+			{
+				"word" : "Go",
+				"recognised" : "1",
+				"start" : "530",
+				"end" : "660",
+				"duration" : "130",
+			},
+			{
+				"word" : "forward",
+				"recognised" : "1",
+				"start" : "670",
+				"end" : "1220",
+				"duration" : "550",
+			},
+			{
+				"word" : "ten",
+				"recognised" : "1",
+				"start" : "1230",
+				"end" : "1540",
+				"duration" : "310",
+			},
+			{
+				"word" : "meters",
+				"recognised" : "1",
+				"start" : "1550",
+				"end" : "2140",
+				"duration" : "590",
+			},
+		],
+		"phonemes" : [
+		]
+	},
+	]
+}
