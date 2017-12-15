@@ -28,7 +28,8 @@ protected:
             "-srt", &_srtFileName[0],
             "-out", &_outFileName[0],
             "-oFormat", "json",
-            "-verbosity", "info"
+            "-verbosity", "info",
+            "--display-recognised", "no"
         };
         _params.inputParams(sizeof(args)/sizeof(args[0]), args);
     }
