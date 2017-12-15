@@ -70,7 +70,7 @@ To install g2p-seq2seq :
 
 In case you have some trouble with dependencies, I have mirrored the last known working versions of them in the repository at : _(https://github.com/saurabhshri/mirror/)_ .
 
-The alternate ways of generating language models, dictionaries and grammars are covered later in the docs.
+The alternate ways of generating language models, dictionary and grammar are covered later in the docs.
 
 
 *Windows*
@@ -80,7 +80,7 @@ To install cmuclmtk :
 1. Download cmuclmtk from the link mentioned above and uncompress `cmuclmtk-0.7.tar.gz`. Build it with the `cmuclmtk.sln` it provides.
 
 2. Copy the compiled files (wfreq2vocab.exe, text2wfreq.exe, text2idngram.exe, idngram2lm.exe) to the same directory as the CCAligner
-   or you can set the directory contains these files to environment variable (PATH)
+   or you can set the directory containing these files to environment variable (PATH)
 
 To install g2p-seq2seq :
 
