@@ -11,19 +11,19 @@
 TEST(Params, Arguments) {
     Params params;
 
-    constexpr char* wavFilePath = "path/to/wav/file";
-    constexpr char* srtFilePath = "path/to/srt/file";
-    constexpr char* outFilePath = "path/to/out/file";
-    constexpr char* modelPath = "path/to/model/file";
-    constexpr char* lmPath = "path/to/lm/file";
-    constexpr char* dictPath = "path/to/dict/file";
-    constexpr char* fsgPath = "path/to/fsg/file";
-    constexpr char* logPath = "path/to/log/file";
-    constexpr char* phoneLMPath = "path/to/phoneLM/file";
-    constexpr char* alignerLogPath = "path/to/alignerLog/file";
-    constexpr char* phoneLogPath = "path/to/phoneLog/file";
+    constexpr const char* wavFilePath = "path/to/wav/file";
+    constexpr const char* srtFilePath = "path/to/srt/file";
+    constexpr const char* outFilePath = "path/to/out/file";
+    constexpr const char* modelPath = "path/to/model/file";
+    constexpr const char* lmPath = "path/to/lm/file";
+    constexpr const char* dictPath = "path/to/dict/file";
+    constexpr const char* fsgPath = "path/to/fsg/file";
+    constexpr const char* logPath = "path/to/log/file";
+    constexpr const char* phoneLMPath = "path/to/phoneLM/file";
+    constexpr const char* alignerLogPath = "path/to/alignerLog/file";
+    constexpr const char* phoneLogPath = "path/to/phoneLog/file";
     
-    char* args[] = { "",
+    std::vector<std::string> args = { "",
         "-wav", wavFilePath,
         "-srt", srtFilePath,
         "-out", outFilePath,
@@ -36,18 +36,22 @@ TEST(Params, Arguments) {
         "-alignerLog", alignerLogPath,
         "-phoneLog", phoneLogPath,
         "-oFormat", "json" };
+    std::vector<char*> argv;
+    for (auto& arg : args)
+        argv.push_back(&arg[0]);
+    argv.push_back(nullptr);
 
-    params.inputParams(sizeof(args) / sizeof(args[0]), args);
+    params.inputParams(argv.size() - 1, argv.data());
     
-    ASSERT_EQ(params.audioFileName, wavFilePath);
-    ASSERT_EQ(params.subtitleFileName, srtFilePath);
-    ASSERT_EQ(params.outputFileName, outFilePath);
+    ASSERT_STREQ(params.audioFileName.c_str(), wavFilePath);
+    ASSERT_STREQ(params.subtitleFileName.c_str(), srtFilePath);
+    ASSERT_STREQ(params.outputFileName.c_str(), outFilePath);
     ASSERT_EQ(params.outputFormat, json);
-    ASSERT_EQ(params.modelPath, modelPath);
-    ASSERT_EQ(params.lmPath, lmPath);
-    ASSERT_EQ(params.dictPath, dictPath);
-    ASSERT_EQ(params.fsgPath, fsgPath);
-    ASSERT_EQ(params.logPath, logPath);
-    ASSERT_EQ(params.phonemeLogPath, phoneLogPath);
-    ASSERT_EQ(params.alignerLogPath, alignerLogPath);
+    ASSERT_STREQ(params.modelPath.c_str(), modelPath);
+    ASSERT_STREQ(params.lmPath.c_str(), lmPath);
+    ASSERT_STREQ(params.dictPath.c_str(), dictPath);
+    ASSERT_STREQ(params.fsgPath.c_str(), fsgPath);
+    ASSERT_STREQ(params.logPath.c_str(), logPath);
+    ASSERT_STREQ(params.phonemeLogPath.c_str(), phoneLogPath);
+    ASSERT_STREQ(params.alignerLogPath.c_str(), alignerLogPath);
 }

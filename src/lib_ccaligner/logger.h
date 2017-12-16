@@ -131,7 +131,7 @@ public:
             return *this;
         }
 
-        ~Log() noexcept(noexcept(std::is_same<ExceptionType, Dummy>::value)) {
+        ~Log() noexcept(std::is_same<ExceptionType, Dummy>::value) {
             _ss << std::endl;
             _logger.log(_ss, _level);
             if (!std::uncaught_exception()) { // to avoid two uncaught exceptions.

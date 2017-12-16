@@ -4,58 +4,81 @@ matrix:
   include:
 
     - os: linux
-      compiler:
-        - gcc
-
-      install:
-        - if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
-
+      compiler: gcc
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-precise-3.6
             - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
-            
           packages:
             - cmake
             - cmake-data
             - g++-4.9
             - gcc-4.9
+            - lcov
 
-      env: COMPILER=g++-4.9
-      
-      script:
-        - cd src
-        - mkdir build
-        - cd build
-        - cmake .. && make
-
+      env:
+        - COMPILER=g++-4.9
+        
       after_success:
-        - cd ../../demo/ApproxAligner
-        - mkdir build
-        - cd build
-        - cmake .. && make
-        - cd ../../VAD/
-        - mkdir build
-        - cd build
-        - cmake .. && make
+        
+        # Uploading report to CodeCov
+        - cd ${TRAVIS_BUILD_DIR}/src/build
+        - lcov --directory . --capture --output-file coverage.info
+        - lcov --remove coverage.info '/usr/*' --output-file coverage.info
+        - lcov --list coverage.info
+        - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
 
     - os: osx
       osx_image: xcode7.3
 
-      script:
-        - cd src
-        - mkdir build
-        - cd build
-        - cmake .. && make
+install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
+  
+  # Install dependencies
+  - cd test
 
-      after_success:
-        - cd ../../demo/ApproxAligner
-        - mkdir build
-        - cd build
-        - cmake .. && make
-        - cd ../../VAD/
-        - mkdir build
-        - cd build
-        - cmake .. && make
+  # cmuclmtk
+  - wget https://github.com/saurabhshri/mirror/raw/master/cmuclmtk-0.7.tar.gz
+  - tar xvpzf cmuclmtk-0.7.tar.gz
+  - cd cmuclmtk-0.7
+  - ./configure && make -j4
+  - sudo make install
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo ldconfig; fi
+  - cd ../
+
+  # g2p-seq2seq
+  - sudo pip install tensorflow==1.0.0
+  - wget https://github.com/saurabhshri/mirror/raw/master/g2p-seq2seq-master.zip
+  - unzip g2p-seq2seq-master.zip
+  - cd g2p-seq2seq-master/
+  - sudo python setup.py install
+  - cd ../
+        
+  # copy models and dicts
+  - cp -rf ../install/model .
+  - cp -rf ../install/g2p-seq2seq-cmudict .
+  - cp ../install/quick_lm.pl .
+  
+script:
+  - cd ../src
+  - mkdir build
+  - cd build
+  # Enable coverage build for Linux only
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cmake -Denable_coverage=ON ..; else cmake ..; fi
+  - make -j4
+
+  # Build demos
+  - cd ../../demo/ApproxAligner
+  - mkdir build
+  - cd build
+  - cmake .. && make -j4
+  - cd ../../VAD/
+  - mkdir build
+  - cd build
+  - cmake .. && make -j4
+
+  # start run tests
+  - cd ../../../test
+  - ../src/build/ccaligner_test

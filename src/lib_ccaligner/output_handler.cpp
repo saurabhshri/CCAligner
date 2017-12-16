@@ -269,9 +269,14 @@ bool printTranscriptionAsXMLContinuous(const std::string& fileName, AlignedData 
 bool printJSON(const std::string& fileName, std::vector<SubtitleItem *> subtitles)
 {
     initFile(fileName, json);
-
+    bool first = true;
     for(SubtitleItem *sub : subtitles)
     {
+        if (!first) {
+            std::ofstream out(fileName, std::ofstream::binary | std::ofstream::app);
+            out << ",";
+        }
+        else first = false;
         printJSONContinuous(fileName, sub);
     }
 
@@ -282,8 +287,7 @@ bool printJSON(const std::string& fileName, std::vector<SubtitleItem *> subtitle
 
 bool printJSONContinuous(const std::string& fileName, SubtitleItem *sub)
 {
-    std::ofstream out;
-    out.open(fileName, std::ofstream::binary | std::ofstream::app);
+    std::ofstream out(fileName, std::ofstream::binary | std::ofstream::app);
 
     out<<"\t{\r\n";
 
@@ -301,8 +305,8 @@ bool printJSONContinuous(const std::string& fileName, SubtitleItem *sub)
         out<<"\t\t\t\t\"recognised\" : \""<<sub->getWordRecognisedStatusByIndex(i)<<"\",\r\n";
         out<<"\t\t\t\t\"start\" : \""<<sub->getWordStartTimeByIndex(i)<<"\",\r\n";
         out<<"\t\t\t\t\"end\" : \""<<sub->getWordEndTimeByIndex(i)<<"\",\r\n";
-        out<<"\t\t\t\t\"duration\" : \""<<sub->getWordEndTimeByIndex(i) - sub->getWordStartTimeByIndex(i)<<"\",\r\n";
-        out<<"\t\t\t},\r\n";
+        out<<"\t\t\t\t\"duration\" : \""<<sub->getWordEndTimeByIndex(i) - sub->getWordStartTimeByIndex(i)<<"\"\r\n";
+        out<<"\t\t\t}" << (i != sub->getWordCount() - 1 ? "," : "") << "\r\n";
     }
 
     out<<"\t\t],\r\n";
@@ -315,12 +319,12 @@ bool printJSONContinuous(const std::string& fileName, SubtitleItem *sub)
         out<<"\t\t\t\t\"word\" : \""<<sub->getPhonemeByIndex(i)<<"\",\r\n";
         out<<"\t\t\t\t\"start\" : \""<<sub->getPhonemeStartTimeByIndex(i)<<"\",\r\n";
         out<<"\t\t\t\t\"end\" : \""<<sub->getPhonemeEndTimeByIndex(i)<<"\",\r\n";
-        out<<"\t\t\t\t\"duration\" : \""<<sub->getPhonemeEndTimeByIndex(i) - sub->getPhonemeStartTimeByIndex(i)<<"\",\r\n";
-        out<<"\t\t\t},\r\n";
+        out<<"\t\t\t\t\"duration\" : \""<<sub->getPhonemeEndTimeByIndex(i) - sub->getPhonemeStartTimeByIndex(i)<<"\"\r\n";
+        out<<"\t\t\t}"<<(i!=sub->getPhonemeCount()-1?"," : "" )<<"\r\n";
     }
 
     out<<"\t\t]\r\n";
-    out<<"\t},\r\n";
+    out<<"\t}";
 
     out.close();
     return true;
