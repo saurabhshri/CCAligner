@@ -232,41 +232,45 @@ bool generate(std::string transcriptFileName, grammarName name) //Generate Gramm
         }
         catch (std::system_error& e)
         {
-            FATAL(UnknownError) << e.code().message();
+            FATAL(FileNotFound) << e.code().message();
         }
 
         corpusDump << "<s> " << stringToLower(transcript) << " </s>\n";
         corpusDump.close();
     }
 
-    /*if (name == phone_lm || name == complete_grammar)
-    {
-        try
-        {
-            phoneticCorpusDump.open("tempFiles/corpus/phoneticCorpus.txt", std::ios::binary | std::ios::app);
-        }
+	if (name == phone_lm || name == complete_grammar)
+	{
+		try
+		{
+			phoneticCorpusDump.open("tempFiles/corpus/phoneticCorpus.txt", std::ios::binary | std::ios::app);
+		}
 
-        catch (std::system_error& e)
-        {
-            FATAL(UnknownError, e.code().message().c_str());
-        }
+		catch (std::system_error& e)
+		{
+			FATAL(FileNotFound) << e.code().message();
+		}
 
-        int numberOfWords = transcript.length();
-        std::string printPhoneticCourpus = "SIL ";
+		std::istringstream iss(transcript);
+		std::vector<std::string> SplitTranscript((std::istream_iterator<std::string>(iss)),
+			std::istream_iterator<std::string>()); //split transcript into words
 
-        for (int i = 0; i<numberOfWords; i++)
-        {
-            std::vector<Phoneme> phones = stringToPhoneme(stringToLower(sub->getWordByIndex(i)));
+		size_t numberOfWords = SplitTranscript.size();
+		std::string printPhoneticCourpus = "SIL ";
 
-            for (Phoneme ph : phones)
-                printPhoneticCourpus += ph + " ";
-        }
+		for (int i = 0; i<numberOfWords; i++)
+		{
+			std::vector<Phoneme> phones = stringToPhoneme(stringToLower(SplitTranscript[i]));
 
-        printPhoneticCourpus += "SIL\n";
+			for (Phoneme ph : phones)
+				printPhoneticCourpus += ph + " ";
+		}
 
-        phoneticCorpusDump << printPhoneticCourpus;
-        phoneticCorpusDump.close();
-    }*/ //Without phonetic transcription
+		printPhoneticCourpus += "SIL\n";
+
+		phoneticCorpusDump << printPhoneticCourpus;
+		phoneticCorpusDump.close();
+	}
 
     //FSG not needed for transcription
 
@@ -312,7 +316,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name) //Generat
             }
             catch(std::system_error& e)
             {
-                FATAL(UnknownError) << e.code().message();
+                FATAL(FileNotFound) << e.code().message();
             }
 
             corpusDump << "<s> " << stringToLower(sub->getDialogue()) << " </s>\n";
@@ -328,7 +332,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name) //Generat
 
             catch(std::system_error& e)
             {
-                FATAL(UnknownError) << e.code().message();
+                FATAL(FileNotFound) << e.code().message();
             }
 
             int numberOfWords = sub->getWordCount();
@@ -361,7 +365,7 @@ bool generate(std::vector <SubtitleItem*> subtitles, grammarName name) //Generat
 
             catch(std::system_error& e)
             {
-                FATAL(UnknownError) << e.code().message();
+                FATAL(FileNotFound) << e.code().message();
             }
 
             int numberOfWords = sub->getWordCount();
