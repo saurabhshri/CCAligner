@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(ApproxAlignerDemo)
 
+include(../../src/lib_ccaligner.cmake)
+
 set(CMAKE_CXX_STANDARD 11)
 
-#including srtparser header file
-include_directories(../../src/lib_ext/srtparser/ ../../src/lib_ccaligner/)
+if(UNIX)
+    set (EXTRA_FLAGS ${EXTRA_FLAGS} -lpthread)
+endif(UNIX)
 
-set(SOURCE_FILES main.cpp  ../../src/lib_ccaligner/generate_approx_timestamp.h ../../src/lib_ccaligner/generate_approx_timestamp.cpp)
-
-add_executable(ApproxAlignerDemo ${SOURCE_FILES})
+#including CCAligner libraries
+include_directories(../../src/lib_ccaligner/)
+add_executable(ApproxAlignerDemo main.cpp)
+target_link_libraries(ApproxAlignerDemo libccaligner ${EXTRA_FLAGS})

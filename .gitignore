@@ -36,7 +36,6 @@
 build/
 src/Debug
 cmake-build-debug/
-*.wav
 .vs
 
 #mac
