@@ -1,4 +1,4 @@
-echo "You must be root to install grammar tool dependencies. Alterntively, you may install them manually." 2>&1
+echo "You must be root to install grammar tool dependencies. Alternatively, you may install them manually." 2>&1
 echo "The following dependencies must be met for generating grammar and language models : "
 echo "CMUCLMTK : https://sourceforge.net/projects/cmusphinx/files/cmuclmtk/0.7/"
 echo "g2p-seq2seq : https://github.com/cmusphinx/g2p-seq2seq"
@@ -18,7 +18,7 @@ cd cmuclmtk-0.7
 make
 sudo make install
 sudo ldconfig
-echo "leaving cmuclmtk-0.7"
+echo "Leaving cmuclmtk-0.7"
 cd ../
 echo "Installing and Downloading Tensorflow : "
 sudo pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0-cp27-none-linux_x86_64.whl
