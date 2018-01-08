@@ -509,7 +509,7 @@ https://github.com/saurabhshri/CCAligner
 
 - Milestones and deliverables checklist: https://saurabhshri.github.io/gsoc/
 
-- Mentors : https://github.com/cfsmp3[@cfsmp3^] and https://github.com/AlexBratosin2001[@AlexBratosin2001^]
+- Mentors : https://github.com/cfsmp3[@cfsmp3^] and https://github.com/alexbrt[@alexbrt^]
 
 ### Credits and Licensing
 
