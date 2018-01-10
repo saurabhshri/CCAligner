@@ -1,13 +1,16 @@
 #include "generate_approx_timestamp.h"
+#include <iostream>
+using namespace std;
 
 int main()
 {
-	std::cout<<"Enter path to the subtitle file : ";
+cout<<"Enter path to the subtitle file : ";
 
-    std::string filename;
-    std::cin>>filename;
+string fileName;
+    
+	cin>>fileName;
 
-    ApproxAligner * aligner = new ApproxAligner(filename);	// that's it :) More customization to come!
+    ApproxAligner * aligner = new ApproxAligner(fileName);	// that's it :) More customization to come!
     aligner->align();
 
     return 0;
