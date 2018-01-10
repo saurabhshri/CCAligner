@@ -5,6 +5,8 @@
 */
 
 #include "commons.h"
+#include <string>
+using namespace std;
 
 void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *milliseconds)
 {
@@ -20,21 +22,24 @@ void ms_to_srt_time(long int ms, int *hours, int *minutes, int *seconds, int *mi
     *hours = (int)ms;
 }
 
-std::string extractFileName(const std::string& fileName)
+    string extractFileName(const std::string& fileName);
+
 {
     int lastIndex = fileName.find_last_of(".");
 
     if(lastIndex == std::string::npos)
-        return fileName;    //if no extension is present, return complete filename
+        
+        return fileName;    //If no extension is present, return complete filename
     else
         return fileName.substr(0, lastIndex);
 }
 
-std::string stringToLower(std::string strToConvert)
-{
-    std::transform(strToConvert.begin(), strToConvert.end(), strToConvert.begin(), ::tolower);
+    string stringToLower(string strToConvert);
 
-    return strToConvert;
+{
+    transform(strToConvert.begin(), strToConvert.end(), strToConvert.begin(), tolower);
+
+    return strToConvert.begin;
 }
 
 bool AlignedData::addNewWord(const std::string& word, long int startTime, long int endTime, float conf)
