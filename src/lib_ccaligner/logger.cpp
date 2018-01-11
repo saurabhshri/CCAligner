@@ -4,11 +4,17 @@
 * Link     : https://github.com/harrynull
 */
 #include "logger.h"
-
-std::array<const char*, 6> Logger::levelTags{
+using namespace std;
+int main ()
+{
+    
+(array<const char*, 6> Logger::levelTags)
+{
     "[Verbose]", "[Debug]", "[Info]", "[Warning]", "[Error]", "[Fatal]"
 };
-
-std::array<Colors::ColorFunc*, 6> Logger::colors{
+(array<Colors::ColorFunc*, 6> Logger::colors)
+{
     Colors::white, Colors::white, Colors::lwhite, Colors::yellow, Colors::lred, Colors::red
 };
+    return 1;
+} 
