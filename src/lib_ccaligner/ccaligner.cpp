@@ -4,7 +4,9 @@
  * Link     : https://github.com/saurabhshri
 */
 
+#include <iostream>
 #include "ccaligner.h"
+using namespace std;
 
 CCAligner::CCAligner(Params* parameters) : logFile(parameters->logPath)
 {
@@ -38,4 +40,5 @@ int CCAligner::initAligner()
 
     return 1;
 }
+
 
