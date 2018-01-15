@@ -437,7 +437,15 @@ bool PocketsphinxAligner::recognise() {
         else
             samplesToBeRead = _samples.size() - 1;
 
+        // Prevent accessing samples which doesn't exist.
+        if (samplesAlreadyRead >= (_samples.size() - 1))
+            samplesAlreadyRead = _samples.size() - 1;
+
+        if (samplesAlreadyRead + samplesToBeRead >= (_samples.size() - 1))
+            samplesToBeRead = _samples.size() - 1 - samplesAlreadyRead;
+
         /*
+
         * 00:00:19,320 --> 00:00:21,056
         * Why are you boring?
         *
@@ -731,6 +739,13 @@ bool PocketsphinxAligner::alignWithFSG() {
 
         else
             samplesToBeRead = _samples.size() - 1;
+
+        // Prevent accessing samples which doesn't exist.
+        if (samplesAlreadyRead >= (_samples.size() - 1))
+            samplesAlreadyRead = _samples.size() - 1;
+
+        if (samplesAlreadyRead + samplesToBeRead >= (_samples.size() - 1))
+            samplesToBeRead = _samples.size() - 1 - samplesAlreadyRead;
 
         const int16_t *sample = _samples.data();
 
