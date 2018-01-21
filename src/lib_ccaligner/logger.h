@@ -111,7 +111,7 @@ public:
 
     private:
         std::ostream& _os;
-        Level _minimumOutputLevel = Level::debug;
+        Level _minimumOutputLevel = Level::verbose;
         bool _useColor;
     };
 

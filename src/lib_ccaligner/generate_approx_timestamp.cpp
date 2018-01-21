@@ -73,7 +73,7 @@ inline int CurrentSub::getDuration (long startTime, long endTime) const noexcept
 {
     if(endTime < startTime)
     {
-        FATAL(InvalidFile) << "Error! Incorrect start time and end time of the dialogue.";
+        FATAL(InvalidFile) << "Error! Incorrect start time and end time of the dialogue. [Start : "<<startTime<<" | End : "<<endTime<<"]";
     }
 
     return endTime - startTime;
