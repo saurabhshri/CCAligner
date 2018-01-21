@@ -395,6 +395,7 @@ bool PocketsphinxAligner::printWordTimes(cmd_ln_t *config, ps_decoder_t *ps) {
 
 bool PocketsphinxAligner::recognise() {
     int subCount = 1;
+    bool useApproxTimeOnly = false;
     initFile(_outputFileName, _parameters->outputFormat);
 
     long int recognitionWindow = 0;
@@ -427,7 +428,16 @@ bool PocketsphinxAligner::recognise() {
         long int samplesToBeRead = dialogueLastsFor * 16;
 
         if ((samplesAlreadyRead - recognitionWindow) >= 0)
+        {
+            if(samplesAlreadyRead >= _samples.size()) //start time of subtitle is out of sample range.
+            {
+                DEBUG << "Subtitle frame exists beyond audio clip length, aligning approximately. [Start : "<<sub->getStartTime()<<" | End : "<<sub->getEndTime()<<"]";
+                useApproxTimeOnly = true;
+            }
+
             samplesAlreadyRead -= recognitionWindow;
+
+        }
         else
             samplesAlreadyRead = 0;
 
@@ -450,58 +460,61 @@ bool PocketsphinxAligner::recognise() {
         *
         */
 
-        const int16_t *sample = _samples.data();
+        if(!useApproxTimeOnly) //subtitle frame exists within audio clip length, process those samples
+        {
+            const int16_t *sample = _samples.data();
 
-        _rvWord = ps_start_utt(_psWordDecoder);
-        _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead, samplesToBeRead, FALSE, FALSE);
-        _rvWord = ps_end_utt(_psWordDecoder);
+            _rvWord = ps_start_utt(_psWordDecoder);
+            _rvWord = ps_process_raw(_psWordDecoder, sample + samplesAlreadyRead, samplesToBeRead, FALSE, FALSE);
+            _rvWord = ps_end_utt(_psWordDecoder);
 
-        _hypWord = ps_get_hyp(_psWordDecoder, &_scoreWord);
+            _hypWord = ps_get_hyp(_psWordDecoder, &_scoreWord);
 
-        if (_hypWord == nullptr) {
-            _hypWord = "nullptr";
+            if (_hypWord == nullptr) {
+                _hypWord = "nullptr";
+
+                if (_parameters->displayRecognised) {
+                    std::cout << "\n\n-----------------------------------------\n\n";
+                    std::cout << "Recognised: " << _hypWord << "\n";
+                }
+
+                continue;
+
+            }
 
             if (_parameters->displayRecognised) {
                 std::cout << "\n\n-----------------------------------------\n\n";
-                std::cout << "Recognised: " << _hypWord << "\n";
+                std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
+                std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
+                std::cout << "Recognised  : " << _hypWord << "\n";
+                std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
             }
 
-            continue;
+            //finding and aligning words from subtitle
+            recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
 
+            //trying to align non recognised words
+            currSub.alignNonRecognised(currBlock);
+
+            if (_parameters->searchPhonemes)
+                recognisePhonemes(sample + samplesAlreadyRead, samplesToBeRead, sub);
         }
-
-        if (_parameters->displayRecognised) {
-            std::cout << "\n\n-----------------------------------------\n\n";
-            std::cout << "Start time of dialogue : " << dialogueStartsAt << "\n";
-            std::cout << "End time of dialogue   : " << sub->getEndTime() << "\n\n";
-            std::cout << "Recognised  : " << _hypWord << "\n";
-            std::cout << "Actual      : " << sub->getDialogue() << "\n\n";
-        }
-
-        //finding and aligning words from subtitle
-        recognisedBlock currBlock = findAndSetWordTimes(_configWord, _psWordDecoder, sub);
-
-        //trying to align non recognised words
-        currSub.alignNonRecognised(currBlock);
-
-        if (_parameters->searchPhonemes)
-            recognisePhonemes(sample + samplesAlreadyRead, samplesToBeRead, sub);
 
         switch (_parameters->outputFormat)  //decide on basis of set output format
         {
-        case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
-            break;
+            case srt:       subCount = printSRTContinuous(_outputFileName, subCount, sub, _parameters->printOption);
+                break;
 
-        case xml:       printXMLContinuous(_outputFileName, sub);
-            break;
+            case xml:       printXMLContinuous(_outputFileName, sub);
+                break;
 
-        case json:      printJSONContinuous(_outputFileName, sub);
-            break;
+            case json:      printJSONContinuous(_outputFileName, sub);
+                break;
 
-        case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, _parameters->printOption);
-            break;
+            case karaoke:   subCount = printKaraokeContinuous(_outputFileName, subCount, sub, _parameters->printOption);
+                break;
 
-        default:    FATAL(InvalidParameters) << "An error occurred while choosing output format!";
+            default:    FATAL(InvalidParameters) << "An error occurred while choosing output format!";
         }
     }
 
