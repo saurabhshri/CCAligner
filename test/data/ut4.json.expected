@@ -1,0 +1,76 @@
+{
+	"subtitles": [
+	{
+		"subtitle" : "So, Jessica, I heard you broke up with Brad.",
+		"edited_text" : "So Jessica I heard you broke up with Brad",
+		"start" : "2003",
+		"end" : "2800",
+		"words" : [
+			{
+				"word" : "So",
+				"recognised" : "0",
+				"start" : "2003",
+				"end" : "2003",
+				"duration" : "0"
+			},
+			{
+				"word" : "Jessica",
+				"recognised" : "0",
+				"start" : "2003",
+				"end" : "2003",
+				"duration" : "0"
+			},
+			{
+				"word" : "I",
+				"recognised" : "1",
+				"start" : "2063",
+				"end" : "2723",
+				"duration" : "660"
+			},
+			{
+				"word" : "heard",
+				"recognised" : "0",
+				"start" : "2256",
+				"end" : "2373",
+				"duration" : "117"
+			},
+			{
+				"word" : "you",
+				"recognised" : "0",
+				"start" : "2373",
+				"end" : "2451",
+				"duration" : "78"
+			},
+			{
+				"word" : "broke",
+				"recognised" : "0",
+				"start" : "2451",
+				"end" : "2568",
+				"duration" : "117"
+			},
+			{
+				"word" : "up",
+				"recognised" : "0",
+				"start" : "2568",
+				"end" : "2626",
+				"duration" : "58"
+			},
+			{
+				"word" : "with",
+				"recognised" : "0",
+				"start" : "2626",
+				"end" : "2723",
+				"duration" : "97"
+			},
+			{
+				"word" : "Brad",
+				"recognised" : "0",
+				"start" : "2723",
+				"end" : "2800",
+				"duration" : "77"
+			}
+		],
+		"phonemes" : [
+		]
+	}	]
+}

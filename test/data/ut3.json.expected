@@ -1,0 +1,90 @@
+{
+	"subtitles": [
+	{
+		"subtitle" : "Learning to fly this thing, Morty, is gonna be really liberating.",
+		"edited_text" : "Learning to fly this thing Morty is gonna be really liberating",
+		"start" : "334",
+		"end" : "2800",
+		"words" : [
+			{
+				"word" : "Learning",
+				"recognised" : "0",
+				"start" : "334",
+				"end" : "334",
+				"duration" : "0"
+			},
+			{
+				"word" : "to",
+				"recognised" : "0",
+				"start" : "334",
+				"end" : "334",
+				"duration" : "0"
+			},
+			{
+				"word" : "fly",
+				"recognised" : "1",
+				"start" : "394",
+				"end" : "644",
+				"duration" : "250"
+			},
+			{
+				"word" : "this",
+				"recognised" : "1",
+				"start" : "654",
+				"end" : "814",
+				"duration" : "160"
+			},
+			{
+				"word" : "thing",
+				"recognised" : "1",
+				"start" : "824",
+				"end" : "1054",
+				"duration" : "230"
+			},
+			{
+				"word" : "Morty",
+				"recognised" : "1",
+				"start" : "1064",
+				"end" : "1334",
+				"duration" : "270"
+			},
+			{
+				"word" : "is",
+				"recognised" : "0",
+				"start" : "1645",
+				"end" : "1764",
+				"duration" : "119"
+			},
+			{
+				"word" : "gonna",
+				"recognised" : "0",
+				"start" : "1764",
+				"end" : "2002",
+				"duration" : "238"
+			},
+			{
+				"word" : "be",
+				"recognised" : "0",
+				"start" : "2002",
+				"end" : "2121",
+				"duration" : "119"
+			},
+			{
+				"word" : "really",
+				"recognised" : "0",
+				"start" : "2121",
+				"end" : "2399",
+				"duration" : "278"
+			},
+			{
+				"word" : "liberating",
+				"recognised" : "0",
+				"start" : "2399",
+				"end" : "2796",
+				"duration" : "397"
+			}
+		],
+		"phonemes" : [
+		]
+	}	]
+}
