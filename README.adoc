@@ -4,7 +4,7 @@ Word by word audio subtitle synchronization (forced alignemnt) tool and API. Dev
 
 _(https://saurabhshri.github.io/)_
 
-[link=docs/using.adoc]
+[link=https://www.youtube.com/watch?v=38_27E1PxXA]
 image::https://raw.githubusercontent.com/saurabhshri/CCAligner/master/docs/demo.gif[align="center"]
 
 ---
