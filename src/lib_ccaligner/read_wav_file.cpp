@@ -650,7 +650,7 @@ int WaveFileData::twoBytesToInt (const std::vector<unsigned char>& fileData, int
         return ((fileData[index + 1] << 8) | fileData[index]);
 
     // If file was damaged
-    FATAL(DamagedFile) << "Unable to read from file: " << _fileName;
+    FATAL(InvalidFile) << "Tried accessing samples out of bounds.";
 }
 
 const std::vector<int16_t>& WaveFileData::getSamples() const noexcept
