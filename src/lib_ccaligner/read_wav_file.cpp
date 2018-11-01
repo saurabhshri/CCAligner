@@ -214,6 +214,8 @@ bool WaveFileData::decode()     //decodes the wave file
             // dataIndex + 8 is usually 44 as per the specs
 
             int16_t sample = twoBytesToInt(_fileData, sampleIndex);
+	    if (sample == -1)
+	        FATAL(InvalidFile) << "Tried accessing samples out of bounds.";
             _samples.push_back(sample);
     }
     DEBUG << "Successfully decoded";
@@ -650,7 +652,7 @@ int WaveFileData::twoBytesToInt (const std::vector<unsigned char>& fileData, int
         return ((fileData[index + 1] << 8) | fileData[index]);
 
     // If file was damaged
-    FATAL(InvalidFile) << "Tried accessing samples out of bounds.";
+    return -1;
 }
 
 const std::vector<int16_t>& WaveFileData::getSamples() const noexcept
