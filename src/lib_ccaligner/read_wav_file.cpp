@@ -645,7 +645,7 @@ unsigned long WaveFileData::fourBytesToInt (const std::vector<unsigned char>& fi
 
 int WaveFileData::twoBytesToInt (const std::vector<unsigned char>& fileData, int index)
 {
-    // If file wasn't damaged fileData[index+1] won't be out of range
+    // Process only if samples are within range
     if(index+1 < fileData.size())
         return ((fileData[index + 1] << 8) | fileData[index]);
 
