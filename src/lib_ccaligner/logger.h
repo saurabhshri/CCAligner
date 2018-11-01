@@ -20,9 +20,6 @@ struct Dummy {};
 struct FileNotFound : public std::runtime_error {
     FileNotFound(std::string reason) noexcept : std::runtime_error(std::move(reason)) {}
 };
-struct DamagedFile : public std::runtime_error {
-	DamagedFile(std::string reason) noexcept : std::runtime_error(std::move(reason)) {}
-};
 struct InvalidParameters : public std::runtime_error {
     InvalidParameters(std::string reason) noexcept : std::runtime_error(std::move(reason)) {}
 };
