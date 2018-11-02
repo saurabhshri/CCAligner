@@ -16,9 +16,11 @@ TEST(twoBytesToIntTest, WrongIndex){
 	ASSERT_EQ(twoBytesToInt([1,2,3,4], 10), -1);
 }
 
-// Trying to get index which is in possible range
+// Trying to get index which is in possible rang
+// Processed input data manualy to get right results(257, 770, 1027)
 TEST(twoBytesToIntTest, RightIndex){
-	ASSERT_NE(twoBytesToInt([1, 1], 0), -1);
-	ASSERT_NE(twoBytesToInt([1, 2, 3, 4, 5], 1), -1);
-	ASSERT_NE(twoBytesToInt([1,2,3,4], 2), -1);
+	
+	ASSERT_EQ(twoBytesToInt([1, 1], 0), 257);
+	ASSERT_EQ(twoBytesToInt([1, 2, 3, 4, 5], 1), 770);
+	ASSERT_EQ(twoBytesToInt([1,2,3,4], 2), 1027);
 }
