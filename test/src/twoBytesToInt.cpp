@@ -10,15 +10,15 @@ TEST(twoBytesToIntTest, EmptyVector){
 }
 
 // Trying to get index which isn't in possible range
-TEST(twoBytesToIntTest, WrongIndex){
+TEST(twoBytesToIntTest, InvalidIndex){
 	ASSERT_EQ(twoBytesToInt(['W', 'Q'], 3), -1);
 	ASSERT_EQ(twoBytesToInt(['O'], 1), -1);
 	ASSERT_EQ(twoBytesToInt(['F','G','A','Q'], 10), -1);
 }
 
-// Trying to get index which is in possible rang
+// Trying to get index which is in possible range
 // Processed input data manualy to get right results from real samples
-TEST(twoBytesToIntTest, RightIndex){
+TEST(twoBytesToIntTest, ValidIndex){
 	int index = {20, 22, 32};
 	int results_processed_manually = {1, 1, 2};
 	ASSERT_EQ(twoBytesToInt(['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' '], index[0]), results_processed_manually[0]);
