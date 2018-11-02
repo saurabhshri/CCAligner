@@ -11,15 +11,17 @@ TEST(twoBytesToIntTest, EmptyVector){
 
 // Trying to get index which isn't in possible range
 TEST(twoBytesToIntTest, WrongIndex){
-	ASSERT_EQ(twoBytesToInt([1, 1], 3), -1);
-	ASSERT_EQ(twoBytesToInt([1], 1), -1);
-	ASSERT_EQ(twoBytesToInt([1,2,3,4], 10), -1);
+	ASSERT_EQ(twoBytesToInt(['W', 'Q'], 3), -1);
+	ASSERT_EQ(twoBytesToInt(['O'], 1), -1);
+	ASSERT_EQ(twoBytesToInt(['F','G','A','Q'], 10), -1);
 }
 
 // Trying to get index which is in possible rang
 // Processed input data manualy to get right results from real samples
 TEST(twoBytesToIntTest, RightIndex){
-	ASSERT_EQ(twoBytesToInt(['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' '], 20), 1);
-	ASSERT_EQ(twoBytesToInt(['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' ','',' ','Ђ','>',' ',' ',' ','}',' ',' ','',' '], 22), 1);
-	ASSERT_EQ(twoBytesToInt([['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' ','',' ','Ђ','>',' ',' ',' ','}',' ',' ','',' '], 32), 2);
+	int index = {20, 22, 32};
+	int results_processed_manually = {1, 1, 2};
+	ASSERT_EQ(twoBytesToInt(['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' '], index[0]), results_processed_manually[0]);
+	ASSERT_EQ(twoBytesToInt(['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' ','',' ','Ђ','>',' ',' ',' ','}',' ',' ','',' '], index[1]), results_processed_manually[0]);
+	ASSERT_EQ(twoBytesToInt([['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' ','',' ','Ђ','>',' ',' ',' ','}',' ',' ','',' '], index[2]), results_processed_manually[0]);
 }
