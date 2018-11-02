@@ -640,12 +640,21 @@ bool WaveFileData::read()   //decided the function based on set mode
 
 unsigned long WaveFileData::fourBytesToInt (const std::vector<unsigned char>& fileData, int index)
 {
-    return ((fileData[index + 3] << 24) | (fileData[index + 2] << 16) | (fileData[index + 1] << 8) | fileData[index]);
+    // Process only if samples are within range
+    if(index+3 < fileData.size())
+        return ((fileData[index + 3] << 24) | (fileData[index + 2] << 16) | (fileData[index + 1] << 8) | fileData[index]);
+
+    FATAL(InvalidFile) << "Tried accessing samples out of bounds.";
 }
 
 int WaveFileData::twoBytesToInt (const std::vector<unsigned char>& fileData, int index)
 {
-    return ((fileData[index + 1] << 8) | fileData[index]);
+    // Process only if samples are within range
+    if(index+1 < fileData.size())
+        return ((fileData[index + 1] << 8) | fileData[index]);
+
+    // If file was damaged
+    FATAL(InvalidFile) << "Tried accessing samples out of bounds.";
 }
 
 const std::vector<int16_t>& WaveFileData::getSamples() const noexcept
