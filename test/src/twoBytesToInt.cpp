@@ -22,6 +22,6 @@ TEST(twoBytesToIntTest, RightIndex){
 	int index = {20, 22, 32};
 	int results_processed_manually = {1, 1, 2};
 	ASSERT_EQ(twoBytesToInt(['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' '], index[0]), results_processed_manually[0]);
-	ASSERT_EQ(twoBytesToInt(['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' ','',' ','Ђ','>',' ',' ',' ','}',' ',' ','',' '], index[1]), results_processed_manually[0]);
-	ASSERT_EQ(twoBytesToInt([['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' ','',' ','Ђ','>',' ',' ',' ','}',' ',' ','',' '], index[2]), results_processed_manually[0]);
+	ASSERT_EQ(twoBytesToInt(['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' ','',' ','Ђ','>',' ',' ',' ','}',' ',' ','',' '], index[1]), results_processed_manually[1]);
+	ASSERT_EQ(twoBytesToInt([['R','I','F','F','l','/','',' ','W','A','V','E','f','m','t',' ','',' ',' ',' ','',' ','',' ','Ђ','>',' ',' ',' ','}',' ',' ','',' '], index[2]), results_processed_manually[2]);
 }
