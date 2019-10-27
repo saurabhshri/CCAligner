@@ -34,6 +34,9 @@ bool WaveFileData::checkValidWave (const std::vector<unsigned char>& fileData)
      */
 
     DEBUG << "Checking chunkID, should be RIFF";
+    // If file is empty or /dev/null
+    if (fileData.size() < 5)
+        FATAL(InvalidFile) << "File seems to be empty";
     std::string chunkID (fileData.begin(), fileData.begin() + 4);
     return chunkID == "RIFF";
 
